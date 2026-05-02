@@ -12,6 +12,7 @@ import type { MetricaTendencia } from "@/components/ui/TrendBadge";
 import { useHomeSlider } from "@/hooks/useHomeSlider";
 import type { NewsItem, HomeSliderProps } from "@/types/home-slider";
 import { fmtCOP, fmtNum, fmtFull } from "@/lib/format";
+import { polarToCartesian, describeArc } from "@/lib/svg-math";
 
 // ─── Config ────────────────────────────────────────────────────────────────────
 const SLIDE_INTERVAL_MS = 8000;
@@ -306,18 +307,6 @@ function DualGaugeSparklines({ embalsesPct, aportesPct, sparklines }: {
   aportesPct: number | null;
   sparklines: { embalses: Array<{ x: string; y: number }>; aportes: Array<{ x: string; y: number }> };
 }) {
-  // Gauge helpers
-  const polarToCartesian = (cx: number, cy: number, r: number, angle: number) => {
-    const rad = ((angle - 180) * Math.PI) / 180;
-    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
-  };
-  const describeArc = (cx: number, cy: number, r: number, startAngle: number, endAngle: number) => {
-    const start = polarToCartesian(cx, cy, r, endAngle);
-    const end = polarToCartesian(cx, cy, r, startAngle);
-    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-    return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
-  };
-
   const embColor = embalsesPct < 50 ? "#EF4444" : embalsesPct < 60 ? "#F97316" : embalsesPct < 70 ? "#F59E0B" : embalsesPct < 80 ? "#06B6D4" : "#22C55E";
   const apoColor = aportesPct === null ? "#94A3B8" : aportesPct < 80 ? "#EF4444" : aportesPct < 100 ? "#F59E0B" : "#22C55E";
 
