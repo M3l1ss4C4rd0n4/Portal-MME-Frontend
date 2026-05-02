@@ -176,7 +176,7 @@ Documental:
 ### Caso 4: Borrado de PROPUESTA_MAESTRA.md (Fase 1)
 **ERROR:** Agente eliminó `PROPUESTA_MAESTRA.md` (1356 líneas) durante limpieza de `.md` basura, pensando que era "otro artefacto de agente".
 
-**RAÍZ:** El archivo estaba en ubicación canónica (`documentacion-tecnica/`) pero el test de 5 preguntas no incluía "¿Está este archivo en la ubicación canónica?".
+**RAÍZ:** El archivo estaba en ubicación canónica (`portal-direccion-mme/PROPUESTA_MAESTRA.md`) pero el test de 5 preguntas no incluía "¿Está este archivo en la ubicación canónica?".
 
 **DETECCIÓN:** El humano notó el borrado. Se restauró desde copia residual.
 
