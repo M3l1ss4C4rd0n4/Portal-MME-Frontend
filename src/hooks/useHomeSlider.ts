@@ -1,17 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-
-interface NewsItem {
-  titulo?: string;
-  title?: string;
-  resumen?: string;
-  fuente?: string;
-  url?: string;
-  imagen?: string;
-  image?: string;
-  fecha?: string;
-}
+import type { NewsItem } from "@/types/home-slider";
 
 const SLIDE_INTERVAL_MS = 8000;
 

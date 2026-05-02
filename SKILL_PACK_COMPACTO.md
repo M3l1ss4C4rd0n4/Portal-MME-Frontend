@@ -27,6 +27,7 @@ COUNT coincide  tsc --noEmit     path conecta      "seguramente"
 | 4 | NO SQL dinámico sin pasar por `sql_validator.py` | 🔴 |
 | 5 | NO exponer secrets en variables `NEXT_PUBLIC_*` | 🔴 |
 | 6 | NO eliminar archivos sin `grep -r` + `git log` | 🟡 |
+| 6b | NO eliminar `.md` en ubicación canónica (Skill 11.3) sin confirmación humana | 🟡 |
 | 7 | NO cambiar schema DB sin snapshot previo (`verify_table.py`) | 🟡 |
 | 8 | NO tocar `.service` systemd sin `systemctl status` + backup | 🟡 |
 | 9 | NO tocar ETL en Celery Beat sin dry-run en tabla de prueba | 🟡 |
@@ -81,6 +82,8 @@ ANTES de crear CUALQUIER `.md`:
 3. ¿Es del estado ACTUAL del proyecto? → NO = commit message
 4. ¿Un dev que no participó lo necesitaría? → NO = contexto de sesión
 5. ¿Pasa el test de categoría? → Estado/Procedimiento/Arquitectura = OK. Otra cosa = NO crear.
+
+**REGLA EXTRA — Eliminación:** Antes de eliminar CUALQUIER `.md`, verificar que no está listado en la ubicación canónica del proyecto (Skill 11.3 / AGENTS.md). Si está ahí, NO eliminar. Solo el humano puede decidir eliminar un archivo canónico.
 
 ---
 
@@ -168,6 +171,17 @@ Documental:
 **RESULTADO:** 23 archivos limpiados, 177 líneas eliminadas. Build sin regresión.
 
 **LECCIÓN:** `__init__.py` = aggregators de imports, no documentación. Docstrings generan ruido en análisis estructural.
+
+### Caso 4: Borrado de PROPUESTA_MAESTRA.md (Fase 1)
+**ERROR:** Agente eliminó `PROPUESTA_MAESTRA.md` (1356 líneas) durante limpieza de `.md` basura, pensando que era "otro artefacto de agente".
+
+**RAÍZ:** El archivo estaba en ubicación canónica (`documentacion-tecnica/`) pero el test de 5 preguntas no incluía "¿Está este archivo en la ubicación canónica?".
+
+**DETECCIÓN:** El humano notó el borrado. Se restauró desde copia residual.
+
+**IMPACTO:** Pérdida temporal del roadmap maestro. Recuperable por backup, pero sin copia residual habrían sido 1356 líneas de contexto perdidas.
+
+**LECCIÓN:** NUNCA eliminar un `.md` que esté en ubicación canónica sin confirmación explícita del humano. Agregar verificación de ubicación canónica al test de eliminación.
 
 ---
 
