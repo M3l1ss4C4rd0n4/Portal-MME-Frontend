@@ -47,6 +47,30 @@ export const NIVO_LIGHT = {
   },
 };
 
+/** Tema Nivo optimizado para el slider oscuro (fontSize reducido a 9) */
+export const NIVO_SLIDER = {
+  background: "transparent" as const,
+  text: { fill: "#94A3B8", fontSize: 10 },
+  tooltip: {
+    container: {
+      background: "#1E293B",
+      border: "1px solid #334155",
+      borderRadius: "8px",
+      color: "#E2E8F0",
+      fontSize: "12px",
+    },
+  },
+  grid: { line: { stroke: "#1A2740", strokeWidth: 1 } },
+  axis: {
+    domain: { line: { stroke: "#2A3D5A" } },
+    ticks: {
+      line: { stroke: "#2A3D5A" },
+      text: { fill: "#64748B", fontSize: 9 },
+    },
+    legend: { text: { fill: "#94A3B8", fontSize: 9 } },
+  },
+};
+
 /**
  * Obtiene el tema Nivo según el modo oscuro/claro
  * @param isDark - true para modo oscuro, false para modo claro
