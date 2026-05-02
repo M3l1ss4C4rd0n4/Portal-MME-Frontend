@@ -12,7 +12,7 @@ import type { MetricaTendencia } from "@/components/ui/TrendBadge";
 import { useHomeSlider } from "@/hooks/useHomeSlider";
 import type { NewsItem, HomeSliderProps } from "@/types/home-slider";
 import { fmtCOP, fmtNum, fmtFull } from "@/lib/format";
-import { polarToCartesian, describeArc } from "@/lib/svg-math";
+
 import {
   estadoReservas,
   estadoAportes,
@@ -22,6 +22,12 @@ import {
   estadoGeneracion,
   diagnosticoSIN,
 } from "@/lib/kpi-logic";
+import {
+  KpiBlock,
+  HydroKpiBlock,
+  StatusChip,
+  DualGaugeSparklines,
+} from "@/components/kpi";
 
 // ─── Config ────────────────────────────────────────────────────────────────────
 const SLIDE_INTERVAL_MS = 8000;
@@ -44,60 +50,6 @@ const slideVariants = {
   }),
 };
 
-// ─── KPI Block (reutilizable) ──────────────────────────────────────────────────
-function KpiBlock({
-  label, value, unit, date, valueClass = "text-amber-400", large = false,
-  chipLabel, chipColor, tendencia, metrica,
-}: {
-  label: string;
-  value: React.ReactNode;
-  unit?: string;
-  date?: string | null;
-  valueClass?: string;
-  large?: boolean;
-  chipLabel?: string;
-  chipColor?: string;
-  tendencia?: MetricaTendencia | null;
-  metrica?: "precio" | "generacion" | "embalses" | "aportes" | "valor";
-}) {
-  // Calcular tamaño dinámico basado en longitud del valor
-  const strLen = typeof value === 'string' || typeof value === 'number' ? String(value).length : 12;
-  let fontClass: string;
-  
-  if (strLen <= 8) {
-    fontClass = "text-4xl xl:text-5xl 2xl:text-6xl";
-  } else if (strLen <= 12) {
-    fontClass = "text-3xl xl:text-4xl 2xl:text-5xl";
-  } else if (strLen <= 18) {
-    fontClass = "text-2xl xl:text-3xl 2xl:text-4xl";
-  } else {
-    fontClass = "text-lg xl:text-xl 2xl:text-2xl";
-  }
-
-  return (
-    <div className="flex flex-col items-center justify-center text-center gap-0.5 px-4">
-      <p className="text-slate-400 text-lg xl:text-xl 2xl:text-2xl uppercase tracking-[0.2em] font-medium">
-        {label}
-      </p>
-      <div
-        className={`inline-flex items-center gap-2 font-black leading-none break-all ${valueClass} ${fontClass}`}
-        style={tendencia && tendencia.label !== "S/D" ? { color: getTrendColor(tendencia, metrica ?? "valor") } : undefined}
-      >
-        {value}
-        <TrendArrow tendencia={tendencia} metrica={metrica} />
-      </div>
-      {(unit || date) && (
-        <p className="text-slate-400 text-xs xl:text-sm 2xl:text-base mt-0.5">
-          {unit}
-          {unit && date && " · "}
-          {date && `Dato: ${date}`}
-        </p>
-      )}
-      <TrendBadge tendencia={tendencia} metrica={metrica} />
-      {chipLabel && chipColor && <StatusChip label={chipLabel} color={chipColor} />}
-    </div>
-  );
-}
 
 // ─── Slide decoration helpers ──────────────────────────────────────────────────
 function TopAccent({ color }: { color: string }) {
@@ -157,146 +109,7 @@ const NIVO_SLIDER = {
   },
 };
 
-// ─── StatusChip: sub-ficha de estado ──────────────────────────────────────────
-function StatusChip({ label, color }: { label: string; color: string }) {
-  return (
-    <div
-      className="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] xl:text-xs font-bold tracking-wider uppercase"
-      style={{ background: `${color}22`, border: `1px solid ${color}55`, color }}
-    >
-      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: color }} />
-      {label}
-    </div>
-  );
-}
 
-// ─── HydroKpiBlock: columna estilo XM para embalses/aportes ───────────────────
-function HydroKpiBlock({
-  label, pct, pctColor,
-  gwh, gwhRef, gwhRefLabel,
-  dailyGwh, dailyHistGwh,
-  date, chipLabel, chipColor, tendencia, metrica,
-}: {
-  label: string;
-  pct: number;
-  pctColor: string;
-  gwh?: number | null;
-  gwhRef?: number | null;
-  gwhRefLabel?: string;
-  dailyGwh?: number | null;
-  dailyHistGwh?: number | null;
-  date?: string | null;
-  chipLabel?: string;
-  chipColor?: string;
-  tendencia?: MetricaTendencia | null;
-  metrica?: "precio" | "generacion" | "embalses" | "aportes" | "valor";
-}) {
-  const fmt = (v: number) => v.toLocaleString("es-CO", { maximumFractionDigits: 1 });
-  // Usar el mismo tamaño que KpiBlock para uniformidad
-  const fontClass = "text-4xl xl:text-5xl 2xl:text-6xl";
-  return (
-    <div className="flex flex-col items-center justify-center text-center gap-0.5 px-3">
-      <p className="text-slate-400 text-base xl:text-lg 2xl:text-xl uppercase tracking-[0.18em] font-medium">
-        {label}
-      </p>
-      <div
-        className={`inline-flex items-center gap-2 ${fontClass} font-black leading-none ${pctColor}`}
-        style={tendencia && tendencia.label !== "S/D" ? { color: getTrendColor(tendencia, metrica ?? "valor") } : undefined}
-      >
-        {pct.toFixed(2)}%
-        <TrendArrow tendencia={tendencia} metrica={metrica} />
-      </div>
-      {gwh != null && (
-        <p className="text-slate-300 text-xs xl:text-sm font-semibold mt-0.5">
-          {fmt(gwh)} GWh
-          {gwhRef != null && (
-            <span className="text-slate-500 font-normal"> · {gwhRefLabel ?? "ref."} {fmt(gwhRef)} GWh</span>
-          )}
-        </p>
-      )}
-      {dailyGwh != null ? (
-        <p className="text-slate-500 text-[10px] xl:text-xs">
-          {date ?? "hoy"}: {fmt(dailyGwh)} GWh
-          {dailyHistGwh != null && (
-            <span className="text-slate-600"> · media {fmt(dailyHistGwh)} GWh</span>
-          )}
-        </p>
-      ) : (
-        date && <p className="text-slate-500 text-[10px] xl:text-xs">{date}</p>
-      )}
-      <TrendBadge tendencia={tendencia} metrica={metrica} />
-      {chipLabel && chipColor && <StatusChip label={chipLabel} color={chipColor} />}
-    </div>
-  );
-}
-
-// ─── Dual Gauge + Sparklines (Embalses + Aportes) ──────────────────────────────
-function DualGaugeSparklines({ embalsesPct, aportesPct, sparklines }: {
-  embalsesPct: number;
-  aportesPct: number | null;
-  sparklines: { embalses: Array<{ x: string; y: number }>; aportes: Array<{ x: string; y: number }> };
-}) {
-  const embColor = embalsesPct < 50 ? "#EF4444" : embalsesPct < 60 ? "#F97316" : embalsesPct < 70 ? "#F59E0B" : embalsesPct < 80 ? "#06B6D4" : "#22C55E";
-  const apoColor = aportesPct === null ? "#94A3B8" : aportesPct < 80 ? "#EF4444" : aportesPct < 100 ? "#F59E0B" : "#22C55E";
-
-  // Sparkline helper
-  const MiniSpark = ({ data, color, height = 28 }: { data: Array<{ x: string; y: number }>; color: string; height?: number }) => {
-    if (data.length < 2) return <div className="h-[28px]" />;
-    const vals = data.map(d => d.y);
-    const min = Math.min(...vals);
-    const max = Math.max(...vals);
-    const pad = 2;
-    const w = 100;
-    const h = height;
-    const range = max - min || 1;
-    const points = data.map((d, i) => {
-      const x = pad + (i / (data.length - 1)) * (w - pad * 2);
-      const y = h - pad - ((d.y - min) / range) * (h - pad * 2);
-      return `${x},${y}`;
-    }).join(" ");
-    return (
-      <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-[28px]" preserveAspectRatio="none">
-        <polyline fill="none" stroke={color} strokeWidth="1.5" points={points} strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx={points.split(" ").pop()?.split(",")[0]} cy={points.split(" ").pop()?.split(",")[1]} r="2" fill={color} />
-      </svg>
-    );
-  };
-
-  return (
-    <div className="flex flex-col h-full">
-      <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Reservas y Aportes · Estado Actual</p>
-      <div className="flex-1 flex gap-2">
-        {/* Embalses Gauge */}
-        <div className="flex-1 flex flex-col items-center">
-          <div className="relative w-full aspect-[2/1]">
-            <svg viewBox="0 0 120 65" className="w-full h-full">
-              {/* Background arc */}
-              <path d={describeArc(60, 60, 50, 0, 180)} fill="none" stroke="#1E293B" strokeWidth="10" strokeLinecap="round" />
-              {/* Value arc */}
-              <path d={describeArc(60, 60, 50, 0, (embalsesPct / 100) * 180)} fill="none" stroke={embColor} strokeWidth="10" strokeLinecap="round" />
-              {/* Center text */}
-              <text x="60" y="52" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold">{embalsesPct.toFixed(1)}%</text>
-              <text x="60" y="62" textAnchor="middle" fill="#94A3B8" fontSize="7">Embalses</text>
-            </svg>
-          </div>
-          <MiniSpark data={sparklines.embalses} color={embColor} />
-        </div>
-        {/* Aportes Gauge */}
-        <div className="flex-1 flex flex-col items-center">
-          <div className="relative w-full aspect-[2/1]">
-            <svg viewBox="0 0 120 65" className="w-full h-full">
-              <path d={describeArc(60, 60, 50, 0, 180)} fill="none" stroke="#1E293B" strokeWidth="10" strokeLinecap="round" />
-              <path d={describeArc(60, 60, 50, 0, ((aportesPct ?? 0) / 100) * 180)} fill="none" stroke={apoColor} strokeWidth="10" strokeLinecap="round" />
-              <text x="60" y="52" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold">{aportesPct !== null ? `${aportesPct.toFixed(1)}%` : "—"}</text>
-              <text x="60" y="62" textAnchor="middle" fill="#94A3B8" fontSize="7">Aportes</text>
-            </svg>
-          </div>
-          <MiniSpark data={sparklines.aportes} color={apoColor} />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── Slide 1: Gestión del Sector ───────────────────────────────────────────────
 function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; detalle?: HomeSliderProps["sectorDetalle"] }) {
