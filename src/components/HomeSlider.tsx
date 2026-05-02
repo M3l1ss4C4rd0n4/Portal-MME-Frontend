@@ -11,21 +11,10 @@ import { TrendBadge, TrendArrow, getTrendColor } from "@/components/ui/TrendBadg
 import type { MetricaTendencia } from "@/components/ui/TrendBadge";
 import { useHomeSlider } from "@/hooks/useHomeSlider";
 import type { NewsItem, HomeSliderProps } from "@/types/home-slider";
-
-// ─── Helpers ───────────────────────────────────────────────────────────────────
-const fmtCOP = (v: number) => `$ ${Math.round(v).toLocaleString("es-CO")}`;
+import { fmtCOP, fmtNum, fmtFull } from "@/lib/format";
 
 // ─── Config ────────────────────────────────────────────────────────────────────
 const SLIDE_INTERVAL_MS = 8000;
-
-// ─── Formatters ────────────────────────────────────────────────────────────────
-
-function fmtNum(v: number) {
-  return Math.round(v).toLocaleString("es-CO");
-}
-function fmtFull(v: number) {
-  return `$ ${Math.round(v).toLocaleString("es-CO")}`;
-}
 
 // ─── Animation variants ────────────────────────────────────────────────────────
 const slideVariants = {
