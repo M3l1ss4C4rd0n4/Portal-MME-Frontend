@@ -1,0 +1,255 @@
+@import "tailwindcss";
+
+/* ========================================
+   THEME VARIABLES
+   ======================================== */
+:root {
+  /* Dark mode (blue-navy) — default */
+  --bg-primary: #060B14;
+  --bg-secondary: #0D1627;
+  --bg-tertiary: #1A2740;
+  --bg-hover: rgba(255, 255, 255, 0.04);
+
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  
+  --border-primary: #1E2D44;
+  --border-secondary: #2A3D5A;
+  --card-border: rgba(245, 158, 11, 0.15);
+
+  --color-gold: #E8A838;
+  --color-gold-light: #F5C158;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-danger: #EF4444;
+}
+
+/* Light mode */
+html.light {
+  --bg-primary: #EEF2F9;
+  --bg-secondary: #FFFFFF;
+  --bg-tertiary: #E2E8F4;
+  --bg-hover: rgba(0, 0, 0, 0.04);
+
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+
+  --border-primary: #CBD5E1;
+  --border-secondary: #E2E8F0;
+  --card-border: #CBD5E1;
+}
+
+/* ========================================
+   BASE STYLES
+   ======================================== */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-secondary);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold);
+}
+
+::selection {
+  background: var(--color-gold);
+  color: var(--bg-primary);
+}
+
+/* ========================================
+   COMPONENT CLASSES USING CSS VARIABLES
+   ======================================== */
+
+/* Background colors */
+.bg-theme-primary { background-color: var(--bg-primary); }
+.bg-theme-secondary { background-color: var(--bg-secondary); }
+.bg-theme-tertiary { background-color: var(--bg-tertiary); }
+.bg-theme-hover { background-color: var(--bg-hover); }
+
+/* Text colors */
+.text-theme-primary { color: var(--text-primary); }
+.text-theme-secondary { color: var(--text-secondary); }
+.text-theme-muted { color: var(--text-muted); }
+
+/* Border colors */
+.border-theme-primary { border-color: var(--border-primary); }
+.border-theme-secondary { border-color: var(--border-secondary); }
+.border-theme-gold { border-color: rgba(232, 168, 56, 0.3); }
+.border-theme-card { border-color: var(--card-border); }
+
+/* Accent colors */
+.text-gold { color: var(--color-gold); }
+.text-gold-light { color: var(--color-gold-light); }
+.bg-gold { background-color: var(--color-gold); }
+.bg-gold-10 { background-color: rgba(232, 168, 56, 0.1); }
+.bg-gold-5 { background-color: rgba(232, 168, 56, 0.05); }
+.border-gold-20 { border-color: rgba(232, 168, 56, 0.2); }
+.border-gold-10 { border-color: rgba(232, 168, 56, 0.1); }
+
+.text-success { color: var(--color-success); }
+.bg-success-10 { background-color: rgba(16, 185, 129, 0.1); }
+.border-success-20 { border-color: rgba(16, 185, 129, 0.2); }
+
+.text-warning { color: var(--color-warning); }
+.text-danger { color: var(--color-danger); }
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+.glass {
+  background: rgba(6, 11, 20, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+html.light .glass {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* Dashboard chip/inner element background helper */
+.bg-dash-chip {
+  background-color: var(--bg-tertiary);
+}
+
+/* Nivo custom tooltip */
+.nt {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-primary);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+}
+
+.text-gradient-gold {
+  background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-gold-light) 50%, var(--color-gold) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.grid-pattern {
+  background-image: 
+    linear-gradient(to right, var(--color-gold) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-gold) 1px, transparent 1px);
+  background-size: 60px 60px;
+  opacity: 0.02;
+}
+
+/* Animations */
+@keyframes pulseGold {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-pulse-gold {
+  animation: pulseGold 2s ease-in-out infinite;
+}
+
+/* Focus states */
+*:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.02em;
+}
+
+/* ========================================
+   LEAFLET MAP STYLES
+   ======================================== */
+.leaflet-container {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.leaflet-popup-content {
+  margin: 0;
+}
+
+.leaflet-container a.leaflet-popup-close-button {
+  color: #6B7280;
+  padding: 8px;
+  font-size: 18px;
+}
+
+.leaflet-container a.leaflet-popup-close-button:hover {
+  color: #1F2937;
+}
+
+/* Dark mode map styles */
+html.dark .leaflet-container {
+  filter: brightness(0.85) contrast(1.1);
+}
+
+html.dark .leaflet-popup-content-wrapper {
+  background: #1A1A2E;
+  color: white;
+}
+
+html.dark .leaflet-popup-tip {
+  background: #1A1A2E;
+}
+
+/* Custom popup styles */
+.custom-popup .leaflet-popup-content-wrapper {
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+/* ========================================
+   NIVO CHARTS TOOLTIP STYLES
+   ======================================== */
+.nivo-tooltip {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 12px;
+}
+
+html.dark .nivo-tooltip {
+  background: #1A1A2E;
+  border: 1px solid #374151;
+}
+
+/* ========================================
+   RESPONSIVE UTILITIES
+   ======================================== */
+@media (max-width: 640px) {
+  .leaflet-popup-content {
+    max-width: 280px;
+  }
+}

@@ -1,0 +1,9 @@
+# Permite al usuario admonctrlxm recargar y testear nginx sin contraseña
+# Esto es necesario para que el script deploy.sh funcione sin intervención humana
+# Instalación: sudo cp nginx/sudoers-nginx /etc/sudoers.d/portal-nginx
+#              sudo chmod 440 /etc/sudoers.d/portal-nginx
+
+admonctrlxm ALL=(ALL) NOPASSWD: /usr/sbin/nginx -t
+admonctrlxm ALL=(ALL) NOPASSWD: /usr/bin/systemctl reload nginx
+admonctrlxm ALL=(ALL) NOPASSWD: /usr/bin/systemctl status nginx
+admonctrlxm ALL=(ALL) NOPASSWD: /usr/bin/certbot *

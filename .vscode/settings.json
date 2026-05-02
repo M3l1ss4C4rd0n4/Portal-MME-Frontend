@@ -1,0 +1,15 @@
+{
+    "python.defaultInterpreterPath": "/home/admonctrlxm/server/venv/bin/python",
+    "python.analysis.extraPaths": [
+        "/home/admonctrlxm/server/venv/lib/python3.12/site-packages"
+    ],
+    "python.analysis.venvPath": "/home/admonctrlxm/server",
+    "python.analysis.venv": "venv",
+    "chat.tools.terminal.autoApprove": {
+        "/^cd /home/admonctrlxm/server && source venv/bin/activate && python app\\.py 2>&1 \\| head -50$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    },
+    "chat.agent.maxRequests": 100
+}

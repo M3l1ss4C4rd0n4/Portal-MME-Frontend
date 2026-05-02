@@ -1,0 +1,73 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# Graphify cache (regenerado automaticamente con `graphify update .`)
+graphify-out/cache/
+# Claude Code session data
+.claude/
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Build artifacts
+dist.bak/
+dist/
+_next/
+
+# Next.js RSC payloads y archivos generados (export estático)
+__next.*.txt
+**/__next.*.txt
+**/index.html
+**/index.txt
+404.html
+index.html
+index.txt
+
+# Imágenes y fuentes públicas generadas (no rastrear binarios)
+public/images/
+**/*.woff2
+**/*.woff
+
+# Logs
+logs/
+
+# Exceptuar logos SVG (manuales)
+!public/images/logos/
+!public/images/logos/*.svg
+informes del mes/venv/

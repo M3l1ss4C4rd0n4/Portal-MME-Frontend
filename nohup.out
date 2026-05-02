@@ -1,0 +1,6 @@
+11:36:22 | INFO     | xm_helper | Iniciando conexión a API XM...
+11:36:22 | INFO     | xm_helper | ✅ pydataxm ReadDB inicializada correctamente
+11:36:24 | INFO     | domain.services.cu_service | [CU_SERVICE] Inicializado — T=8.5, D=35.0, C=12.0, factor_perd_dist=0.085
+11:36:24 | INFO     | domain.services.losses_nt_service | [LOSSES_NT_SERVICE] Inicializado (factor_dist=0.085, factor_sdl_total=0.120)
+11:36:24 | INFO     | domain.services.cu_service | [CU_SERVICE] Inicializado — T=8.5, D=35.0, C=12.0, factor_perd_dist=0.085
+11:36:24 | INFO     | infrastructure.cache.redis_client | [REDIS] Conexión establecida — localhost:6379/0
