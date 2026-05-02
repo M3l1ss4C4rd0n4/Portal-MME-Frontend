@@ -32,6 +32,7 @@ COUNT coincide  tsc --noEmit     path conecta      "seguramente"
 | 8 | NO tocar `.service` systemd sin `systemctl status` + backup | 🟡 |
 | 9 | NO tocar ETL en Celery Beat sin dry-run en tabla de prueba | 🟡 |
 | 10 | NO crear archivo resultado >500 líneas | 🟡 |
+| 11 | NO hacer `npm run build` en prod sin plan de restart PM2 inmediato | 🔴 |
 
 ---
 
@@ -182,6 +183,26 @@ Documental:
 **IMPACTO:** Pérdida temporal del roadmap maestro. Recuperable por backup, pero sin copia residual habrían sido 1356 líneas de contexto perdidas.
 
 **LECCIÓN:** NUNCA eliminar un `.md` que esté en ubicación canónica sin confirmación explícita del humano. Agregar verificación de ubicación canónica al test de eliminación.
+
+### Caso 5: Asset Mismatch — Build sin restart PM2 (Fase 2)
+**ERROR:** Después de `npm run build`, el portal mostró "This page couldn't load" en navegador. El proceso PM2 tenía 15h de uptime — nunca se reinició con el nuevo build.
+
+**RAÍZ:** Next.js sirve HTML desde memoria del proceso viejo, pero los chunks estáticos en `.next/static/` fueron sobrescritos por el nuevo build. El HTML viejo referenciaba chunks que ya no existían en disco (o viceversa), causando fallo de carga.
+
+**DETECCIÓN (N1):** `curl localhost:3001` funcionaba (proceso viejo en memoria). `curl https://...` también devolvía 200. El error era intermitente o dependía del navegador. PM2 restart resolvió.
+
+**IMPACTO:** Usuarios con cache limpia o hard-refresh recibían página en blanco o error de carga.
+
+**LECCIÓN:** Cualquier `npm run build` en producción DEBE ir seguido de `pm2 restart [app]` inmediatamente. El build y el deploy son una operación atómica.
+
+**FLUJO SEGURO:**
+```bash
+npm run build          # Genera .next/
+pm run build 2>&1 | tail -3   # Verifica que pasa
+curl -s http://localhost:3001/ | head -1   # Verifica local (antes de restart)
+pm2 restart portal-mme # Aplica nuevo build
+curl -sI https://portaldireccionee.minenergia.gov.co   # Verifica producción
+```
 
 ---
 

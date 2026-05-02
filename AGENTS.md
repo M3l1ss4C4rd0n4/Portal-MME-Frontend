@@ -333,8 +333,14 @@ for api in comunidades presupuesto contratos-or supervision subsidios; do
   echo "..."
 done
 
-# Restart PM2
+# Restart PM2 INMEDIATAMENTE después del build
+# ⚠️ Si no se reinicia, el proceso viejo en memoria servirá HTML que referencia
+# chunks estáticos de .next/static/ que fueron sobrescritos por el nuevo build,
+# causando "asset mismatch" y páginas en blanco para usuarios con cache limpia.
 pm2 restart portal-mme
+
+# Verificar que la producción responde
+curl -sI https://portaldireccionee.minenergia.gov.co | head -1
 ```
 
 ---
