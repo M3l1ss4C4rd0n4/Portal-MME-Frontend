@@ -21,6 +21,20 @@ import {
   getEmbalseEstado,
 } from "@/mocks/colombia-data";
 import { embalseDepartamento } from "@/lib/embalses-coords";
+import {
+  fetchSector,
+  fetchSectorDetalle,
+  fetchPresupuesto,
+  fetchComunidades,
+  fetchContratosOR,
+  fetchSupervision,
+  fetchSubsidios,
+  fetchSubsidiosDeficitHistorico,
+  fetchCU,
+  fetchCUEvolucion,
+  fetchValidaciones,
+  fetchFenoge,
+} from "@/services/apiService";
 
 // ─── Mapa embalses SVG (no SSR) ───────────────────────────────────────────
 const MapaEmbalsesSVG = dynamic(
@@ -359,18 +373,18 @@ export default function Home() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/sector').then(r => r.json()).catch(() => null),
-      fetch('/api/sector/detalle').then(r => r.json()).catch(() => null),
-      fetch('/api/presupuesto').then(r => r.json()).catch(() => null),
-      fetch('/api/comunidades').then(r => r.json()).catch(() => null),
-      fetch('/api/contratos-or').then(r => r.json()).catch(() => null),
-      fetch('/api/supervision').then(r => r.json()).catch(() => null),
-      fetch('/api/subsidios').then(r => r.json()).catch(() => null),
-      fetch('/api/subsidios/deficit-historico').then(r => r.json()).catch(() => null),
-      fetch('/api/cu').then(r => r.json()).catch(() => null),
-      fetch('/api/cu-evolucion').then(r => r.json()).catch(() => null),
-      fetch('/api/subsidios/validaciones').then(r => r.json()).catch(() => null),
-      fetch('/api/fenoge').then(r => r.json()).catch(() => null),
+      fetchSector().catch(() => null),
+      fetchSectorDetalle().catch(() => null),
+      fetchPresupuesto().catch(() => null),
+      fetchComunidades().catch(() => null),
+      fetchContratosOR().catch(() => null),
+      fetchSupervision().catch(() => null),
+      fetchSubsidios().catch(() => null),
+      fetchSubsidiosDeficitHistorico().catch(() => null),
+      fetchCU().catch(() => null),
+      fetchCUEvolucion().catch(() => null),
+      fetchValidaciones().catch(() => null),
+      fetchFenoge().catch(() => null),
     ]).then(([s, sd, p, c, o, sp, sb, sbh, cu, cue, val, fen]) => {
       if (s) setSectorData({
         generacionGwh: Number(s.generacionGwh ?? 0),

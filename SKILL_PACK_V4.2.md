@@ -1908,7 +1908,404 @@ NO agregar al repo. Es para análisis del humano, no documentación de proyecto.
 
 ---
 
+## META-SKILL -2: Optimización de Contexto del Agente
+
+### -2.1 Presupuesto de Contexto por Tarea
+
+Regla: El agente tiene máximo 50K tokens de contexto útil. Distribuir estratégicamente:
+
+| Componente | Tokens | Justificación |
+|---|---|---|
+| Código actual (archivos afectados) | 40% | Es lo que se está modificando |
+| diag_*.md (baseline) | 20% | Es lo que se está comparando |
+| Skills relevantes (solo los necesarios) | 20% | Es lo que guía la decisión |
+| AGENTS.md (solo reglas aplicables) | 10% | Es lo que restringe la acción |
+| Grafo (solo si es navegación) | 10% | Es lo que orienta |
+
+**PROHIBIDO:** Cargar el SKILL_PACK completo para una tarea simple.
+
+### -2.2 Selección Dinámica de Skills
+
+```
+INICIO TAREA
+    │
+    ▼
+¿Es emergencia (SEV-1/2)?
+    ├── SÍ → Cargar SOLO Skill 17 (Emergencia)
+    │
+    └── NO → ¿Es refactorización?
+              ├── SÍ → Cargar Skill 2 (Refactor) + Skill 1.3 (Ciclos)
+              │
+              └── NO → ¿Toca datos DB?
+                        ├── SÍ → Cargar Skill 9 (Data Verification)
+                        │
+                        └── NO → ¿Es investigación?
+                                  ├── SÍ → Cargar Skill 1 (Investigación)
+                                  │
+                                  └── NO → Cargar Skill 0 (CDA genérico)
+```
+
+### -2.3 Compresión de Contexto
+
+Antes de iniciar Fase 5 (TRATAR):
+
+```bash
+# Extraer solo las líneas relevantes del código
+grep -n "función_afectada\|clase_afectada" archivo.py -A20 -B5 > /tmp/relevant_code.txt
+
+# Extraer solo las métricas relevantes del baseline
+grep -E "COUNT|checksum|size" diag_*.md > /tmp/relevant_baseline.txt
+
+# Usar ESTOS archivos comprimidos en lugar de los completos
+```
+
+### -2.4 Checkpoint de Progreso
+
+Cada 15 minutos de trabajo continuo:
+
+```bash
+# Guardar estado intermedio
+echo "## Checkpoint $(date)" >> /tmp/diag_[tarea]_progress.md
+echo "- Fase actual: [X]" >> /tmp/diag_[tarea]_progress.md
+echo "- Archivos modificados: [lista]" >> /tmp/diag_[tarea]_progress.md
+echo "- Próximo paso: [qué sigue]" >> /tmp/diag_[tarea]_progress.md
+
+# Si el agente se reinicia, puede continuar desde aquí
+```
+
+---
+
+## SKILL 13: Sistema de Retroalimentación y Aprendizaje
+
+### 13.1 Registro de Decisiones con Outcome
+
+Formato obligatorio en cada diag_*.md (completar DESPUÉS de Fase 7):
+
+```markdown
+## Outcome (completar DESPUÉS de verificación)
+- Decisión: [qué se hizo]
+- Resultado: [EXITOSO / FALLIDO / PARCIAL]
+- Tiempo real vs estimado: [Xh vs Yh] (ratio: Z)
+- Sorpresas: [algo no previsto que ocurrió]
+- Lección: [qué haría diferente]
+```
+
+### 13.2 Base de Conocimiento de Errores Comunes
+
+Ubicación: `/home/admonctrlxm/portal-direccion-mme/.knowledge/errors.md`
+
+Formato:
+
+```markdown
+## Error: [Título]
+- Fecha: YYYY-MM-DD
+- Contexto: [qué se estaba haciendo]
+- Síntoma: [qué falló]
+- Causa raíz: [por qué falló]
+- Prevención: [cómo evitarlo en el futuro]
+- Peso en Jerarquía de Verdad: [ajustar si aplica]
+```
+
+**REGLA:** Después de CADA tarea con resultado FALLIDO o PARCIAL, crear o actualizar una entrada en `.knowledge/errors.md`.
+
+### 13.3 Ajuste Dinámico de Pesos
+
+Cada 10 tareas completadas, ejecutar:
+
+```bash
+# Contar aciertos por nivel de confianza
+grep -r "Resultado: EXITOSO" /tmp/diag_*.md 2>/dev/null | wc -l
+grep -r "Resultado: FALLIDO" /tmp/diag_*.md 2>/dev/null | wc -l
+
+# Si ratio de éxito < 70% en rango 0.3-0.49 → elevar umbral de investigación
+# Si ratio de éxito > 95% en rango ≥ 0.7 → confirmar que el umbral es correcto
+```
+
+**Nota:** El ajuste de pesos requiere aprobación humana. El agente solo puede RECOMENDAR ajustes, no aplicarlos.
+
+---
+
+## SKILL 14: Patrones de Dominio Energético
+
+### 14.1 Patrón: Métrica XM con Fallback
+
+Contexto: La API de XM (mercado eléctrico colombiano) es inestable.
+
+Patrón obligatorio:
+
+```typescript
+// src/services/xm-metric-service.ts
+export async function getXMMetricWithFallback(
+  metricType: XM_metric_type,
+  date: Date,
+  fallbackStrategy: 'cache' | 'proxy' | 'estimated'
+): Promise<MetricData> {
+  // 1. Intentar API real (timeout 5s)
+  // 2. Si falla → fallback según estrategia
+  // 3. Si todo falla → retornar dato estampado con quality='LOW'
+  // 4. Registrar en log de calidad de datos
+}
+```
+
+**REGLA:** Todo consumo de XM en el frontend debe pasar por este servicio. NO llamar a XM directamente desde componentes.
+
+### 14.2 Patrón: Cálculo Regulatorio Inmutable
+
+Contexto: Cálculos como pérdidas NT, costo unitario, subsidios tienen fórmulas regulatorias que NO deben cambiar sin aprobación.
+
+```typescript
+// src/services/regulatory-calculator.ts
+export class RegulatoryCalculator {
+  // Cada fórmula tiene:
+  // - Referencia a resolución CREG/SSPD
+  // - Versión de la fórmula (para auditoría)
+  // - Test de regresión con valores de referencia
+  // - Hash del cálculo para detectar cambios silenciosos
+
+  calculateLossesNT(params: LossesParams): LossesResult {
+    const result = this._formula_v2024_001(params);
+    result.formulaVersion = 'CREG-097-2024';
+    result.calculationHash = this._hashCalculation(params, result);
+    return result;
+  }
+}
+```
+
+**REGLA:** Si un cálculo regulatorio se modifica, el hash debe cambiar y los tests de regresión deben fallar hasta que se actualicen los valores de referencia.
+
+### 14.3 Patrón: Dashboard con Modo Degradado
+
+Contexto: Si un KPI crítico no tiene datos, el dashboard NO debe mostrar error. Debe mostrar modo degradado.
+
+```typescript
+// src/components/kpi/KPIWithDegradedMode.tsx
+export function KPIWithDegradedMode({ data, fallback, quality }) {
+  if (quality === 'LOW') {
+    return <DegradedKPI value={data} warning="Datos estimados" />;
+  }
+  if (!data) {
+    return <FallbackKPI {...fallback} />;
+  }
+  return <NormalKPI value={data} />;
+}
+```
+
+**REGLA:** Ningún dashboard puede lanzar error 500 por falta de datos. Siempre debe haber un fallback visual.
+
+### 14.4 Catálogo de Fuentes de Datos con SLA
+
+Ubicación: `/home/admonctrlxm/portal-direccion-mme/.knowledge/data-sources.md`
+
+```markdown
+| Fuente | SLA | Frecuencia real | Fallback | Owner |
+|---|---|---|---|---|
+| XM API | 99% | Cada 6h | Cache 24h | Equipo XM |
+| IDEAM | 95% | Diaria | NASA POWER | IDEAM |
+| OneDrive | 90% | Manual | Último archivo | MME |
+| PostgreSQL | 99.9% | Tiempo real | Dashboard offline | DBA |
+```
+
+**REGLA:** Antes de reportar "datos faltantes", verificar si la fuente está dentro de su SLA esperado.
+
+---
+
+## SKILL 15: Testing por Riesgo y Dominio
+
+### 15.1 Matriz de Cobertura Obligatoria
+
+| Tipo de componente | Riesgo base | Tests obligatorios | Ejemplo |
+|---|---|---|---|
+| API Route con SQL directo | Alto | +1 test de inyección SQL | `/api/subsidios/validaciones` |
+| Componente con Nivo | Medio | +1 test de snapshot visual | `BarChart.tsx` |
+| Servicio con cálculo regulatorio | Crítico | +1 test con valores de referencia CREG | `losses_nt_service.py` |
+| ETL en Celery Beat | Crítico | +1 test de idempotencia + 1 de rollback | `etl_todas_metricas_xm.py` |
+| Formateador (lib/) | Bajo | 0 obligatorios (opcional) | `format.ts` |
+
+### 15.2 Valores de Referencia Regulatorios
+
+Ubicación: `/home/admonctrlxm/portal-direccion-mme/.knowledge/regulatory-fixtures/`
+
+```json
+// losses_nt_fixture_2024.json
+{
+  "input": {...},
+  "expected_output": {...},
+  "resolution": "CREG-097-2024",
+  "last_validated": "2024-03-15",
+  "validated_by": "Equipo regulatorio MME"
+}
+```
+
+**REGLA:** Si un cálculo regulatorio cambia de output sin que cambie el input o la resolución, es una REGRESIÓN CRÍTICA. Escalar inmediatamente.
+
+### 15.3 Protocolo de Regresión Visual para HomeSlider
+
+```bash
+# ANTES de cualquier cambio en HomeSlider o KPIs
+npm run build
+
+# Generar screenshots de referencia (requiere playwright)
+npx playwright screenshot http://localhost:3000/ /tmp/baseline_home.png
+
+# DESPUÉS del cambio
+npx playwright screenshot http://localhost:3000/ /tmp/post_home.png
+
+# Comparar (permite 2% de diferencia por anti-aliasing)
+npx pixelmatch /tmp/baseline_home.png /tmp/post_home.png /tmp/diff.png 0.02
+
+# Si diff.png tiene contenido → REGRESIÓN VISUAL DETECTADA
+```
+
+**Nota:** Si `playwright` no está instalado, usar alternativa con `puppeteer` o screenshot manual con verificación humana.
+
+### 15.4 Tests de Carga para APIs Críticas
+
+Solo para endpoints que manejan >10K requests/día:
+
+```bash
+# Ejecutar ANTES de deploy si se modificó la API
+k6 run --vus 50 --duration 30s tests/load/api-sector.js
+# Threshold: p95 < 500ms
+```
+
+**REGLA:** Si no hay tests de carga configurados, crear un ticket (no bloquear el deploy, pero documentar la deuda técnica).
+
+---
+
+## SKILL 16: Gates de Calidad CI/CD
+
+### 16.1 Pre-commit Hooks Obligatorios
+
+Ubicación: `.husky/pre-commit`
+
+```bash
+#!/bin/bash
+# 1. Verificar que NO se modificó HomeSlider.tsx sin plan
+if git diff --cached --name-only | grep -q "HomeSlider.tsx"; then
+  if [ ! -f "/tmp/diag_homeslider_*.md" ]; then
+    echo "ERROR: HomeSlider.tsx modificado sin archivo de diagnóstico"
+    exit 1
+  fi
+fi
+
+# 2. Verificar que NO se tocó core/container.py directamente
+if git diff --cached --name-only | grep -q "core/container.py"; then
+  echo "ERROR: core/container.py modificado directamente (usar container/)"
+  exit 1
+fi
+
+# 3. Build de Next.js
+cd /home/admonctrlxm/portal-direccion-mme
+npm run build
+if [ $? -ne 0 ]; then
+  echo "ERROR: Build falló"
+  exit 1
+fi
+```
+
+**REGLA:** Los hooks pre-commit deben ejecutar en < 2 minutos. Si tardan más, son demasiado pesados y deben simplificarse.
+
+### 16.2 PR Checklist Automático
+
+Ubicación: `.github/pull_request_template.md`
+
+```markdown
+## Checklist Automático (ejecutado por CI)
+- [ ] `npm run build` pasa
+- [ ] `npx tsc --noEmit` sin errores
+- [ ] No hay modificaciones a god files sin plan
+- [ ] No hay secrets en NEXT_PUBLIC_*
+- [ ] Archivos nuevos < 500 líneas
+- [ ] Si afecta DB: snapshot con método correcto adjunto
+
+## Checklist Manual (requerido para merge)
+- [ ] diag_*.md creado si aplica
+- [ ] Verificación visual si afecta UI
+- [ ] Tests de regresión si afecta cálculos regulatorios
+```
+
+### 16.3 Deploy Gates por Severidad
+
+| Tipo de cambio | Gate adicional | Ejemplo |
+|---|---|---|
+| Cosmético (CSS) | Build OK | Cambio de color |
+| Componente nuevo | Build + Test visual | Nuevo KPI |
+| API Route | Build + curl a endpoints | Nuevo endpoint |
+| ETL | Build + dry-run en test | Modificar ETL XM |
+| DB Schema | Build + pg_dump previo + aprobación | Nueva tabla |
+
+---
+
+## SKILL 17: Protocolo de Emergencia
+
+### 17.1 Clasificación de Emergencias
+
+| Nivel | Definición | Ejemplo | Response Time |
+|---|---|---|---|
+| SEV-1 | Portal caído o datos corruptos visibles | Home en blanco, KPIs negativos | <15 min |
+| SEV-2 | Un dashboard no carga | Presupuesto sin datos | <1 hora |
+| SEV-3 | Funcionalidad degradada | Gráfica sin últimos datos | <4 horas |
+| SEV-4 | Issue cosmético | Color incorrecto | Next sprint |
+
+### 17.2 Protocolo SEV-1 (Portal Caído)
+
+```bash
+# MINUTO 0-5: Diagnóstico rápido
+pm2 status | grep portal
+curl -sI https://portaldireccionee.minenergia.gov.co | head -1
+pm2 logs portal-mme --lines 50 --nostream
+
+# MINUTO 5-10: Rollback si es cambio reciente
+git log --oneline -5
+# Si último commit es de hoy <2h → git revert
+git revert HEAD
+npm run build && pm2 restart portal-mme
+
+# MINUTO 10-15: Verificar y escalar si persiste
+curl -s http://localhost:3000/ | head -1
+# Si sigue caído → ESCALAR A HUMANO con:
+# - Timestamp
+# - Último commit exitoso
+# - Logs relevantes
+# - Comandos ejecutados
+```
+
+**REGLA:** En SEV-1, NO investigar la causa raíz. Primero restaurar servicio, luego investigar.
+
+### 17.3 Comunicación de Emergencia
+
+Formato obligatorio:
+
+```markdown
+## 🚨 SEV-[N]: [Título]
+- Hora inicio: HH:MM
+- Síntoma: [qué ve el usuario]
+- Impacto: [quién afectado, qué dashboards]
+- Acciones tomadas: [lista con timestamps]
+- Estado: [INVESTIGANDO / MITIGANDO / RESUELTO / ESCALADO]
+- Próximo paso: [qué sigue]
+- Necesito: [ayuda humana, acceso, etc.]
+```
+
+### 17.4 Post-Mortem Obligatorio
+
+Si SEV-1 o SEV-2:
+
+```markdown
+## Post-Mortem: [Fecha]
+- Resumen: [1 párrafo]
+- Timeline: [con timestamps exactos]
+- Causa raíz (5 Whys): [lista]
+- Acciones correctivas: [con DT-XXX asignados]
+- Lecciones: [para .knowledge/errors.md]
+- Métricas: [tiempo de resolución, usuarios afectados]
+```
+
+**REGLA:** El post-mortem se escribe dentro de 24h del incidente. Si no se escribe, la tarea de emergencia NO se considera cerrada.
+
+---
+
 *Skill Pack V4.2 — "Field Medic Framework"*
 *Portal Dirección MME Frontend + Backend Reference*
-*Versión: 4.2 — Triage + Timeouts + Rollback Granular + Resolución de Conflictos*
+*Versión: 4.2 — Triage + Timeouts + Rollback + Resolución de Conflictos + Optimización de Contexto*
 *Generado: 2026-05-02*

@@ -66,6 +66,7 @@ export interface SectorSnapshot {
 }
 
 export interface SectorDetalle {
+  error?: string;
   generacionPorFuente: Array<{
     id: string;
     label: string;
@@ -187,6 +188,7 @@ export interface CUData {
 }
 
 export interface CUEvolucionData {
+  error?: string;
   daily: {
     series: Array<{
       id: string;
@@ -205,7 +207,6 @@ export interface CUEvolucionData {
     cu_usuario_final: number;
     componentes: Record<string, number | null>;
   } | null;
-  error?: string;
 }
 
 export interface ValidacionesData {
@@ -214,6 +215,7 @@ export interface ValidacionesData {
 }
 
 export interface FenogeData {
+  error?: string;
   totalCes: number;
   totalKwp: number;
   totalInversion: number;
@@ -223,7 +225,6 @@ export interface FenogeData {
     count: number;
   }>;
   porMunicipio?: Record<string, Array<{ municipio: string; count: number }>>;
-  error?: string;
 }
 
 export interface NoticiasResponse {

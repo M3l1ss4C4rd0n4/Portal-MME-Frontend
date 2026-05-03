@@ -1,7 +1,7 @@
 # AGENTS.md — Portal Dirección MME
 
 > **Última actualización:** 2026-05-02
-> **Framework:** SKILL_PACK_V4.2.md (Field Medic Framework — Jerarquía de Verdad + CDA + Triage + Timeouts + Rollback Granular)
+> **Framework:** SKILL_PACK_V4.2.md (Field Medic Framework — Jerarquía de Verdad + CDA + Triage + Timeouts + Rollback Granular + Optimización de Contexto)
 > **Ubicación:** `/home/admonctrlxm/portal-direccion-mme/SKILL_PACK_V4.2.md`
 > **También:** `/home/admonctrlxm/server/SKILL_PACK_V4.2.md` (misma versión)
 
@@ -127,6 +127,10 @@ Más detalles en SKILL_PACK_V4.2.md Skill 2 (Refactorización).
 | 14 | Ejecutar tarea marcada PAUSED en roadmap → NO ejecutar | Dependencia externa no resuelta | Skill 8, regla #17 |
 | 15 | Ejecutar tarea marcada DONE en roadmap → NO ejecutar | Puede sobrescribir trabajo ya completado | Skill 8, regla #18 |
 | 16 | Ejecutar tarea marcada SKIP en roadmap → NO ejecutar | SKIP tiene una razón documentada | Skill 8, regla #19 |
+| 17 | Iniciar TRATAR sin haber escrito diag_*.md | No hay baseline para comparar post-cambio | Skill 8, regla #20 |
+| 18 | Cargar >3 skills completos en contexto simultáneamente | Agota tokens de contexto innecesariamente | Skill 8, regla #21 |
+| 19 | Modificar producción sin pasar por MONITOREAR | Cambio sin verificación de regresión | Skill 8, regla #23 |
+| 20 | Ignorar resultado de `bc` porque "no parece correcto" | Los LLMs mienten en aritmética | Skill 8, regla #24 |
 
 ---
 
@@ -267,6 +271,31 @@ Ver SKILL_PACK_V4.2.md Skill 2.1 para tabla completa de multiplicadores y factor
 
 ---
 
+## Emergencias (SEV-1/SEV-2)
+
+Si el portal está caído o un dashboard crítico no carga:
+
+```bash
+# Diagnóstico rápido (minuto 0-5)
+pm2 status | grep portal
+curl -sI https://portaldireccionee.minenergia.gov.co | head -1
+pm2 logs portal-mme --lines 50 --nostream
+
+# Rollback si cambio reciente (minuto 5-10)
+git log --oneline -5
+# Si último commit < 2h → git revert HEAD && npm run build && pm2 restart portal-mme
+
+# Verificar (minuto 10-15)
+curl -s http://localhost:3000/ | head -1
+# Si sigue caído → ESCALAR A HUMANO inmediatamente
+```
+
+Ver SKILL_PACK_V4.2.md Skill 17 para protocolo completo de emergencias.
+
+**REGLA:** En SEV-1, NO investigar causa raíz primero. Restaurar servicio, luego investigar.
+
+---
+
 ## Señales de ALTO Específicas del Frontend
 
 1. **HomeSlider.tsx modificado sin plan:** Cualquier cambio en este archivo requiere verificación visual completa del home. Skill 8, regla #1.
@@ -276,3 +305,6 @@ Ver SKILL_PACK_V4.2.md Skill 2.1 para tabla completa de multiplicadores y factor
 5. **Modificación de .env.local:** Cualquier cambio de secrets requiere `pm2 restart portal-mme --update-env` y verificación de que no hay exposición en el cliente.
 6. **Cambio en `src/app/layout.tsx` o `src/app/page.tsx`:** Estos son los entry points. Un error aquí puede dejar el portal en blanco para TODOS los usuarios.
 7. **Agregar dependencia npm sin verificar bundle size:** El bundle ya es grande. Agregar librerías pesadas puede degradar el tiempo de carga del home.
+8. **Llamada directa a API XM desde componente:** Todo consumo de XM debe pasar por `xm-metric-service.ts` con fallback. Skill 14, patrón 14.1.
+9. **Cálculo regulatorio sin test de regresión:** Cambios en fórmulas de pérdidas NT, CU o subsidios requieren valores de referencia CREG. Skill 15, matriz 15.1.
+10. **Dashboard sin modo degradado:** Si un KPI no tiene datos, debe mostrar fallback visual, NO error 500. Skill 14, patrón 14.3.
