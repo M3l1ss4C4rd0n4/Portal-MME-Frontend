@@ -355,7 +355,7 @@ FASE 5: TRATAR → ¿Cuál es la intervención MÍNIMA?
 ├─ Si la causa es data corruption → VERIFICAR CON MÉTODO CORRECTO PRIMERO
 ├─ Crear SOLAMENTE archivos nuevos (<500 líneas cada uno)
 │  └─ NO modificar god files sin plan escrito
-└─ Registrar pasos en /tmp/diag_[tarea].md
+└─ Registrar pasos en diag_[tarea].md
 ```
 
 **Timeout Fase 5:** según cálculo de riesgo de Skill 2.1
@@ -438,6 +438,29 @@ FASE 7: MONITOREAR → ¿El tratamiento funcionó?
 │  └─ Si tarea FALLÓ: CONSERVAR diag_[tarea].md para análisis post-mortem
 └─ FIN CDA
 ```
+
+### Fase 0.5 NUEVA: Estimación de Presupuesto de Contexto
+
+```
+FASE 0.5: PRESUPUESTO DE CONTEXTO (máx 1 minuto)
+├─ Calcular líneas totales de archivos afectados:
+│  wc -l archivo1.tsx archivo2.tsx | tail -1
+├─ Si total > 2000 líneas → usar compresión (META-SKILL -2.3) o subdividir
+├─ Si total < 500 líneas → proceder normal
+└─ Registrar presupuesto en diag_[tarea].md
+```
+
+**Regla:** El agente tiene máximo 50K tokens de contexto útil. Distribuir estratégicamente:
+
+| Componente | Tokens | Justificación |
+|---|---|---|
+| Código actual (archivos afectados) | 40% | Es lo que se está modificando |
+| diag_*.md (baseline) | 20% | Es lo que se está comparando |
+| Skills relevantes (solo los necesarios) | 20% | Es lo que guía la decisión |
+| AGENTS.md (solo reglas aplicables) | 10% | Es lo que restringe la acción |
+| Grafo (solo si es navegación) | 10% | Es lo que orienta |
+
+**PROHIBIDO:** Cargar el SKILL_PACK completo para una tarea simple.
 
 **Timeout Fase 7:** máx 15 minutos.
 - Si la verificación post-cambio no coincide con baseline:
@@ -1046,16 +1069,25 @@ PROHIBIDO:
 ├── 18. Ejecutar una tarea que PROPUESTA_MAESTRA.md marca como "DONE"
 │   → Razón: Puede sobrescribir trabajo ya completado
 │   → Acción: Verificar con git log que el trabajo realmente existe
-└── 19. Ejecutar una tarea que PROPUESTA_MAESTRA.md marca como "SKIP"
-    → Razón: SKIP tiene una razón documentada
-    → Acción: Reportar al humano y pedir confirmación si la razón ya no aplica
+├── 19. Ejecutar una tarea que PROPUESTA_MAESTRA.md marca como "SKIP"
+│   → Razón: SKIP tiene una razón documentada
+│   → Acción: Reportar al humano y pedir confirmación si la razón ya no aplica
+├── 20. Iniciar Fase 5 (TRATAR) sin haber escrito diag_*.md
+├── 21. Cargar más de 3 skills completos en contexto simultáneamente
+├── 22. Ejecutar más de 2 tareas en paralelo sin aprobación humana
+├── 23. Modificar código de producción sin haber pasado por Fase 7 (MONITOREAR)
+├── 24. Ignorar un resultado de `bc` porque "no parece correcto"
+└── 25. Continuar después de un timeout sin escalar
 
 CONDICIONADO:
 ├── Extraer del container → Solo si Skill 1.3 confirma 0 ciclos (estáticos Y lógicos)
 ├── Modificar repositorio → Solo si tengo snapshot de datos con método correcto
 ├── Cambiar formateo en god service → Solo con pdftotext diff = 0 diferencias
 ├── Consolidar ETL → Solo con dry-run en tabla de prueba + comparación de counts
-└── Verificar stat proxy post-cambio → Si tabla >10GB, pedir permiso para ANALYZE
+├── Verificar stat proxy post-cambio → Si tabla >10GB, pedir permiso para ANALYZE
+├── Usar graphify query → Solo si el presupuesto de contexto lo permite (>10K tokens libres)
+├── Crear archivo >300 líneas → Requiere justificación en diag_*.md de por qué no se puede dividir más
+└── Ejecutar SEV-1 → Solo con Skill 17 cargado (nada más)
 ```
 
 ### 8.1 God Services (lista de vigilancia)
@@ -1220,6 +1252,37 @@ Si hay discrepancia Y el método fue C o D:
    [Si tabla >10GB: Solicitar permiso para ANALYZE o usar COUNT]
    [Verificar con método correcto]
    [Verificar logs: grep -i "error\|exception" logs/etl.log | tail -20]
+
+### 9.4 Cache de Tamaños de Tabla
+
+Evitar consultar pg_relation_size repetidamente en la misma sesión:
+
+```bash
+# Ejecutar UNA VEZ al inicio de la sesión
+psql -d portal_energetico -c "
+  SELECT relname, pg_relation_size(relid) as bytes
+  FROM pg_stat_user_tables
+  WHERE schemaname IN ('sector_energetico', 'subsidios', 'presupuesto')
+  ORDER BY bytes DESC;
+" > /tmp/table_sizes_cache.txt
+
+# Usar el cache en lugar de consultar BD
+grep "metrics_hourly" /tmp/table_sizes_cache.txt
+```
+
+### 9.5 Paralelización de Verificaciones
+
+Si hay múltiples tablas que verificar (y son tablas diferentes):
+
+```bash
+psql -d portal_energetico -c "SELECT COUNT(*) FROM tabla1" &
+psql -d portal_energetico -c "SELECT COUNT(*) FROM tabla2" &
+wait
+```
+
+**RESTRICCIÓN:** Solo paralelizar si ambas tablas son < 1GB. Si alguna es >1GB, ejecutar secuencialmente para no saturar PostgreSQL.
+
+---
 
 ### 9.3 Comandos de Data Verification
 
