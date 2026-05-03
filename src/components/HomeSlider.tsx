@@ -1,40 +1,22 @@
 "use client";
 
-import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { ResponsiveLine } from "@nivo/line";
-import { ResponsivePie } from "@nivo/pie";
-import { ResponsiveBar } from "@nivo/bar";
-import SemiGauge from "@/components/ui/SemiGauge";
-import { TrendBadge, TrendArrow, getTrendColor } from "@/components/ui/TrendBadge";
-import type { MetricaTendencia } from "@/components/ui/TrendBadge";
 import { useHomeSlider } from "@/hooks/useHomeSlider";
-import type { NewsItem, HomeSliderProps } from "@/types/home-slider";
-import { fmtCOP, fmtNum, fmtFull } from "@/lib/format";
-
+import type { HomeSliderProps } from "@/types/home-slider";
 import {
-  estadoReservas,
-  estadoAportes,
-  estadoPrecio,
-  estadoI2Hidro,
-  estadoI3Termica,
-  estadoGeneracion,
-  diagnosticoSIN,
-} from "@/lib/kpi-logic";
-import {
-  KpiBlock,
-  HydroKpiBlock,
-  StatusChip,
-  DualGaugeSparklines,
-} from "@/components/kpi";
-import { TopAccent, SectionBadge, NavArrow, SlideContratosOR, SlidePresupuesto, SlideComunidades } from "@/components/slides";
-import { NIVO_SLIDER } from "@/lib/nivo-theme";
+  NavArrow,
+  SlideContratosOR,
+  SlidePresupuesto,
+  SlideComunidades,
+  SlideGestionSector,
+  SlideSupervision,
+  SlideSubsidios,
+  SlideNoticia,
+} from "@/components/slides";
 
-// ─── Config ────────────────────────────────────────────────────────────────────
 const SLIDE_INTERVAL_MS = 8000;
 
-// ─── Animation variants ────────────────────────────────────────────────────────
 const slideVariants = {
   enter: (dir: number) => ({
     x: dir > 0 ? "100%" : "-100%",
@@ -52,719 +34,6 @@ const slideVariants = {
   }),
 };
 
-
-// ─── Slide decoration helpers ──────────────────────────────────────────────────
-
-
-// ─── Slide 1: Gestión del Sector ───────────────────────────────────────────────
-function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; detalle?: HomeSliderProps["sectorDetalle"] }) {
-  const hasDetalle = !!detalle && detalle.generacionPorFuente.length > 0;
-  const hasPrecioSeries = !!detalle && detalle.precioBolsaSeries.length > 0 && detalle.precioBolsaSeries[0].data.length > 0;
-  const aportes = d.aportesHidricos;
-  const aportesPct = aportes?.pct ?? (aportes && aportes.historicoGwh > 0 ? (aportes.actualGwh / aportes.historicoGwh) * 100 : null);
-
-  const stRes = estadoReservas(d.pctEmbalses);
-  const stAp  = aportesPct !== null ? estadoAportes(aportesPct) : null;
-  const stPr  = estadoPrecio(d.precioBolsa);
-  const stGen = estadoGeneracion(
-    detalle?.generacionPorFuente,
-    d.generacionGwh,
-    aportes?.dailyActualGwh,
-    d.precioBolsa
-  );
-  const diagnostico = diagnosticoSIN(d.pctEmbalses, aportesPct, d.precioBolsa);
-
-  const aportesColor = aportesPct === null ? "text-slate-400"
-    : aportesPct >= 100 ? "text-emerald-400"
-    : aportesPct >= 80  ? "text-amber-400"
-    : "text-red-400";
-
-  return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-[#060B14] overflow-hidden">
-      <TopAccent color="#3B82F6" />
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-amber-900/15 pointer-events-none" />
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[60%] h-[30%] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="relative z-10 flex flex-col items-center w-full max-w-7xl px-6 xl:px-8 gap-4 xl:gap-6">
-        {/* Header con diagnóstico dinámico */}
-        <div className="text-center">
-          <SectionBadge label="Gestión del Sector" pulse dot="#EF4444" />
-          <p className="text-slate-300 text-sm xl:text-base font-medium">{diagnostico}</p>
-          <p className="text-slate-600 text-xs xl:text-sm mt-0.5">
-            {d.ultimaEjecucionETL
-              ? `ETL sector energético · última ejecución: ${d.ultimaEjecucionETL}`
-              : d.ultimaActualizacion
-              ? `Datos en tiempo real de XM · últimos datos: ${d.ultimaActualizacion}`
-              : "Datos en tiempo real de XM"}
-          </p>
-        </div>
-
-        {/* KPIs — 4 columnas */}
-        <div className="grid grid-cols-4 w-full divide-x divide-white/5">
-          <KpiBlock
-            label="Precio de Bolsa (PPP)"
-            value={`$${d.precioBolsa.toFixed(2)}`}
-            unit="COP/kWh"
-            date={d.fechaPrecio}
-            valueClass="text-amber-400"
-            chipLabel={stPr.label}
-            chipColor={stPr.color}
-            tendencia={d.tendencias?.precio}
-            metrica="precio"
-          />
-          <KpiBlock
-            label="Energía Generada"
-            value={d.generacionGwh.toFixed(2)}
-            unit="GWh"
-            date={d.fechaGeneracion}
-            valueClass="text-blue-400"
-            chipLabel={stGen.label}
-            chipColor={stGen.color}
-            tendencia={d.tendencias?.generacion}
-            metrica="generacion"
-          />
-          <HydroKpiBlock
-            label="Reservas Hídricas"
-            pct={d.pctEmbalses}
-            pctColor={stRes.tw}
-            gwh={d.embalseGwh}
-            gwhRef={d.capacidadEmbalseGwh}
-            gwhRefLabel="cap."
-            date={d.fechaEmbalse}
-            chipLabel={stRes.label}
-            chipColor={stRes.color}
-            tendencia={d.tendencias?.embalses}
-            metrica="embalses"
-          />
-          {aportesPct !== null && stAp ? (
-            <HydroKpiBlock
-              label="Aportes Hídricos"
-              pct={aportesPct}
-              pctColor={aportesColor}
-              gwh={aportes?.actualGwh}
-              gwhRef={aportes?.historicoGwh}
-              gwhRefLabel="hist."
-              dailyGwh={aportes?.dailyActualGwh}
-              dailyHistGwh={aportes?.dailyHistGwh}
-              date={d.fechaAportes}
-              chipLabel={stAp.label}
-              chipColor={stAp.color}
-              tendencia={d.tendencias?.aportes}
-              metrica="aportes"
-            />
-          ) : (
-            <div className="flex items-center justify-center">
-              <p className="text-slate-600 text-sm">Sin datos</p>
-            </div>
-          )}
-        </div>
-
-        {/* Gráficos — 3 columnas: Precio | Generación | Aportes */}
-        {hasDetalle && (
-          <div className="grid grid-cols-1 md:grid-cols-3 w-full gap-3 xl:gap-4">
-            {/* Precio de Bolsa (PPP) - Línea */}
-            {hasPrecioSeries && (
-              <div className="flex flex-col">
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Precio de Bolsa (PPP) · Tendencia</p>
-                <div className="h-[120px] xl:h-[140px]">
-                  <ResponsiveLine
-                    data={detalle!.precioBolsaSeries}
-                    theme={NIVO_SLIDER}
-                    margin={{ top: 6, right: 12, bottom: 28, left: 36 }}
-                    xScale={{ type: "point" }}
-                    yScale={{ type: "linear", min: "auto", max: "auto" }}
-                    curve="catmullRom"
-                    enablePoints={false}
-                    enableGridX={false}
-                    axisTop={null}
-                    axisRight={null}
-                    axisBottom={{
-                      tickSize: 0,
-                      tickPadding: 6,
-                      tickRotation: 0,
-                      tickValues: "every 4 days",
-                      format: (value) => {
-                        const dataPoint = detalle!.precioBolsaSeries[0]?.data.find(d => d.x === value);
-                        if (dataPoint?.fecha) {
-                          return String(new Date(dataPoint.fecha).getDate());
-                        }
-                        return value;
-                      },
-                    }}
-                    axisLeft={{ tickSize: 0, tickValues: 3, tickPadding: 6 }}
-                    colors={["#F59E0B"]}
-                    lineWidth={2}
-                    enableArea
-                    areaOpacity={0.15}
-                    useMesh
-                    tooltip={({ point }) => {
-                      const dataPoint = detalle!.precioBolsaSeries[0]?.data.find(d => d.x === point.data.x);
-                      const fecha = dataPoint?.fecha
-                        ? new Date(dataPoint.fecha).toLocaleDateString("es-CO", { day: "numeric", month: "short" })
-                        : point.data.xFormatted;
-                      return (
-                        <div className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-xs text-slate-200">
-                          {fecha}: <strong className="text-amber-400">${Number(point.data.y).toFixed(2)}</strong>
-                        </div>
-                      );
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Generación por Fuente - Donut */}
-            <div className="flex flex-col items-center">
-              <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1 self-start">Generación por Fuente</p>
-              <div className="relative h-[120px] xl:h-[140px] w-full">
-                <ResponsivePie
-                  data={detalle!.generacionPorFuente}
-                  theme={NIVO_SLIDER}
-                  margin={{ top: 4, right: 35, bottom: 4, left: 4 }}
-                  innerRadius={0.65}
-                  padAngle={2}
-                  cornerRadius={3}
-                  activeOuterRadiusOffset={5}
-                  colors={{ datum: "data.color" }}
-                  borderWidth={0}
-                  enableArcLinkLabels={false}
-                  arcLabelsSkipAngle={12}
-                  arcLabelsTextColor="#fff"
-                  arcLabelsRadiusOffset={0.75}
-                  legends={[
-                    {
-                      anchor: "right" as const,
-                      direction: "column" as const,
-                      justify: false,
-                      translateX: 30,
-                      translateY: 0,
-                      itemsSpacing: 3,
-                      itemWidth: 60,
-                      itemHeight: 12,
-                      itemTextColor: "#94A3B8",
-                      itemDirection: "left-to-right" as const,
-                      symbolSize: 7,
-                      symbolShape: "circle" as const,
-                    },
-                  ]}
-                  tooltip={({ datum }) => (
-                    <div className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-xs text-slate-200">
-                      <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ background: datum.color }} />
-                      {datum.label}: <strong>{datum.value}%</strong>
-                    </div>
-                  )}
-                />
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pr-12">
-                  <span className="text-base xl:text-lg font-bold text-white leading-none">{d.generacionGwh.toFixed(1)}</span>
-                  <span className="text-[9px] text-slate-400">GWh</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Hidrología: Aportes (izq) + Embalses (der) — top 12 cada uno */}
-            {detalle?.aportesRios && detalle.aportesRios.length > 0 && (
-              <div className="flex flex-col h-[120px] xl:h-[140px]">
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Hidrología · Aportes y Embalses</p>
-                <div className="flex-1 grid grid-cols-2 gap-2 overflow-hidden">
-                  {/* Izquierda — Aportes */}
-                  <div>
-                    <p className="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5">Aportes · vs Hist.</p>
-                    <div className="space-y-[1px]">
-                      {detalle.aportesRios.slice(0, 15).map((rio) => {
-                        const maxVal = Math.max(rio.actualGwh, rio.historicoGwh);
-                        const pct = rio.porcentaje;
-                        const pctColor = pct >= 100 ? "text-emerald-400" : pct >= 80 ? "text-amber-400" : "text-red-400";
-                        const barColor = pct >= 100 ? "bg-emerald-500" : pct >= 80 ? "bg-amber-500" : "bg-red-500";
-                        return (
-                          <div key={rio.codigo} className="flex items-center gap-1 text-[9px] leading-none py-[1px]">
-                            <span className="w-12 text-right text-slate-400 truncate" title={rio.nombre}>{rio.nombre}</span>
-                            <div className="w-12 h-1.5 bg-slate-700/40 rounded-sm relative overflow-hidden">
-                              <div className="absolute top-0 left-0 h-full bg-slate-600/30 rounded-sm" style={{ width: `${Math.min((rio.historicoGwh / maxVal) * 100, 100)}%` }} />
-                              <div className={`absolute top-0 left-0 h-full ${barColor} rounded-sm`} style={{ width: `${Math.min((rio.actualGwh / maxVal) * 100, 100)}%` }} />
-                            </div>
-                            <span className={`w-5 text-right font-medium ${pctColor}`}>{pct.toFixed(0)}%</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  {/* Derecha — Embalses críticos */}
-                  <div>
-                    <p className="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5">Embalses · % Actual</p>
-                    <div className="space-y-[1px]">
-                      {detalle.embalses
-                        ?.slice()
-                        .sort((a, b) => b.capacidadGwh - a.capacidadGwh)
-                        .slice(0, 15)
-                        .map((emb) => {
-                          const embColor = emb.porcentaje < 50 ? "bg-red-500" : emb.porcentaje < 60 ? "bg-orange-500" : emb.porcentaje < 70 ? "bg-amber-500" : emb.porcentaje < 80 ? "bg-cyan-500" : "bg-emerald-500";
-                          return (
-                            <div key={emb.codigo} className="flex items-center gap-1 text-[9px] leading-none py-[1px]">
-                              <span className="w-12 text-right text-slate-400 truncate" title={emb.nombre}>{emb.nombre}</span>
-                              <div className="w-12 h-1.5 bg-slate-700/40 rounded-sm relative overflow-hidden">
-                                <div className={`absolute top-0 left-0 h-full ${embColor} rounded-sm`} style={{ width: `${Math.min(emb.porcentaje, 100)}%` }} />
-                              </div>
-                              <span className="w-5 text-right font-medium text-slate-300">{emb.porcentaje.toFixed(0)}%</span>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── Slide 5: Supervisión ──────────────────────────────────────────────────────
-function SlideSupervision({ d }: { d: HomeSliderProps["supData"] }) {
-  return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-[#060B14] overflow-hidden">
-      <TopAccent color="#06B6D4" />
-      <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/15 via-transparent to-slate-900/10 pointer-events-none" />
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[50%] h-[25%] bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="relative z-10 w-full h-full max-w-7xl px-4 xl:px-8 py-4 overflow-y-auto flex flex-col items-center justify-center gap-5">
-        <div className="text-center">
-          <SectionBadge label="Supervisión" dot="#06B6D4" />
-          <p className="text-slate-500 text-base xl:text-lg">
-            Monitoreo y seguimiento de contratos activos
-          </p>
-        </div>
-
-        {(() => {
-          const tot = d.nContratos || 1;
-          const pct = (n: number) => `${((n / tot) * 100).toFixed(1)}%`;
-          return (
-            <div className="grid grid-cols-6 w-full divide-x divide-white/5">
-              <KpiBlock label="Contratos"       value={fmtNum(d.nContratos)}          valueClass="text-cyan-400"    unit="total portafolio" />
-              <KpiBlock label="En Ejecución"    value={fmtNum(d.enEjecucion)}         valueClass="text-emerald-400" unit={pct(d.enEjecucion)} />
-              <KpiBlock label="AOM"             value={fmtNum(d.enAOM)}               valueClass="text-teal-400"    unit={pct(d.enAOM)} />
-              <KpiBlock label="En Liquidación"  value={fmtNum(d.enLiquidacion)}       valueClass="text-amber-400"   unit={pct(d.enLiquidacion)} />
-              <KpiBlock label="Liquidados"      value={fmtNum(d.liquidados)}          valueClass="text-slate-300"   unit={pct(d.liquidados)} />
-              <KpiBlock label="Perdida Comp."   value={fmtNum(d.perdidaCompetencia)}  valueClass="text-rose-400"    unit={pct(d.perdidaCompetencia)} />
-            </div>
-          );
-        })()}
-
-        {/* Gauges: portafolio total + solo activos + Donut */}
-        <div className="flex justify-center items-end w-full gap-4 xl:gap-8">
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-[9px] text-white/40 uppercase tracking-widest">Portafolio</span>
-            <div className="flex gap-4">
-              <SemiGauge rawValue={d.avanceFisico}     label="Físico"     color="success" size="lg" delay={0.3} />
-              <SemiGauge rawValue={d.avanceFinanciero} label="Financiero" color="success" size="lg" delay={0.35} />
-            </div>
-          </div>
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-[9px] text-cyan-400/60 uppercase tracking-widest">En Ejecución</span>
-            <div className="flex gap-4">
-              <SemiGauge rawValue={d.avanceFisicoActivos}     label="Físico"     color="gold" size="lg" delay={0.4} />
-              <SemiGauge rawValue={d.avanceFinancieroActivos} label="Financiero" color="gold" size="lg" delay={0.45} />
-            </div>
-          </div>
-          {/* Donut Contratos por Fondo */}
-          <div className="w-[340px] h-[160px] relative">
-            {d.porFondo.length > 0 ? (
-              <>
-                <ResponsivePie
-                  data={d.porFondo.slice(0, 6).map((f, i) => ({
-                    id: f.fondo,
-                    label: f.fondo,
-                    value: f.contratos,
-                    color: ['#F59E0B', '#8B5CF6', '#06B6D4', '#22C55E', '#EF4444', '#F97316'][i],
-                  }))}
-                  theme={NIVO_SLIDER}
-                  margin={{ top: 6, right: 90, bottom: 6, left: 6 }}
-                  innerRadius={0.55}
-                  padAngle={2}
-                  cornerRadius={3}
-                  activeOuterRadiusOffset={5}
-                  colors={{ datum: "data.color" }}
-                  borderWidth={0}
-                  enableArcLinkLabels={false}
-                  arcLabelsSkipAngle={12}
-                  arcLabelsTextColor="#fff"
-                  arcLabelsRadiusOffset={0.75}
-                  legends={[
-                    {
-                      anchor: "right",
-                      direction: "column",
-                      justify: false,
-                      translateX: 80,
-                      translateY: 0,
-                      itemsSpacing: 5,
-                      itemWidth: 80,
-                      itemHeight: 16,
-                      itemTextColor: "#94A3B8",
-                      itemDirection: "left-to-right",
-                      symbolSize: 8,
-                      symbolShape: "circle",
-                    },
-                  ]}
-                  tooltip={({ datum }) => (
-                    <div className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-xs text-slate-200">
-                      <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ background: datum.color }} />
-                      {datum.label}: <strong>{datum.value}</strong>
-                    </div>
-                  )}
-                />
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ paddingRight: 90 }}>
-                  <span className="text-xl font-bold text-white leading-none">{d.nContratos}</span>
-                  <span className="text-[9px] text-slate-400">total</span>
-                </div>
-              </>
-            ) : (
-              <div className="h-full flex items-center justify-center">
-                <span className="text-slate-500 text-sm">Cargando…</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Slide 6: Subsidios ────────────────────────────────────────────────────────
-function SlideSubsidios({ d, deficitFssri, deficitSeries, subBarData }: { d: HomeSliderProps["subData"]; deficitFssri?: number; deficitSeries?: Array<{ x: string; y: number }>; subBarData?: Array<{ anio: string; Subsidios: number; Contribuciones: number }>; }) {
-  const asig = d.anio2026.valorAsignado;
-  const pag = d.anio2026.pagado;
-  const pend = d.anio2026.pendiente;
-  const pctPag = asig > 0 ? (pag / asig) * 100 : 0;
-  const pctPend = asig > 0 ? (pend / asig) * 100 : 0;
-  const deficitPrincipal = deficitFssri ?? d.deficitAcumulado;
-
-  // Agrupar histórico por año (sumar fondos)
-  const historicoPorAnio = (d.historico ?? []).reduce((acc, h) => {
-    const a = h.anio;
-    if (!acc[a]) acc[a] = { asignado: 0, pagado: 0, pendiente: 0 };
-    acc[a].asignado += h.valor_asignado;
-    acc[a].pagado += h.pagado;
-    acc[a].pendiente += h.pendiente;
-    return acc;
-  }, {} as Record<number, { asignado: number; pagado: number; pendiente: number }>);
-
-  const anios = Object.keys(historicoPorAnio).map(Number).sort((a, b) => a - b);
-  const tieneHistorico = anios.length > 0;
-  const mostrarGraficas = (subBarData && subBarData.length > 0) || (deficitSeries && deficitSeries.length > 0) || tieneHistorico;
-
-  const lineData = [
-    {
-      id: "Asignado",
-      color: "#8B5CF6",
-      data: anios.map(a => ({ x: String(a), y: +(historicoPorAnio[a].asignado / 1e9).toFixed(1) })),
-    },
-    {
-      id: "Pagado",
-      color: "#10B981",
-      data: anios.map(a => ({ x: String(a), y: +(historicoPorAnio[a].pagado / 1e9).toFixed(1) })),
-    },
-  ];
-
-  return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-[#060B14] overflow-hidden">
-      <TopAccent color="#EF4444" />
-      <div className="absolute inset-0 bg-gradient-to-br from-red-900/15 via-transparent to-rose-900/10 pointer-events-none" />
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[50%] h-[25%] bg-red-500/5 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="relative z-10 w-full h-full max-w-7xl px-4 xl:px-8 py-4 overflow-y-auto flex flex-col items-center justify-center gap-5">
-        <div className="text-center">
-          <SectionBadge label="Subsidios Energéticos" dot="#EF4444" />
-          <p className="text-slate-500 text-base xl:text-lg">
-            Seguimiento a la deuda del fondo de subsidios
-          </p>
-        </div>
-
-        {/* Déficit acumulado FSSRI */}
-        <div className="text-center">
-          <p className="text-slate-400 text-sm xl:text-base uppercase tracking-[0.15em] font-medium mb-1">
-            Déficit acumulado<span className="normal-case tracking-normal"> — Corte 1 de abril</span>
-          </p>
-          <div className="text-4xl xl:text-5xl 2xl:text-6xl font-black text-red-400 leading-none">
-            {fmtFull(deficitPrincipal)}
-          </div>
-        </div>
-
-        {/* Solo datos 2026 */}
-        <div className="grid grid-cols-3 w-full divide-x divide-white/5">
-          <KpiBlock
-            label="Resoluciones 2026"
-            value={fmtNum(d.anio2026.resoluciones)}
-            unit="expedidas"
-            valueClass="text-amber-400"
-          />
-          <KpiBlock
-            label="Asignado 2026"
-            value={fmtFull(asig)}
-            unit={`${d.anio2026.resoluciones} resoluciones`}
-            valueClass="text-purple-400"
-          />
-          {/* KPI Pendiente de pago 2026 con barra de porcentaje integrada */}
-          <div className="flex flex-col items-center bg-dash-chip rounded-xl px-5 py-4 w-full">
-            <div className="text-[11px] text-slate-400 uppercase tracking-widest">Pendiente de pago 2026</div>
-            <div className="mt-2 inline-flex items-start gap-1 text-2xl xl:text-3xl font-bold text-red-400 leading-none">
-              {fmtFull(pend)}
-              <span className="relative group cursor-help text-lg xl:text-xl leading-none mt-1">
-                *
-                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-xs text-slate-200 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                  Pendiente de desembolso por parte del Ministerio de Hacienda y Crédito Público
-                </span>
-              </span>
-            </div>
-            {/* Barra de progreso */}
-            <div className="w-full max-w-[280px] mt-3">
-              <div className="h-3 bg-slate-800 rounded-full overflow-hidden flex">
-                <div
-                  className="h-full bg-gradient-to-r from-emerald-700 to-emerald-500 transition-all duration-1000 shrink-0"
-                  style={{ width: `${pctPag}%` }}
-                  title={`Pagado: ${pctPag.toFixed(2)}%`}
-                />
-                <div
-                  className="h-full bg-gradient-to-r from-red-700 to-red-500 transition-all duration-1000 shrink-0"
-                  style={{ width: `${pctPend}%` }}
-                  title={`Pendiente: ${pctPend.toFixed(2)}%`}
-                />
-              </div>
-              <div className="flex justify-between mt-1.5 text-xs">
-                <span className="text-emerald-400 font-semibold">{pctPag.toFixed(2)}% Pagado</span>
-                <span className="text-red-400 font-semibold">{pctPend.toFixed(2)}% Pendiente</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Gráficas históricas — Asignado vs Pagado + Déficit Acumulado */}
-        {mostrarGraficas && (
-          <div className={`w-full grid ${deficitSeries && deficitSeries.length > 0 ? 'grid-cols-1 lg:grid-cols-2 gap-4 max-w-6xl' : 'max-w-4xl'}`}>
-            {/* Gráfica 1: Subsidios (SIN+ZNI) vs Contribuciones */}
-            {subBarData && subBarData.length > 0 && (
-              <div>
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1 text-center">
-                  Subsidios (SIN+ZNI) y Contribuciones por Año
-                </p>
-                <div className="h-[150px]">
-                  <ResponsiveBar
-                    data={subBarData}
-                    keys={["Subsidios", "Contribuciones"]}
-                    indexBy="anio"
-                    theme={NIVO_SLIDER}
-                    margin={{ top: 6, right: 12, bottom: 28, left: 44 }}
-                    groupMode="grouped"
-                    valueScale={{ type: "linear" }}
-                    indexScale={{ type: "band", round: true }}
-                    colors={["#F59E0B", "#8B5CF6"]}
-                    borderRadius={2}
-                    padding={0.2}
-                    innerPadding={2}
-                    enableLabel={false}
-                    enableGridX={false}
-                    axisTop={null}
-                    axisRight={null}
-                    axisBottom={{ tickSize: 0, tickPadding: 6, format: (v) => String(v).slice(-2) }}
-                    axisLeft={{ tickSize: 0, tickPadding: 6, tickValues: 4, format: (v) => `${v}B` }}
-                    legends={[
-                      {
-                        dataFrom: "keys" as const,
-                        anchor: "top" as const,
-                        direction: "row" as const,
-                        justify: false,
-                        translateX: 0,
-                        translateY: -16,
-                        itemsSpacing: 12,
-                        itemWidth: 90,
-                        itemHeight: 12,
-                        itemTextColor: "#94A3B8",
-                        itemDirection: "left-to-right" as const,
-                        symbolSize: 8,
-                        symbolShape: "circle" as const,
-                      },
-                    ]}
-                    tooltip={({ id, indexValue, data }) => {
-                      const exacto = ((data as unknown) as Record<string, number>)[`${id}_exacto`];
-                      return (
-                        <div className="px-3 py-2 bg-slate-800 border border-slate-700 rounded text-xs text-slate-200 min-w-[200px]">
-                          <p className="font-semibold mb-1 text-slate-300">Año {indexValue}</p>
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-1.5">
-                              <span className="inline-block w-2 h-2 rounded-full" style={{ background: id === "Subsidios" ? "#F59E0B" : "#8B5CF6" }} />
-                              <span>{id}</span>
-                            </div>
-                            <strong style={{ color: id === "Subsidios" ? "#F59E0B" : "#8B5CF6" }}>{fmtCOP(exacto || 0)}</strong>
-                          </div>
-                        </div>
-                      );
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Gráfica 2: Déficit Acumulado FSSRI histórico */}
-            {deficitSeries && deficitSeries.length > 0 && (
-              <div>
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1 text-center">
-                  Déficit acumulado FSSRI (Miles M$)
-                </p>
-                <div className="h-[150px]">
-                  <ResponsiveLine
-                    data={[{ id: "Déficit Acumulado", color: "#EF4444", data: deficitSeries }]}
-                    theme={NIVO_SLIDER}
-                    margin={{ top: 6, right: 12, bottom: 28, left: 44 }}
-                    xScale={{ type: "point" }}
-                    yScale={{ type: "linear", min: "auto", max: "auto" }}
-                    curve="monotoneX"
-                    enablePoints
-                    pointSize={4}
-                    pointBorderWidth={1}
-                    pointBorderColor="transparent"
-                    enableGridX={false}
-                    axisTop={null}
-                    axisRight={null}
-                    axisBottom={{ tickSize: 0, tickPadding: 6 }}
-                    axisLeft={{ tickSize: 0, tickPadding: 6, tickValues: 4, format: (v) => `${v}B` }}
-                    colors={["#EF4444"]}
-                    lineWidth={2}
-                    enableArea
-                    areaOpacity={0.12}
-                    useMesh
-                    enableSlices="x"
-                    legends={[]}
-                    sliceTooltip={({ slice }) => {
-                      const year = slice.points[0]?.data.xFormatted ?? "";
-                      const pt = slice.points[0];
-                      return (
-                        <div className="px-3 py-2 bg-slate-800 border border-slate-700 rounded text-xs text-slate-200 min-w-[140px]">
-                          <p className="font-semibold mb-1 text-slate-300">Año {year}</p>
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-1.5">
-                              <span className="inline-block w-2 h-2 rounded-full bg-red-400" />
-                              <span>Déficit acumulado</span>
-                            </div>
-                            <strong className="text-red-400">${pt?.data.yFormatted}B</strong>
-                          </div>
-                        </div>
-                      );
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Barra de progreso movida dentro del KPI Pendiente 2026 */}
-      </div>
-    </div>
-  );
-}
-
-// ─── Slide 7+: Noticias ────────────────────────────────────────────────────────
-function SlideNoticia({
-  news,
-  index,
-  total,
-}: {
-  news: NewsItem;
-  index: number;
-  total: number;
-}) {
-  const title = news.titulo ?? news.title ?? "Noticia del sector energético";
-  const imageUrl = news.imagen ?? news.image ?? null;
-
-  return (
-    <div className="relative w-full h-full flex items-center bg-[#060B14] overflow-hidden">
-      <TopAccent color="#94A3B8" />
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900/40 via-transparent to-slate-800/20 pointer-events-none" />
-
-      {/* Imagen de fondo si existe */}
-      {imageUrl && (
-        <>
-          <div
-            className="absolute inset-0 bg-center bg-cover opacity-15"
-            style={{ backgroundImage: `url(${imageUrl})` }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#060B14] via-[#060B14]/90 to-[#060B14]/60" />
-        </>
-      )}
-
-      <div className="relative z-10 w-full flex items-center px-12 xl:px-20 gap-12 xl:gap-20">
-        {/* Contenido texto */}
-        <div className="flex-1 min-w-0 max-w-4xl">
-          {/* Badge de noticia */}
-          <div className="flex items-center gap-3 mb-6 xl:mb-8">
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-slate-700/60 border border-slate-600/40 rounded-full text-slate-400 text-sm xl:text-base font-semibold tracking-widest uppercase">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-              </svg>
-              Noticia {index + 1} de {total}
-            </span>
-            {news.fuente && (
-              <span className="text-slate-500 text-sm xl:text-base">{news.fuente}</span>
-            )}
-            {news.fecha && (
-              <span className="text-slate-600 text-sm xl:text-base">{news.fecha}</span>
-            )}
-          </div>
-
-          {/* Título */}
-          <h2 className="text-3xl xl:text-4xl 2xl:text-5xl font-bold text-white leading-tight mb-6 xl:mb-8">
-            {title}
-          </h2>
-
-          {/* Resumen */}
-          {news.resumen && (
-            <p className="text-slate-400 text-xl xl:text-2xl leading-relaxed line-clamp-4 mb-8 xl:mb-10">
-              {news.resumen}
-            </p>
-          )}
-
-          {/* Link */}
-          {news.url && (
-            <a
-              href={news.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-3 px-6 py-3 bg-amber-500/10 border border-amber-500/30 rounded-full text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/60 transition-all text-lg xl:text-xl font-semibold"
-            >
-              Leer noticia completa
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </a>
-          )}
-        </div>
-
-        {/* Imagen lateral si existe */}
-        {imageUrl && (
-          <div className="hidden xl:block flex-shrink-0 w-80 2xl:w-96 h-64 2xl:h-80 rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={imageUrl}
-              alt={title}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        )}
-
-        {/* Placeholder si no hay imagen */}
-        {!imageUrl && (
-          <div className="hidden xl:flex flex-shrink-0 w-72 2xl:w-80 h-64 rounded-2xl border border-white/5 bg-slate-800/30 items-center justify-center">
-            <svg className="w-24 h-24 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-            </svg>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── Slide definitions metadata ────────────────────────────────────────────────
 const SLIDE_META = [
   { id: "sector",      label: "Sector",      color: "#3B82F6", href: "/energia"      },
   { id: "presupuesto", label: "Presupuesto", color: "#F59E0B", href: "/presupuesto"  },
@@ -774,7 +43,6 @@ const SLIDE_META = [
   { id: "subsidios",   label: "Subsidios",   color: "#EF4444", href: "/subsidios"    },
 ];
 
-// ─── Main Component ────────────────────────────────────────────────────────────
 export default function HomeSlider(props: HomeSliderProps) {
   const { sectorData, sectorDetalle, presuData, cemData, cemDepts, orData, supData, subData, deficitFssri, deficitSeries, subBarData } = props;
 
@@ -790,7 +58,6 @@ export default function HomeSlider(props: HomeSliderProps) {
     setPaused,
   } = useHomeSlider();
 
-  // Render slide content
   function renderSlide(idx: number) {
     if (idx === 0) return <SlideGestionSector d={sectorData} detalle={sectorDetalle} />;
     if (idx === 1) return <SlidePresupuesto d={presuData} />;
@@ -811,7 +78,6 @@ export default function HomeSlider(props: HomeSliderProps) {
     return null;
   }
 
-  // Dot descriptor: 6 KPI dots + news dots
   const dots = [
     ...SLIDE_META,
     ...news.map((_, i) => ({
@@ -829,7 +95,6 @@ export default function HomeSlider(props: HomeSliderProps) {
       onMouseLeave={() => setPaused(false)}
       aria-label="Carrusel de indicadores clave del sector energético"
     >
-      {/* ── Slides ── */}
       <AnimatePresence initial={false} custom={direction} mode="wait">
         <motion.div
           key={`slide-${current}`}
@@ -844,13 +109,10 @@ export default function HomeSlider(props: HomeSliderProps) {
         </motion.div>
       </AnimatePresence>
 
-      {/* ── Nav arrows ── */}
       <NavArrow direction="prev" onClick={handlePrev} />
       <NavArrow direction="next" onClick={handleNext} />
 
-      {/* ── Bottom bar: dots + progress ── */}
       <div className="absolute bottom-0 inset-x-0 z-20 pb-5">
-        {/* Progress bar */}
         <div className="w-full h-0.5 bg-white/5 mb-4">
           {!paused && (
             <motion.div
@@ -863,7 +125,6 @@ export default function HomeSlider(props: HomeSliderProps) {
           )}
         </div>
 
-        {/* Dots */}
         <div className="flex items-center justify-center gap-2 xl:gap-3">
           {dots.map((dot, i) => (
             <button
@@ -873,7 +134,6 @@ export default function HomeSlider(props: HomeSliderProps) {
               className="group relative transition-all duration-300"
             >
               {i === current ? (
-                /* Active dot: elongated pill */
                 <span
                   className="block h-2.5 xl:h-3 rounded-full transition-all duration-300"
                   style={{
@@ -883,13 +143,11 @@ export default function HomeSlider(props: HomeSliderProps) {
                   }}
                 />
               ) : (
-                /* Inactive dot */
                 <span
                   className="block w-2.5 xl:w-3 h-2.5 xl:h-3 rounded-full opacity-30 group-hover:opacity-60 transition-opacity duration-200"
                   style={{ backgroundColor: dot.color }}
                 />
               )}
-              {/* Tooltip on hover */}
               <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-black/70 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
                 {dot.label}
               </span>
@@ -897,7 +155,6 @@ export default function HomeSlider(props: HomeSliderProps) {
           ))}
         </div>
 
-        {/* Paused indicator */}
         {paused && (
           <p className="text-center text-slate-600 text-xs mt-2 tracking-widest">
             ⏸ PAUSADO
@@ -905,12 +162,10 @@ export default function HomeSlider(props: HomeSliderProps) {
         )}
       </div>
 
-      {/* ── Slide counter (top right) ── */}
       <div className="absolute top-4 right-20 z-20 text-slate-600 text-sm xl:text-base font-mono">
         {String(current + 1).padStart(2, "0")} / {String(totalSlides).padStart(2, "0")}
       </div>
 
-      {/* ── Ver dashboard (top right, a la izquierda del contador) ── */}
       {current < SLIDE_META.length && (
         <Link
           href={SLIDE_META[current].href}
