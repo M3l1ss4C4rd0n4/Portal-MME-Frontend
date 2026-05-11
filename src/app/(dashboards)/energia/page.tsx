@@ -12,7 +12,7 @@ import { useTheme } from "@/providers/ThemeProvider";
 
 import { TrendBadge, TrendArrow, getTrendColor } from "@/components/ui/TrendBadge";
 import type { MetricaTendencia } from "@/components/ui/TrendBadge";
-import { getEmbalseColor } from "@/mocks/colombia-data";
+import { getEmbalseColor } from "@/lib/embalse-utils";
 import { embalseDepartamento, calcularAportesPorDepto } from "@/lib/embalses-coords";
 
 // ─── Colombia SVG map (no SSR) ────────────────────────────────────────────

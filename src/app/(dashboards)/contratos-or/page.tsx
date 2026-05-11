@@ -137,73 +137,86 @@ export default function ContratosORPage() {
         </Card>
 
         <Card delay={0.1}>
-          <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">IMPACTO (Datos Fijos)</span>
-          <div className="grid grid-cols-2 gap-3 mt-4">
-            <KpiChip label="Usuarios Beneficiados" value={295911} accent />
-            <KpiChip label="N° de CEs" value={2297} />
-            <KpiChip label="Inversión Total" value="$914.360.289.397" />
-            <KpiChip label="Potencia a Instalar" value="37 mWp" accent />
-          </div>
-        </Card>
-
-        <Card delay={0.1}>
-          <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">CONTRATOS POR EJECUTOR</span>
-          <div className="mt-4 space-y-3">
-            {Object.entries(byEjecutor).sort((a, b) => b[1] - a[1]).map(([ej, count]) => (
-              <div key={ej}>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-[11px] text-theme-primary font-medium">{ej}</span>
-                  <span className="text-[11px] text-amber-400 font-bold">{count} contrato{count !== 1 ? "s" : ""}</span>
-                </div>
-                <div className="h-1.5 bg-dash-chip rounded-full overflow-hidden">
-                  <div style={{ width: `${(count / data.nContratos) * 100}%` }} className="h-full bg-amber-400 rounded-full" />
-                </div>
-              </div>
-            ))}
-            {data.proyectos.length === 0 && <div className="text-center text-theme-muted text-sm mt-8">Cargando…</div>}
-          </div>
-        </Card>
-
-        <Card delay={0.15}>
           <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">PROGRESO POR DESEMBOLSO</span>
-          <p className="text-[10px] text-theme-muted mt-1 mb-4">Actividades necesarias completadas para liberar cada pago</p>
-          <div className="space-y-4 mt-2">
-            {(data.desembolsos.length > 0
-              ? data.desembolsos
-              : [{numero:1,actNecesarias:102,actCompletas:102,pctCompletado:100,proyectosPagados:17},
-                 {numero:2,actNecesarias:136,actCompletas:16,pctCompletado:11.8,proyectosPagados:0},
-                 {numero:3,actNecesarias:102,actCompletas:0,pctCompletado:0,proyectosPagados:0},
-                 {numero:4,actNecesarias:119,actCompletas:0,pctCompletado:0,proyectosPagados:0}]
-            ).map((d) => {
-              const done = d.pctCompletado >= 100;
-              const active = !done && d.pctCompletado > 0;
-              const barColor = done ? "#22C55E" : active ? "#F59E0B" : "#334155";
-              const textColor = done ? "text-green-400" : active ? "text-amber-400" : "text-theme-muted";
-              return (
-                <div key={d.numero}>
-                  <div className="flex justify-between items-center mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[11px] font-bold ${textColor}`}>Desembolso {d.numero}</span>
-                      {done && <span className="text-[9px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded-full font-semibold">LIBERADO</span>}
-                      {active && <span className="text-[9px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full font-semibold">EN CURSO</span>}
+          <p className="text-[9px] text-theme-muted mt-0.5 mb-1.5">Actividades para liberar cada pago</p>
+          <div className="flex flex-col">
+            {/* Sección superior: Barras de progreso ultra compactas */}
+            <div className="space-y-1">
+              {(data.desembolsos.length > 0
+                ? data.desembolsos
+                : [{numero:1,actNecesarias:102,actCompletas:102,pctCompletado:100,proyectosPagados:17},
+                   {numero:2,actNecesarias:136,actCompletas:16,pctCompletado:11.8,proyectosPagados:0},
+                   {numero:3,actNecesarias:102,actCompletas:0,pctCompletado:0,proyectosPagados:0},
+                   {numero:4,actNecesarias:119,actCompletas:0,pctCompletado:0,proyectosPagados:0}]
+              ).map((d) => {
+                const done = d.pctCompletado >= 100;
+                const active = !done && d.pctCompletado > 0;
+                const barColor = done ? "#22C55E" : active ? "#F59E0B" : "#334155";
+                const textColor = done ? "text-green-400" : active ? "text-amber-400" : "text-theme-muted";
+                return (
+                  <div key={d.numero} className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 w-28 flex-shrink-0">
+                      <span className={`text-[10px] font-bold ${textColor}`}>Desembolso {d.numero}</span>
+                      {done && <span className="text-[7px] bg-green-500/20 text-green-400 px-1 py-0.5 rounded font-semibold">OK</span>}
+                      {active && <span className="text-[7px] bg-amber-500/20 text-amber-400 px-1 py-0.5 rounded font-semibold">→</span>}
                     </div>
-                    <div className="text-right">
-                      <span className={`text-[11px] font-bold ${textColor}`}>{d.pctCompletado}%</span>
-                      <span className="text-[9px] text-theme-muted ml-1">{d.actCompletas}/{d.actNecesarias} act.</span>
+                    <div className="flex-1">
+                      <div className="h-1.5 bg-dash-chip rounded-full overflow-hidden">
+                        <div
+                          style={{ width: `${d.pctCompletado}%`, backgroundColor: barColor, transition: "width 0.8s ease" }}
+                          className="h-full rounded-full"
+                        />
+                      </div>
+                    </div>
+                    <div className="text-right w-16 flex-shrink-0">
+                      <span className={`text-[10px] font-bold ${textColor}`}>{d.pctCompletado}%</span>
+                      <span className="text-[8px] text-theme-muted ml-0.5">{d.actCompletas}/{d.actNecesarias}</span>
                     </div>
                   </div>
-                  <div className="h-2 bg-dash-chip rounded-full overflow-hidden">
-                    <div
-                      style={{ width: `${d.pctCompletado}%`, backgroundColor: barColor, transition: "width 0.8s ease" }}
-                      className="h-full rounded-full"
-                    />
+                );
+              })}
+            </div>
+            {/* Sección inferior: Gauge Avance Físico */}
+            <div className="mt-1.5 pt-1.5 border-t border-theme-card flex justify-center">
+              {(() => {
+                const desembolsosCompletos = (data.desembolsos.length > 0 ? data.desembolsos : [
+                  {numero:1,pctCompletado:100},{numero:2,pctCompletado:11.8},{numero:3,pctCompletado:0},{numero:4,pctCompletado:0}
+                ]).filter(d => d.pctCompletado >= 100).length;
+                const avanceFisico = desembolsosCompletos === 0 ? 0 : desembolsosCompletos === 1 ? 0 : desembolsosCompletos === 2 ? 10 : desembolsosCompletos === 3 ? 60 : 100;
+                return (
+                  <SemiGauge value={avanceFisico} label="Avance físico" color="gold" size="md" delay={0.15} />
+                );
+              })()}
+            </div>
+          </div>
+        </Card>
+
+        <Card delay={0.15} className="flex flex-col">
+          <div className="flex-1">
+            <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">IMPACTO (Datos Fijos)</span>
+            <div className="grid grid-cols-2 gap-3 mt-4">
+              <KpiChip label="Usuarios Beneficiados" value={295911} accent />
+              <KpiChip label="N° de CEs" value={2297} />
+              <KpiChip label="Inversión Total" value="$914.360.289.397" />
+              <KpiChip label="Potencia a Instalar" value="37 mWp" accent />
+            </div>
+          </div>
+          <div className="mt-6 pt-4 border-t border-theme-card">
+            <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">CONTRATOS POR EJECUTOR</span>
+            <div className="mt-3 space-y-3">
+              {Object.entries(byEjecutor).sort((a, b) => b[1] - a[1]).map(([ej, count]) => (
+                <div key={ej}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[11px] text-theme-primary font-medium">{ej}</span>
+                    <span className="text-[11px] text-amber-400 font-bold">{count} contrato{count !== 1 ? "s" : ""}</span>
                   </div>
-                  <div className="text-[9px] text-theme-muted mt-0.5">
-                    {d.proyectosPagados}/{data.nContratos || 17} proyecto{d.proyectosPagados !== 1 ? "s" : ""} con pago liberado
+                  <div className="h-1.5 bg-dash-chip rounded-full overflow-hidden">
+                    <div style={{ width: `${(count / data.nContratos) * 100}%` }} className="h-full bg-amber-400 rounded-full" />
                   </div>
                 </div>
-              );
-            })}
+              ))}
+              {data.proyectos.length === 0 && <div className="text-center text-theme-muted text-sm mt-8">Cargando…</div>}
+            </div>
           </div>
         </Card>
       </div>

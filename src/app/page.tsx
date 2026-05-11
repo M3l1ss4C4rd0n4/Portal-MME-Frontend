@@ -13,28 +13,8 @@ import SemiGauge from "@/components/ui/SemiGauge";
 import HomeSlider from "@/components/HomeSlider";
 import type { MetricaTendencia } from "@/components/ui/TrendBadge";
 import { homeDashboardData } from "@/mocks/home-data";
-import {
-  comunidadesCityColors,
-  comunidadesEnergeticasPorDepto,
-  contratosSupervisionDonut,
-  getEmbalseColor,
-  getEmbalseEstado,
-} from "@/mocks/colombia-data";
+import { getEmbalseColor, getEmbalseEstado } from "@/lib/embalse-utils";
 import { embalseDepartamento } from "@/lib/embalses-coords";
-import {
-  fetchSector,
-  fetchSectorDetalle,
-  fetchPresupuesto,
-  fetchComunidades,
-  fetchContratosOR,
-  fetchSupervision,
-  fetchSubsidios,
-  fetchSubsidiosDeficitHistorico,
-  fetchCU,
-  fetchCUEvolucion,
-  fetchValidaciones,
-  fetchFenoge,
-} from "@/services/apiService";
 
 // ─── Mapa embalses SVG (no SSR) ───────────────────────────────────────────
 const MapaEmbalsesSVG = dynamic(
@@ -319,9 +299,11 @@ export default function Home() {
       apropiacion: 0, comprometido: 0,
       pct_comprometido: 0, obligados: 0, pct_obligado: 0,
     },
+    ultimaActualizacion: null as string | null,
   });
   const [cemData, setCemData] = useState({
     implementadas: 0, inversionEstimada: 0, capacidadKwp: 0,
+    ultimaActualizacion: null as string | null,
   });
   const [cemDepts, setCemDepts] = useState<Array<{name: string; count: number; capacidad: number}>>([]);
   const [fenData, setFenData] = useState({ totalCes: 0, totalKwp: 0, totalInversion: 0 });
@@ -329,13 +311,14 @@ export default function Home() {
   const [fenMunicipios, setFenMunicipios] = useState<Record<string, Array<{ municipio: string; count: number }>>>({});
   const [fenDepto, setFenDepto] = useState<{ name: string; count: number } | null>(null);
   const [orData, setOrData] = useState({
-    nContratos: 0, 
-    avanceGeneral: 0, 
+    nContratos: 0,
+    avanceGeneral: 0,
     avanceFinanciero: 0,
     nUsuarios: 295911,
     nCEs: 2297,
     inversionTotal: 914360289397,
     potenciaTotal: 37,
+    ultimaActualizacion: null as string | null,
   });
   const [supData, setSupData] = useState({
     nContratos: 0, nProyectos: 0,
@@ -343,11 +326,13 @@ export default function Home() {
     avanceFisico: 0, avanceFinanciero: 0,
     avanceFisicoActivos: 0, avanceFinancieroActivos: 0,
     porFondo: [] as { fondo: string; contratos: number }[],
+    ultimaActualizacion: null as string | null,
   });
   const [subData, setSubData] = useState({
     deficitAcumulado: 0,
     anio2025: { resoluciones: 0, valorAsignado: 0, pendiente: 0, pagado: 0 },
     anio2026: { resoluciones: 0, valorAsignado: 0, pendiente: 0, pagado: 0 },
+    ultimaActualizacion: null as string | null,
   });
   const [cuData, setCuData] = useState({
     cuMayoristaLac: 0,
@@ -369,22 +354,25 @@ export default function Home() {
   const [subDeficitFssri, setSubDeficitFssri] = useState(0);
   const [subDeficitSeries, setSubDeficitSeries] = useState<Array<{x: string; y: number}>>([]);
   const [subBarData, setSubBarData] = useState<Array<{anio: string; Subsidios: number; Contribuciones: number}>>([]);
-  const [valData, setValData] = useState<{ vf: number; vp: number; vi: number; viSp: number; otros: number; ultimaAct: string } | null>(null);
+  const [valData, setValData] = useState<{
+    vf: number; vp: number; vi: number; viSp: number; otros: number; ultimaAct: string;
+    porFondo: Record<string, { vf: number; vp: number; vi: number; viSp: number }>;
+  } | null>(null);
 
   useEffect(() => {
     Promise.all([
-      fetchSector().catch(() => null),
-      fetchSectorDetalle().catch(() => null),
-      fetchPresupuesto().catch(() => null),
-      fetchComunidades().catch(() => null),
-      fetchContratosOR().catch(() => null),
-      fetchSupervision().catch(() => null),
-      fetchSubsidios().catch(() => null),
-      fetchSubsidiosDeficitHistorico().catch(() => null),
-      fetchCU().catch(() => null),
-      fetchCUEvolucion().catch(() => null),
-      fetchValidaciones().catch(() => null),
-      fetchFenoge().catch(() => null),
+      fetch('/api/sector').then(r => r.json()).catch(() => null),
+      fetch('/api/sector/detalle').then(r => r.json()).catch(() => null),
+      fetch('/api/presupuesto').then(r => r.json()).catch(() => null),
+      fetch('/api/comunidades').then(r => r.json()).catch(() => null),
+      fetch('/api/contratos-or').then(r => r.json()).catch(() => null),
+      fetch('/api/supervision').then(r => r.json()).catch(() => null),
+      fetch('/api/subsidios').then(r => r.json()).catch(() => null),
+      fetch('/api/subsidios/deficit-historico').then(r => r.json()).catch(() => null),
+      fetch('/api/cu').then(r => r.json()).catch(() => null),
+      fetch('/api/cu-evolucion').then(r => r.json()).catch(() => null),
+      fetch('/api/subsidios/validaciones').then(r => r.json()).catch(() => null),
+      fetch('/api/fenoge').then(r => r.json()).catch(() => null),
     ]).then(([s, sd, p, c, o, sp, sb, sbh, cu, cue, val, fen]) => {
       if (s) setSectorData({
         generacionGwh: Number(s.generacionGwh ?? 0),
@@ -453,12 +441,14 @@ export default function Home() {
           obligados: Number(p.totales?.obligados ?? 0),
           pct_obligado: Number(p.totales?.pct_obligado ?? 0) * 100,
         },
+        ultimaActualizacion: p.ultima_actualizacion ?? null,
       });
       if (c) {
         setCemData({
           implementadas: Number(c.implementadas ?? 0),
           inversionEstimada: Number(c.inversionEstimada ?? 0),
           capacidadKwp: Number(c.capacidadKwp ?? 0),
+          ultimaActualizacion: c.ultima_actualizacion ?? null,
         });
         setCemDepts(
           (c.porDepartamento ?? []).map((d: any) => ({
@@ -486,6 +476,7 @@ export default function Home() {
         nCEs: 2297,
         inversionTotal: 914360289397,
         potenciaTotal: 37,
+        ultimaActualizacion: o.ultima_actualizacion ?? null,
       });
       if (sp) setSupData({
         nContratos:              Number(sp.nContratos              ?? 0),
@@ -500,6 +491,7 @@ export default function Home() {
         avanceFisicoActivos:     Number(sp.avanceFisicoActivos     ?? 0),
         avanceFinancieroActivos: Number(sp.avanceFinancieroActivos ?? 0),
         porFondo:                sp.porFondo ?? [],
+        ultimaActualizacion:     sp.ultima_actualizacion ?? null,
       });
       if (sb) setSubData({
         deficitAcumulado: Number(sb.deficitAcumulado ?? 0),
@@ -515,6 +507,7 @@ export default function Home() {
           pendiente: Number(sb.anio2026?.pendiente ?? 0),
           pagado: Number(sb.anio2026?.pagado ?? 0),
         },
+        ultimaActualizacion: sb.ultima_actualizacion ?? null,
       });
       if (sbh && sbh.data && Array.isArray(sbh.data)) {
         const last = sbh.data[sbh.data.length - 1];
@@ -553,6 +546,15 @@ export default function Home() {
       }
       if (val && val.resumen) {
         const r = val.resumen as Record<string, number>;
+        const porFondoRaw = (val.resumenPorFondo ?? {}) as Record<string, Record<string, number>>;
+        
+        const extractFondo = (fondoData: Record<string, number> | undefined) => ({
+          vf:   fondoData?.["e. VF"]    ?? 0,
+          vp:   fondoData?.["d. VP"]    ?? 0,
+          vi:   fondoData?.["b. VI"]    ?? 0,
+          viSp: fondoData?.["c. VI SP"] ?? 0,
+        });
+        
         setValData({
           vf:     r["e. VF"]    ?? 0,
           vp:     r["d. VP"]    ?? 0,
@@ -560,6 +562,11 @@ export default function Home() {
           viSp:   r["c. VI SP"] ?? 0,
           otros:  r["a. Otros"] ?? 0,
           ultimaAct: val.ultimaActualizacion ?? "",
+          porFondo: {
+            FOES: extractFondo(porFondoRaw["FOES"]),
+            ZNI:  extractFondo(porFondoRaw["ZNI"]),
+            SIN:  extractFondo(porFondoRaw["SIN"]),
+          },
         });
       }
       if (fen && !fen.error) {
@@ -599,7 +606,7 @@ export default function Home() {
         id: f.fondo, label: f.fondo, value: f.contratos,
         color: ['#F59E0B', '#8B5CF6', '#06B6D4', '#22C55E', '#EF4444', '#F97316'][i],
       }))
-    : contratosSupervisionDonut;
+    : [];
 
   const avanceORChart = [
     { avance: 'Av. General', valor: orData.avanceGeneral },
@@ -654,7 +661,7 @@ export default function Home() {
 
   // Comunidades map: dynamic colors from real API data
   const cemCityColors = useMemo(() => {
-    if (!cemDepts.length) return comunidadesCityColors;
+    if (!cemDepts.length) return {};
     return Object.fromEntries(cemDepts.map(d => [
       d.name,
       d.count >= 60 ? "#F59E0B" : d.count >= 20 ? "#D97706" : "#7C3A0A",
@@ -662,7 +669,7 @@ export default function Home() {
   }, [cemDepts]);
 
   const cemDeptCounts = useMemo(() => {
-    if (!cemDepts.length) return comunidadesEnergeticasPorDepto;
+    if (!cemDepts.length) return {};
     return Object.fromEntries(cemDepts.map(d => [d.name, d.count]));
   }, [cemDepts]);
 
@@ -1046,14 +1053,14 @@ export default function Home() {
             {/* Título grupal */}
             <div className="flex items-center gap-2 mb-4">
               <span className="text-amber-400 font-bold uppercase tracking-widest text-xs">COMUNIDADES ENERGÉTICAS</span>
-              <span className="text-[10px] text-theme-muted">{comunidades.updateTime}</span>
+              <span className="text-[10px] text-theme-muted">{cemData.ultimaActualizacion ?? comunidades.updateTime}</span>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
 
           {/* COMUNIDADES ENERGÉTICAS */}
               {/* IMPLEMENTADAS */}
               <div className="bg-dash-chip rounded-xl p-4">
-            <CardHeader title={comunidades.title} link={comunidades.link} time={comunidades.updateTime} />
+            <CardHeader title={comunidades.title} link={comunidades.link} time={cemData.ultimaActualizacion ?? comunidades.updateTime} />
             <div className="grid grid-cols-3 gap-2 mb-4">
               <KpiChip label="CE Impl." value={cemData.implementadas} accent />
               <KpiChip label="Inv. Estim." value={`$${cemData.inversionEstimada.toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} small />
@@ -1120,7 +1127,7 @@ export default function Home() {
           {/* CONTRATOS OR 2025 */}
               {/* CONTRATOS OR */}
               <div className="bg-dash-chip rounded-xl p-4">
-            <CardHeader title={contratosOR.title} link={contratosOR.link} time={contratosOR.updateTime} />
+            <CardHeader title={contratosOR.title} link={contratosOR.link} time={orData.ultimaActualizacion ?? contratosOR.updateTime} />
             <div className="grid grid-cols-3 gap-2 mb-5">
               <KpiChip label="Contratos" value={orData.nContratos} accent />
               <KpiChip label="Usuarios" value={orData.nUsuarios.toLocaleString('es-CO')} />
@@ -1253,14 +1260,14 @@ export default function Home() {
             {/* Título grupal */}
             <div className="flex items-center gap-2 mb-4">
               <span className="text-amber-400 font-bold uppercase tracking-widest text-xs">SUBSIDIOS</span>
-              <span className="text-[10px] text-theme-muted">{subsidios.updateTime}</span>
+              <span className="text-[10px] text-theme-muted">{subData.ultimaActualizacion ?? subsidios.updateTime}</span>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
 
           {/* Panel 1 · Déficit + tendencia histórica */}
               {/* DÉFICIT HISTÓRICO */}
               <div className="bg-dash-chip rounded-xl p-4">
-            <CardHeader title="Déficit Histórico" link="/subsidios" time={subsidios.updateTime} />
+            <CardHeader title="Déficit Histórico" link="/subsidios" time={subData.ultimaActualizacion ?? subsidios.updateTime} />
             <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 mb-4">
               <p className="text-[10px] text-red-400/70 uppercase tracking-wider">DÉFICIT ACUMULADO — Corte 1 de abril</p>
               <p className="text-xl font-bold text-red-400 mt-1 leading-none">{fmtFull(subDeficitFssri)}</p>
@@ -1311,7 +1318,7 @@ export default function Home() {
           {/* Panel 2 · Resoluciones 2025 vs 2026 */}
               {/* DETALLE DE PAGOS */}
               <div className="bg-dash-chip rounded-xl p-4">
-            <CardHeader title="Detalle de Pagos" link="/pagos" time={subsidios.updateTime} />
+            <CardHeader title="Detalle de Pagos" link="/pagos" time={subData.ultimaActualizacion ?? subsidios.updateTime} />
             {/* Resoluciones 2026 */}
             <div className="text-center mb-4">
               <div className="text-5xl font-bold text-amber-400 leading-none">{subData.anio2026.resoluciones}</div>
@@ -1363,63 +1370,92 @@ export default function Home() {
               <div className="bg-dash-chip rounded-xl p-4">
             <CardHeader title="Tablero de Validaciones" link="/validaciones" time={valData?.ultimaAct ? new Date(valData.ultimaAct).toLocaleDateString("es-CO") : subsidios.updateTime} />
             {valData ? (() => {
-              const total = valData.vf + valData.vp + valData.vi + valData.viSp + valData.otros;
-              const pieData = [
-                { id: "VF — Validación Final",         label: "VF",    value: valData.vf,   color: "#FDE68A" },
-                { id: "VP — Validación Pendiente",     label: "VP",    value: valData.vp,   color: "#F59E0B" },
-                { id: "VI — Validación Inicial",       label: "VI",    value: valData.vi,   color: "#B45309" },
-                { id: "VI SP — Saldos Pendientes",     label: "VI SP", value: valData.viSp, color: "#78350F" },
-                { id: "Otros / NA",                    label: "Otros", value: valData.otros, color: "#64748B" },
+              // Función para crear datos de gráfico sin "Otros" y con etiquetas correctas
+              const createPieData = (fondoData: { vf: number; vp: number; vi: number; viSp: number }) => [
+                { id: "VF — Validación Final",                   label: "VF",    value: fondoData.vf,   color: "#FDE68A" },
+                { id: "VP — Validación Pendiente",               label: "VP",    value: fondoData.vp,   color: "#F59E0B" },
+                { id: "VI SP — Validación Inicial Saldos Pendientes", label: "VI SP", value: fondoData.viSp, color: "#78350F" },
+                { id: "VI — Validación Inicial",                 label: "VI",    value: fondoData.vi,   color: "#B45309" },
               ].filter(d => d.value > 0);
+
+              const PieChart = ({ data, title }: { data: ReturnType<typeof createPieData>; title: string }) => {
+                const total = data.reduce((sum, d) => sum + d.value, 0);
+                return (
+                  <div className="flex-1 min-w-0">
+                    <div className="text-center text-xs font-medium text-theme-muted mb-1">{title}</div>
+                    <div className="relative h-[100px]">
+                      {total > 0 ? (
+                        <ResponsivePie
+                          data={data}
+                          theme={T}
+                          margin={{ top: 4, right: 4, bottom: 4, left: 4 }}
+                          innerRadius={0.55}
+                          padAngle={2}
+                          cornerRadius={2}
+                          activeOuterRadiusOffset={4}
+                          colors={{ datum: "data.color" }}
+                          borderWidth={0}
+                          enableArcLinkLabels={false}
+                          enableArcLabels={false}
+                          tooltip={({ datum }) => {
+                            const pct = total > 0 ? ((datum.value / total) * 100).toFixed(1) : "0.0";
+                            return (
+                              <div className="bg-[#1E293B] border border-[#334155] rounded-lg px-2 py-1 text-xs text-[#E2E8F0] shadow-lg">
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: datum.color }} />
+                                  <span className="font-semibold">{datum.label}</span>
+                                </div>
+                                <div className="pl-3.5">
+                                  <span className="text-amber-400 font-bold">{datum.value.toLocaleString("es-CO")}</span>
+                                  <span className="text-[#94A3B8] ml-1">({pct}%)</span>
+                                </div>
+                              </div>
+                            );
+                          }}
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-[10px] text-theme-muted">Sin datos</div>
+                      )}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <span className="text-sm font-bold text-theme-primary leading-none">{total.toLocaleString("es-CO")}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              };
+
+              const foesData = createPieData(valData.porFondo.FOES);
+              const zniData = createPieData(valData.porFondo.ZNI);
+              const sinData = createPieData(valData.porFondo.SIN);
+
+              // Totales para KPIs
+              const totalVF = valData.porFondo.FOES.vf + valData.porFondo.ZNI.vf + valData.porFondo.SIN.vf;
+              const totalVP = valData.porFondo.FOES.vp + valData.porFondo.ZNI.vp + valData.porFondo.SIN.vp;
+              const totalVI = valData.porFondo.FOES.vi + valData.porFondo.ZNI.vi + valData.porFondo.SIN.vi;
+              const totalViSp = valData.porFondo.FOES.viSp + valData.porFondo.ZNI.viSp + valData.porFondo.SIN.viSp;
+              const totalCuentas = totalVF + totalVP + totalVI + totalViSp;
+
+              const KpiItem = ({ label, value, color }: { label: string; value: string; color: string }) => (
+                <div className="flex flex-col items-center px-2 py-1 bg-theme-primary/30 rounded-lg min-w-[70px]">
+                  <span className="text-xs font-bold" style={{ color }}>{value}</span>
+                  <span className="text-[9px] text-theme-muted text-center leading-tight">{label}</span>
+                </div>
+              );
+
               return (
                 <>
-                  <div className="relative h-[170px]">
-                    <ResponsivePie
-                      data={pieData}
-                      theme={T}
-                      margin={{ top: 8, right: 90, bottom: 8, left: 8 }}
-                      innerRadius={0.62}
-                      padAngle={2}
-                      cornerRadius={3}
-                      activeOuterRadiusOffset={6}
-                      colors={{ datum: "data.color" }}
-                      borderWidth={0}
-                      enableArcLinkLabels={false}
-                      enableArcLabels={false}
-                      tooltip={({ datum }) => {
-                        const pct = total > 0 ? ((datum.value / total) * 100).toFixed(1) : "0.0";
-                        return (
-                          <div className="bg-[#1E293B] border border-[#334155] rounded-lg px-3 py-2 text-xs text-[#E2E8F0] shadow-lg">
-                            <div className="flex items-center gap-1.5 mb-0.5">
-                              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: datum.color }} />
-                              <span className="font-semibold">{datum.id}</span>
-                            </div>
-                            <div className="pl-4">
-                              <span className="text-amber-400 font-bold">{datum.value.toLocaleString("es-CO")}</span>
-                              <span className="text-[#94A3B8] ml-1.5">({pct}%)</span>
-                            </div>
-                          </div>
-                        );
-                      }}
-                      legends={[{
-                        anchor: "right" as const,
-                        direction: "column" as const,
-                        justify: false,
-                        translateX: 86,
-                        translateY: 0,
-                        itemsSpacing: 6,
-                        itemWidth: 80,
-                        itemHeight: 14,
-                        itemTextColor: "#94A3B8",
-                        itemDirection: "left-to-right" as const,
-                        symbolSize: 8,
-                        symbolShape: "circle" as const,
-                      }]}
-                    />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ paddingRight: 90 }}>
-                      <span className="text-lg font-bold text-theme-primary leading-none">{total.toLocaleString("es-CO")}</span>
-                      <span className="text-[9px] text-theme-muted mt-0.5">cuentas</span>
-                    </div>
+                  <div className="flex gap-2 mb-3">
+                    <PieChart data={foesData} title="FOES" />
+                    <PieChart data={zniData} title="ZNI" />
+                    <PieChart data={sinData} title="SIN" />
+                  </div>
+                  {/* KPIs */}
+                  <div className="grid grid-cols-5 gap-1.5">
+                    <KpiItem label="VF" value={totalVF.toLocaleString("es-CO")} color="#FDE68A" />
+                    <KpiItem label="VP" value={totalVP.toLocaleString("es-CO")} color="#F59E0B" />
+                    <KpiItem label="VI" value={totalVI.toLocaleString("es-CO")} color="#B45309" />
+                    <KpiItem label="VI SP" value={totalViSp.toLocaleString("es-CO")} color="#78350F" />
+                    <KpiItem label="Total" value={totalCuentas.toLocaleString("es-CO")} color="#94A3B8" />
                   </div>
                 </>
               );
@@ -1438,7 +1474,7 @@ export default function Home() {
         <div className="flex flex-col lg:flex-row gap-5 mb-5 items-stretch">
           {/* EJECUCIÓN PRESUPUESTAL 2026 */}
           <div className="lg:w-[35%]"><Card delay={0.1} className="h-full">
-            <CardHeader title={presupuesto.title} link={presupuesto.link} time={presupuesto.updateTime} />
+            <CardHeader title={presupuesto.title} link={presupuesto.link} time={presuData.ultimaActualizacion ?? presupuesto.updateTime} />
             <div className="bg-dash-chip rounded-xl p-3 mb-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -1520,7 +1556,7 @@ export default function Home() {
 
           {/* SUPERVISIÓN */}
           <div className="lg:flex-1"><Card delay={0.25} className="h-full">
-            <CardHeader title={supervision.title} link={supervision.link} time={supervision.updateTime} />
+            <CardHeader title={supervision.title} link={supervision.link} time={supData.ultimaActualizacion ?? supervision.updateTime} />
             <div className="grid grid-cols-[44%_56%] gap-3">
 
               {/* COL 1 — Header KPIs + estado del portafolio */}

@@ -661,19 +661,22 @@ python etl/etl_todas_metricas_xm.py --verbose
 - `src/hooks/` — Vacío. Pendiente crear custom hooks reutilizables.
 - `src/components/dashboard/` — Vacío. Los componentes de dashboard viven en `src/components/` (raíz) o `src/components/ui/`.
 
-### Documentación técnica
+### Documentación técnica generada
 
-- **`PROPUESTA_MAESTRA.md`** — Roadmap completo, deuda técnica, ADRs y estado actual
-- **`AGENTS.md`** — Reglas y convenciones para agentes de desarrollo
-- **`SKILL_PACK_COMPACTO.md`** — Operativo diario: jerarquía de verdad, comandos, ejemplos de errores
-- **Grafo de dependencias:** `server/graphify-out/graph-global.json` (Graphify, 6.184 nodos)
+La documentación detallada del grafo vive en `/home/admonctrlxm/documentacion-tecnica/`:
+- `portal-direccion-mme_ARCHITECTURE.md`
+- `portal-direccion-mme_DATA_FLOW.md`
+- `portal-direccion-mme_SERVICES_DEPS.md`
+- `portal-direccion-mme_TECH_DEBT.md`
+- `portal-direccion-mme_CLEANUP_PROPOSAL.md`
 
 ---
 
 ## Documentación Adicional
 
-- [Guía de Onboarding](../server/docs/GUIA_ONBOARDING.md)
-- [Troubleshooting](../server/docs/GUIA_TROUBLESHOOTING.md)
+- [Guía de Onboarding](./docs/GUIA_ONBOARDING.md)
+- [Arquitectura Detallada](./docs/ARQUITECTURA_E2E.md)
+- [Troubleshooting](./docs/GUIA_TROUBLESHOOTING.md)
 - [API Documentation](./docs/GUIA_USO_API.md)
 
 ---

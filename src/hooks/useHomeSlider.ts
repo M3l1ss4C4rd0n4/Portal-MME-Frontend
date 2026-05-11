@@ -1,8 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { fetchNoticias } from "@/services/apiService";
-import type { NewsItem } from "@/types/home-slider";
+
+interface NewsItem {
+  titulo?: string;
+  title?: string;
+  resumen?: string;
+  fuente?: string;
+  url?: string;
+  imagen?: string;
+  image?: string;
+  fecha?: string;
+}
 
 const SLIDE_INTERVAL_MS = 8000;
 
@@ -31,7 +40,8 @@ export function useHomeSlider(newsSlideCount: number = 0): UseHomeSliderReturn {
   // los ciclos de noticias de mañana / tarde / noche
   useEffect(() => {
     const fetchNews = () =>
-      fetchNoticias()
+      fetch("/api/noticias")
+        .then((r) => r.json())
         .then((data) => {
           if (Array.isArray(data.noticias) && data.noticias.length > 0)
             setNews(data.noticias.slice(0, 3));

@@ -1,0 +1,17 @@
+# Cobertura de tests — no es código fuente
+htmlcov/
+
+# Skills de herramientas externas — no son código del proyecto
+skills/
+
+# Dependencias y build
+node_modules/
+.next/
+dist/
+build/
+.cache/
+
+# Archivos generados
+*.min.js
+*.bundle.js
+graphify-out/

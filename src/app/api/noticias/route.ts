@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-// Caché de 8 horas → 3 refrescos diarios (mañana / tarde / noche)
-export const revalidate = 28800;
+// Sin caché de Next.js — el backend Redis controla el TTL (20 min)
+export const dynamic = "force-dynamic";
 
 /**
  * Extrae la imagen Open Graph de una URL de artículo.

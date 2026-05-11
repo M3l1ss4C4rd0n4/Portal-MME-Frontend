@@ -237,6 +237,56 @@ export default function PagosPage() {
     return () => { cancelled = true; };
   }, [buildQuery]);
 
+  // Validar filtros seleccionados contra las opciones disponibles del backend
+  // Si un filtro seleccionado ya no está disponible, se limpia automáticamente
+  useEffect(() => {
+    if (!data?.filtrosOpciones) return;
+
+    const { filtrosOpciones } = data;
+
+    setFiltros((prev) => {
+      const next = { ...prev };
+
+      // Validar prestadores
+      const prestadoresValidos = new Set(filtrosOpciones.prestadores);
+      next.prestadores = prev.prestadores.filter((p) => prestadoresValidos.has(p));
+
+      // Validar años de pago
+      const aniosPagoValidos = new Set(filtrosOpciones.aniosPago.map(String));
+      next.aniosPago = prev.aniosPago.filter((a) => aniosPagoValidos.has(a));
+
+      // Validar años de expedición
+      const aniosExpValidos = new Set(filtrosOpciones.aniosExpedicion.map(String));
+      next.aniosExp = prev.aniosExp.filter((a) => aniosExpValidos.has(a));
+
+      // Validar estados de pago
+      const estadosValidos = new Set(filtrosOpciones.estadosPago);
+      next.estadosPago = prev.estadosPago.filter((e) => estadosValidos.has(e));
+
+      // Validar resoluciones
+      const resolucionesValidas = new Set(filtrosOpciones.resoluciones.map(String));
+      next.resoluciones = prev.resoluciones.filter((r) => resolucionesValidas.has(r));
+
+      // Validar trimestres
+      const trimestresValidos = new Set(filtrosOpciones.trimestres.map(String));
+      next.trimestres = prev.trimestres.filter((t) => trimestresValidos.has(t));
+
+      // Validar áreas
+      const areasValidas = new Set(filtrosOpciones.areas);
+      next.areas = prev.areas.filter((a) => areasValidas.has(a));
+
+      // Validar fondos
+      const fondosValidos = new Set(filtrosOpciones.fondos);
+      next.fondos = prev.fondos.filter((f) => fondosValidos.has(f));
+
+      // Validar departamentos
+      const deptosValidos = new Set(filtrosOpciones.departamentos);
+      next.departamentos = prev.departamentos.filter((d) => deptosValidos.has(d));
+
+      return next;
+    });
+  }, [data?.filtrosOpciones]);
+
   const hayFiltros = useMemo(
     () => Object.values(filtros).some((arr) => arr.length > 0),
     [filtros]

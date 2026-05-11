@@ -23,8 +23,10 @@ export function getPool(): Pool {
       user: process.env.PGUSER ?? "mme_user",
       password: process.env.PGPASSWORD!,
       max: 10,
-      idleTimeoutMillis: 30_000,
-      connectionTimeoutMillis: 5_000,
+      idleTimeoutMillis: 60_000,
+      connectionTimeoutMillis: 10_000,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10_000,
     });
     
     // Manejo de errores en el pool

@@ -17,6 +17,11 @@ interface SeriItem {
   conteo: number;
 }
 
+interface FechaActualizacion {
+  anio: number;
+  mes: number;
+}
+
 interface ValidacionesData {
   serie: SeriItem[];
   resumen: Record<string, number>;
@@ -24,8 +29,10 @@ interface ValidacionesData {
   filtros: {
     fondos: string[];
     anios: number[];
+    trimestres: string[];
     prestadores: string[];
     departamentos: string[];
+    fechasActualizacion: FechaActualizacion[];
   };
 }
 
@@ -47,6 +54,12 @@ const LABELS: Record<string, string> = {
   "d. VP":    "VP — Validación Pendiente",
   "c. VI SP": "VI SP — Validación Inicial Saldos Pendientes",
   "b. VI":    "VI — Validación Inicial",
+};
+
+const MESES_NOMBRE: Record<number, string> = {
+  1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
+  5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
+  9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre",
 };
 
 // ─── Componentes auxiliares ───────────────────────────────────────────────────
@@ -91,6 +104,56 @@ function SelectFiltro({ label, value, onChange, options, minWidth = "140px" }: {
       >
         <option value="">Todas</option>
         {options.map((o) => <option key={o} value={o}>{o}</option>)}
+      </select>
+    </div>
+  );
+}
+
+/** Selector de Fecha de Actualización con optgroups por año.
+ *  NO tiene opción "Todas" — siempre debe seleccionarse una fecha. */
+function SelectFechaActualizacion({
+  label,
+  value,
+  onChange,
+  fechas,
+  minWidth = "180px",
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  fechas: FechaActualizacion[];
+  minWidth?: string;
+}) {
+  const grouped = useMemo(() => {
+    const map = new Map<number, FechaActualizacion[]>();
+    for (const f of fechas) {
+      if (!map.has(f.anio)) map.set(f.anio, []);
+      map.get(f.anio)!.push(f);
+    }
+    return Array.from(map.entries()).sort((a, b) => b[0] - a[0]);
+  }, [fechas]);
+
+  return (
+    <div className="flex flex-col gap-1" style={{ minWidth }}>
+      <label className="text-[10px] text-theme-muted uppercase tracking-wider">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="bg-dash-chip border border-theme-card rounded-lg px-3 py-1.5 text-xs
+          text-theme-primary focus:outline-none focus:border-amber-500/60 cursor-pointer"
+      >
+        {grouped.map(([anio, meses]) => (
+          <optgroup key={anio} label={String(anio)}>
+            {meses.map((m) => {
+              const val = `${anio}-${String(m.mes).padStart(2, "0")}`;
+              return (
+                <option key={val} value={val}>
+                  {MESES_NOMBRE[m.mes]} {anio}
+                </option>
+              );
+            })}
+          </optgroup>
+        ))}
       </select>
     </div>
   );
@@ -247,36 +310,65 @@ export default function ValidacionesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filtros — por defecto 2021-2024 igual que Power BI
+  // Filtros — por defecto sin restricción de año
   const [fondo, setFondo] = useState("");
   const [prestador, setPrestador] = useState("");
-  const [anioDesde, setAnioDesde] = useState<string>("2021");
-  const [anioHasta, setAnioHasta] = useState<string>("2024");
+  const [anioDesde, setAnioDesde] = useState<string>("");
+  const [anioHasta, setAnioHasta] = useState<string>("");
   const [trimestre, setTrimestre] = useState<string>("");
   const [departamento, setDepartamento] = useState("");
+
+  // Fecha de actualización: se inicializa vacío, pero en cuanto cargamos
+  // las fechas disponibles se setea automáticamente a la más reciente.
+  const [fechaActualizacion, setFechaActualizacion] = useState("");
 
   // Estado para aislar un periodo al hacer click en una barra
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
 
+  // Carga inicial: obtener fechas disponibles para setear el default
   useEffect(() => {
+    fetch("/api/subsidios/validaciones/?fechaActualizacion=1970-01")
+      .then((r) => r.json())
+      .then((d: ValidacionesData) => {
+        const fechas = d.filtros.fechasActualizacion;
+        if (fechas.length > 0 && !fechaActualizacion) {
+          const ultima = fechas[0];
+          setFechaActualizacion(`${ultima.anio}-${String(ultima.mes).padStart(2, "0")}`);
+        }
+      })
+      .catch(() => {
+        // Silencioso: se maneja en el useEffect principal
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Petición principal de datos (solo cuando fechaActualizacion ya está definida)
+  useEffect(() => {
+    if (!fechaActualizacion) return;
+
     const params = new URLSearchParams();
+    params.set("fechaActualizacion", fechaActualizacion);
     if (fondo)        params.set("fondo", fondo);
     if (prestador)    params.set("prestador", prestador);
     if (anioDesde)    params.set("anioDesde", anioDesde);
     if (anioHasta)    params.set("anioHasta", anioHasta);
+    if (trimestre)    params.set("trimestre", trimestre);
     if (departamento) params.set("departamento", departamento);
 
     setLoading(true);
     setSelectedPeriod(null); // reset al cambiar filtros
-    fetch(`/api/subsidios/validaciones?${params}`)
+    fetch(`/api/subsidios/validaciones/?${params}`)
       .then((r) => r.json())
-      .then((d) => { setData(d); setError(null); })
+      .then((d: ValidacionesData) => {
+        setData(d);
+        setError(null);
+      })
       .catch(() => setError("No se pudo cargar el tablero de validaciones"))
       .finally(() => setLoading(false));
-  }, [fondo, prestador, anioDesde, anioHasta, departamento]);
+  }, [fondo, prestador, anioDesde, anioHasta, trimestre, departamento, fechaActualizacion]);
 
-  const anioDesdeNum = anioDesde ? Number(anioDesde) : 2021;
-  const anioHastaNum = anioHasta ? Number(anioHasta) : 2024;
+  const anioDesdeNum = anioDesde ? Number(anioDesde) : 0;      // 0 = sin límite inferior
+  const anioHastaNum = anioHasta ? Number(anioHasta) : 9999;    // 9999 = sin límite superior
   const trimestreNum = trimestre ? Number(trimestre) : null;
 
   const sinData = useMemo(
@@ -311,7 +403,13 @@ export default function ValidacionesPage() {
       })
     : "—";
 
-  const esFiltroDefecto = !fondo && !prestador && anioDesde === "2021" && anioHasta === "2024" && !trimestre && !departamento;
+  const esFiltroDefecto =
+    !fondo &&
+    !prestador &&
+    !anioDesde &&
+    !anioHasta &&
+    !trimestre &&
+    !departamento;
 
   return (
     <DashboardLayout title="Relación de Cuentas Subsidios" subtitle="Subsidios — Validaciones y controles">
@@ -336,15 +434,62 @@ export default function ValidacionesPage() {
       {/* Filtros */}
       <Card delay={0.1} className="mb-4">
         <div className="flex flex-wrap gap-4 items-end">
-          <SelectFiltro label="Fondo"           value={fondo}        onChange={setFondo}        options={data?.filtros.fondos ?? []} />
-          <SelectFiltro label="Año desde"       value={anioDesde}    onChange={setAnioDesde}    options={(data?.filtros.anios ?? []).map(String)} />
-          <SelectFiltro label="Año hasta"       value={anioHasta}    onChange={setAnioHasta}    options={(data?.filtros.anios ?? []).map(String)} />
-          <SelectFiltro label="Trimestre"       value={trimestre}    onChange={setTrimestre}    options={["1","2","3","4"]} />
-          <SelectFiltro label="Departamento"    value={departamento} onChange={setDepartamento} options={data?.filtros.departamentos ?? []} minWidth="200px" />
-          <SelectFiltro label="Nombre del Prestador" value={prestador} onChange={setPrestador}  options={data?.filtros.prestadores ?? []} minWidth="260px" />
+          <SelectFiltro
+            label="Fondo"
+            value={fondo}
+            onChange={setFondo}
+            options={data?.filtros.fondos ?? []}
+          />
+          <SelectFiltro
+            label="Año desde"
+            value={anioDesde}
+            onChange={setAnioDesde}
+            options={(data?.filtros.anios ?? []).map(String)}
+          />
+          <SelectFiltro
+            label="Año hasta"
+            value={anioHasta}
+            onChange={setAnioHasta}
+            options={(data?.filtros.anios ?? []).map(String)}
+          />
+          <SelectFiltro
+            label="Trimestre"
+            value={trimestre}
+            onChange={setTrimestre}
+            options={data?.filtros.trimestres ?? []}
+          />
+          <SelectFiltro
+            label="Departamento"
+            value={departamento}
+            onChange={setDepartamento}
+            options={data?.filtros.departamentos ?? []}
+            minWidth="200px"
+          />
+          <SelectFiltro
+            label="Nombre del Prestador"
+            value={prestador}
+            onChange={setPrestador}
+            options={data?.filtros.prestadores ?? []}
+            minWidth="260px"
+          />
+          <SelectFechaActualizacion
+            label="Fecha de actualización"
+            value={fechaActualizacion}
+            onChange={setFechaActualizacion}
+            fechas={data?.filtros.fechasActualizacion ?? []}
+            minWidth="200px"
+          />
           {!esFiltroDefecto && (
             <button
-              onClick={() => { setFondo(""); setPrestador(""); setAnioDesde("2021"); setAnioHasta("2024"); setTrimestre(""); setDepartamento(""); }}
+              onClick={() => {
+                setFondo("");
+                setPrestador("");
+                setAnioDesde("");
+                setAnioHasta("");
+                setTrimestre("");
+                setDepartamento("");
+                // fechaActualizacion NO se resetea — siempre debe tener un valor
+              }}
               className="text-[10px] text-amber-400 hover:text-amber-300 underline underline-offset-2 self-end pb-1.5"
             >
               Restaurar vista por defecto
