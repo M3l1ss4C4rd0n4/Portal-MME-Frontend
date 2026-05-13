@@ -109,7 +109,7 @@ export interface HomeSliderProps {
 }
 
 // ─── Config ────────────────────────────────────────────────────────────────────
-const SLIDE_INTERVAL_MS = 8000;
+const SLIDE_INTERVAL_MS = 90000; // 1.5 minutos (90 segundos) por slide
 
 // ─── Formatters ────────────────────────────────────────────────────────────────
 
@@ -522,7 +522,7 @@ function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; 
     : "text-red-400";
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-[#060B14] overflow-hidden">
+    <div className="relative w-full h-full flex flex-col items-center justify-center bg-theme-primary overflow-hidden">
       <TopAccent color="#3B82F6" />
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-amber-900/15 pointer-events-none" />
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[60%] h-[30%] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -769,7 +769,7 @@ function SlidePresupuesto({ d }: { d: HomeSliderProps["presuData"] }) {
   const pctCompNoObl = Math.max(0, pct_comprometido - pct_obligado);
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-[#060B14] overflow-hidden">
+    <div className="relative w-full h-full flex flex-col items-center justify-center bg-theme-primary overflow-hidden">
       <TopAccent color="#F59E0B" />
       <div className="absolute inset-0 bg-gradient-to-br from-amber-900/15 via-transparent to-slate-900/10 pointer-events-none" />
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[50%] h-[25%] bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -854,7 +854,7 @@ function SlideComunidades({ d, depts }: { d: HomeSliderProps["cemData"]; depts?:
   }, [depts]);
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-[#060B14] overflow-hidden">
+    <div className="relative w-full h-full flex flex-col items-center justify-center bg-theme-primary overflow-hidden">
       <TopAccent color="#10B981" />
       <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/15 via-transparent to-teal-900/10 pointer-events-none" />
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[50%] h-[25%] bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -943,7 +943,7 @@ function SlideComunidades({ d, depts }: { d: HomeSliderProps["cemData"]; depts?:
 // ─── Slide 4: Contratos OR ─────────────────────────────────────────────────────
 function SlideContratosOR({ d }: { d: HomeSliderProps["orData"] }) {
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-[#060B14] overflow-hidden">
+    <div className="relative w-full h-full flex flex-col items-center justify-center bg-theme-primary overflow-hidden">
       <TopAccent color="#8B5CF6" />
       <div className="absolute inset-0 bg-gradient-to-br from-purple-900/15 via-transparent to-violet-900/10 pointer-events-none" />
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[50%] h-[25%] bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -989,7 +989,7 @@ function SlideContratosOR({ d }: { d: HomeSliderProps["orData"] }) {
 // ─── Slide 5: Supervisión ──────────────────────────────────────────────────────
 function SlideSupervision({ d }: { d: HomeSliderProps["supData"] }) {
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-[#060B14] overflow-hidden">
+    <div className="relative w-full h-full flex flex-col items-center justify-center bg-theme-primary overflow-hidden">
       <TopAccent color="#06B6D4" />
       <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/15 via-transparent to-slate-900/10 pointer-events-none" />
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[50%] h-[25%] bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -1137,7 +1137,7 @@ function SlideSubsidios({ d, deficitFssri, deficitSeries, subBarData }: { d: Hom
   ];
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-[#060B14] overflow-hidden">
+    <div className="relative w-full h-full flex flex-col items-center justify-center bg-theme-primary overflow-hidden">
       <TopAccent color="#EF4444" />
       <div className="absolute inset-0 bg-gradient-to-br from-red-900/15 via-transparent to-rose-900/10 pointer-events-none" />
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[50%] h-[25%] bg-red-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -1343,16 +1343,18 @@ function SlideNoticia({
   news,
   index,
   total,
+  fetchedAt,
 }: {
   news: NewsItem;
   index: number;
   total: number;
+  fetchedAt?: string | null;
 }) {
   const title = news.titulo ?? news.title ?? "Noticia del sector energético";
   const imageUrl = news.imagen ?? news.image ?? null;
 
   return (
-    <div className="relative w-full h-full flex items-center bg-[#060B14] overflow-hidden">
+    <div className="relative w-full h-full flex items-center bg-theme-primary overflow-hidden">
       <TopAccent color="#94A3B8" />
       <div className="absolute inset-0 bg-gradient-to-br from-slate-900/40 via-transparent to-slate-800/20 pointer-events-none" />
 
@@ -1370,6 +1372,13 @@ function SlideNoticia({
       <div className="relative z-10 w-full flex items-center px-12 xl:px-20 gap-12 xl:gap-20">
         {/* Contenido texto */}
         <div className="flex-1 min-w-0 max-w-4xl">
+          {/* Timestamp de última actualización */}
+          {fetchedAt && (
+            <p className="text-slate-500 text-xs xl:text-sm mb-3 tracking-wide">
+              Última actualización: {fetchedAt}
+            </p>
+          )}
+
           {/* Badge de noticia */}
           <div className="flex items-center gap-3 mb-6 xl:mb-8">
             <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-slate-700/60 border border-slate-600/40 rounded-full text-slate-400 text-sm xl:text-base font-semibold tracking-widest uppercase">
@@ -1485,6 +1494,7 @@ export default function HomeSlider(props: HomeSliderProps) {
     current,
     direction,
     news,
+    fetchedAt,
     paused,
     totalSlides,
     goTo,
@@ -1508,6 +1518,7 @@ export default function HomeSlider(props: HomeSliderProps) {
           news={news[newsIdx]}
           index={newsIdx}
           total={news.length}
+          fetchedAt={fetchedAt}
         />
       );
     }

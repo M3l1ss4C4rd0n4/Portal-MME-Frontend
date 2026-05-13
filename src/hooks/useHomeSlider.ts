@@ -13,12 +13,13 @@ interface NewsItem {
   fecha?: string;
 }
 
-const SLIDE_INTERVAL_MS = 8000;
+const SLIDE_INTERVAL_MS = 90000; // 1.5 minutos (90 segundos) por slide
 
 export interface UseHomeSliderReturn {
   current: number;
   direction: number;
   news: NewsItem[];
+  fetchedAt: string | null;
   paused: boolean;
   totalSlides: number;
   goTo: (idx: number, dir: number) => void;
@@ -29,10 +30,17 @@ export interface UseHomeSliderReturn {
   setPaused: (paused: boolean) => void;
 }
 
+function formatFetchedAt(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function useHomeSlider(newsSlideCount: number = 0): UseHomeSliderReturn {
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState(1);
   const [news, setNews] = useState<NewsItem[]>([]);
+  const [fetchedAt, setFetchedAt] = useState<string | null>(null);
   const [paused, setPaused] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -45,6 +53,7 @@ export function useHomeSlider(newsSlideCount: number = 0): UseHomeSliderReturn {
         .then((data) => {
           if (Array.isArray(data.noticias) && data.noticias.length > 0)
             setNews(data.noticias.slice(0, 3));
+          if (data.fetchedAt) setFetchedAt(formatFetchedAt(data.fetchedAt));
         })
         .catch(() => undefined);
 
@@ -104,6 +113,7 @@ export function useHomeSlider(newsSlideCount: number = 0): UseHomeSliderReturn {
     current,
     direction,
     news,
+    fetchedAt,
     paused,
     totalSlides,
     goTo,

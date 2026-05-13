@@ -3,6 +3,8 @@ import { getPool } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+const FISCAL_YEAR = 2026;
+
 interface KpisRow {
   valor_asignado: string | number | null;
   valor_pagado: string | number | null;
@@ -86,27 +88,112 @@ export async function GET(request: NextRequest) {
     const v9 = sqlVal(p9, 'text[]');     // departamentos
 
     // ── KPIs ──
-    const kpisRes = await pool.query<KpisRow>(`
-      SELECT
-        COALESCE(SUM(sp.valor_resolucion), 0) as valor_asignado,
-        COALESCE(SUM(sp.valor_pagado), 0) as valor_pagado,
-        COALESCE(SUM(sp.saldo_pendiente), 0) as valor_pendiente,
-        COUNT(DISTINCT sp.no_resolucion) as total_resoluciones,
-        COUNT(DISTINCT CASE WHEN sp.saldo_pendiente > 0 THEN sp.no_resolucion END) as resoluciones_pendientes
-      FROM subsidios.subsidios_pagos sp
-      LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
-      WHERE (${v1} IS NULL OR sp.nombre_prestador = ANY(${v1}))
-        AND (${v2} IS NULL OR sp.anio = ANY(${v2}))
-        AND (${v3} IS NULL OR LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY(${v3}))
-        AND (${v4} IS NULL OR sp.estado_pago = ANY(${v4}))
-        AND (${v5} IS NULL OR sp.no_resolucion = ANY(${v5}))
-        AND (${v6} IS NULL OR RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY(${v6}))
-        AND (${v7} IS NULL OR sp.area = ANY(${v7}))
-        AND (${v8} IS NULL OR sp.fondo = ANY(${v8}))
-        AND (${v9} IS NULL OR COALESCE(se.departamento, 'Sin departamento') = ANY(${v9}))
-    `);
+    const hayFiltros = p1 || p2 || p3 || p4 || p5 || p6 || p7 || p8 || p9;
 
-    const kpisRow = kpisRes.rows[0];
+    // kpis_resumen se usa SOLO cuando año de vigencia = FISCAL_YEAR y no hay otros filtros
+    // de scope (prestador, área, fondo, depto, resolución, trimestre, año expedición).
+    // "Todos" (p2=null) usa subsidios_pagos histórico completo.
+    // Año de vigencia (p2=anio) y año de expedición (p3=anio_trimestre_resolucion) son
+    // campos distintos en subsidios_pagos y se tratan de forma independiente.
+    const usarKpisResumen =
+      !p1 && !p3 && !p5 && !p6 && !p7 && !p8 && !p9 &&
+      p2 !== null && p2.length === 1 && p2[0] === FISCAL_YEAR;
+
+    const todosEstadosPago    = !p4 || (p4.includes("Pagado") && p4.includes("Pendiente"));
+    const soloFiltroPagado    = usarKpisResumen && p4?.length === 1 && p4[0] === "Pagado";
+    // Con año=2026+Pendiente la deuda está en rows con anio != 2026, se consulta sin anio.
+    const soloFiltroPendiente = usarKpisResumen && p4?.length === 1 && p4[0] === "Pendiente";
+
+    let kpisRow: KpisRow | undefined;
+
+    if (usarKpisResumen && todosEstadosPago) {
+      // Año=2026 (con o sin Pagado+Pendiente): totales oficiales desde kpis_resumen.
+      // resoluciones_pendientes = conteo real en subsidios_pagos (saldo > 0).
+      const [baseRes, pendRes] = await Promise.all([
+        pool.query<Omit<KpisRow, "resoluciones_pendientes">>(`
+          SELECT
+            COALESCE(SUM(valor_asignado), 0) as valor_asignado,
+            COALESCE(SUM(valor_asignado - valor_pendiente), 0) as valor_pagado,
+            COALESCE(SUM(valor_pendiente), 0) as valor_pendiente,
+            SUM(n_resoluciones) as total_resoluciones
+          FROM subsidios.kpis_resumen
+          WHERE anio = ${FISCAL_YEAR}
+        `),
+        pool.query<{ cnt: string }>(`
+          SELECT COUNT(DISTINCT no_resolucion) as cnt
+          FROM subsidios.subsidios_pagos WHERE saldo_pendiente > 0
+        `),
+      ]);
+      const base = baseRes.rows[0];
+      kpisRow = {
+        valor_asignado:          base?.valor_asignado ?? 0,
+        valor_pagado:            base?.valor_pagado ?? 0,
+        valor_pendiente:         base?.valor_pendiente ?? 0,
+        total_resoluciones:      base?.total_resoluciones ?? 0,
+        resoluciones_pendientes: toNum(pendRes.rows[0]?.cnt),
+      };
+    } else if (soloFiltroPagado) {
+      // Año=2026 + solo Pagado: derivar de kpis_resumen 2026 - pendientes (23 - 6 = 17).
+      const [baseRes, pendRes] = await Promise.all([
+        pool.query<{ n: string; va: string }>(`
+          SELECT SUM(n_resoluciones) as n, SUM(valor_asignado) as va
+          FROM subsidios.kpis_resumen WHERE anio = ${FISCAL_YEAR}
+        `),
+        pool.query<{ cnt: string; va_pend: string }>(`
+          SELECT COUNT(DISTINCT no_resolucion) as cnt, SUM(valor_resolucion) as va_pend
+          FROM subsidios.subsidios_pagos WHERE saldo_pendiente > 0
+        `),
+      ]);
+      const nTotal       = toNum(baseRes.rows[0]?.n);
+      const nPendiente   = toNum(pendRes.rows[0]?.cnt);
+      const vaTotal      = toNum(baseRes.rows[0]?.va);
+      const vaPendientes = toNum(pendRes.rows[0]?.va_pend);
+      const vaPagado     = Math.max(0, vaTotal - vaPendientes);
+      kpisRow = {
+        valor_asignado:          vaPagado,
+        valor_pagado:            vaPagado,
+        valor_pendiente:         0,
+        total_resoluciones:      nTotal - nPendiente,
+        resoluciones_pendientes: 0,
+      };
+    } else if (soloFiltroPendiente) {
+      // Año=2026 + solo Pendiente: subsidios_pagos sin filtro de anio — la deuda real
+      // está en rows con anio != 2026 y filtrar por anio la pierde.
+      const kpisRes = await pool.query<KpisRow>(`
+        SELECT
+          COALESCE(SUM(valor_resolucion), 0) as valor_asignado,
+          COALESCE(SUM(valor_pagado), 0) as valor_pagado,
+          COALESCE(SUM(saldo_pendiente), 0) as valor_pendiente,
+          COUNT(DISTINCT no_resolucion) as total_resoluciones,
+          COUNT(DISTINCT CASE WHEN saldo_pendiente > 0 THEN no_resolucion END) as resoluciones_pendientes
+        FROM subsidios.subsidios_pagos
+        WHERE estado_pago = 'Pendiente'
+      `);
+      kpisRow = kpisRes.rows[0];
+    } else {
+      // Todos (sin año) / años históricos / otros filtros de scope: subsidios_pagos completo.
+      const kpisRes = await pool.query<KpisRow>(`
+        SELECT
+          COALESCE(SUM(sp.valor_resolucion), 0) as valor_asignado,
+          COALESCE(SUM(sp.valor_pagado), 0) as valor_pagado,
+          COALESCE(SUM(sp.saldo_pendiente), 0) as valor_pendiente,
+          COUNT(DISTINCT sp.no_resolucion) as total_resoluciones,
+          COUNT(DISTINCT CASE WHEN sp.saldo_pendiente > 0 THEN sp.no_resolucion END) as resoluciones_pendientes
+        FROM subsidios.subsidios_pagos sp
+        LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
+        WHERE (${v1} IS NULL OR sp.nombre_prestador = ANY(${v1}))
+          AND (${v2} IS NULL OR sp.anio = ANY(${v2}))
+          AND (${v3} IS NULL OR LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY(${v3}))
+          AND (${v4} IS NULL OR sp.estado_pago = ANY(${v4}))
+          AND (${v5} IS NULL OR sp.no_resolucion = ANY(${v5}))
+          AND (${v6} IS NULL OR RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY(${v6}))
+          AND (${v7} IS NULL OR sp.area = ANY(${v7}))
+          AND (${v8} IS NULL OR sp.fondo = ANY(${v8}))
+          AND (${v9} IS NULL OR COALESCE(se.departamento, 'Sin departamento') = ANY(${v9}))
+      `);
+      kpisRow = kpisRes.rows[0];
+    }
+
     const valorAsignado  = toNum(kpisRow?.valor_asignado);
     const valorPagado    = toNum(kpisRow?.valor_pagado);
     const valorPendiente = toNum(kpisRow?.valor_pendiente);
@@ -306,7 +393,7 @@ export async function GET(request: NextRequest) {
     const [
       prestadoresOpts, aniosPagoOpts, aniosExpOpts,
       estadosOpts, resolucionesOpts, trimestresOpts,
-      areasOpts, fondosOpts, deptosOpts,
+      areasOpts, fondosOpts, deptosOpts, fechaCorteRes,
     ] = await Promise.all([
       // Prestadores disponibles (sin filtrar por prestador mismo - excluye $1)
       pool.query<{ nombre_prestador: string }>(`
@@ -444,7 +531,19 @@ export async function GET(request: NextRequest) {
           AND (${v8} IS NULL OR sp.fondo = ANY(${v8}))
         ORDER BY departamento
       `),
+      // Fecha de la última importación desde SharePoint
+      pool.query<{ fecha_corte: Date | null }>(`
+        SELECT MAX(fecha_importacion) as fecha_corte FROM subsidios.subsidios_pagos
+      `),
     ]);
+
+    const rawFecha = fechaCorteRes.rows[0]?.fecha_corte;
+    let fechaCorte: string | null = null;
+    if (rawFecha) {
+      const d = new Date(rawFecha);
+      const pad = (n: number) => n.toString().padStart(2, "0");
+      fechaCorte = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
 
     return NextResponse.json({
       kpis: {
@@ -458,6 +557,7 @@ export async function GET(request: NextRequest) {
       trimestres: trimestresData,
       resoluciones: resolucionesData,
       prestadoresPendientes,
+      fechaCorte,
       filtrosOpciones: {
         prestadores:      prestadoresOpts.rows.map((r) => r.nombre_prestador),
         aniosPago:        aniosPagoOpts.rows.map((r) => r.anio),
@@ -473,7 +573,7 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     console.error("[api/subsidios/pagos-detalle] Error:", err);
     return NextResponse.json(
-      { error: "Error al obtener detalle de pagos", detail: String(err) },
+      { error: "Error al obtener detalle de pagos" },
       { status: 500 }
     );
   }

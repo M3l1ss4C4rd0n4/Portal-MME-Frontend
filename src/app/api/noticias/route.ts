@@ -111,9 +111,9 @@ export async function GET() {
       })
     );
 
-    return NextResponse.json({ noticias });
+    return NextResponse.json({ noticias, fetchedAt: new Date().toISOString() });
   } catch {
     // No propagamos el error; simplemente devolvemos vacío
-    return NextResponse.json({ noticias: [] });
+    return NextResponse.json({ noticias: [], fetchedAt: null });
   }
 }

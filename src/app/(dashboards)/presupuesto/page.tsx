@@ -112,11 +112,13 @@ interface Proyecto {
 interface PresupuestoData {
   proyectos: Proyecto[];
   totales: { apropiacion: number; comprometido: number; pct_comprometido: number; obligados: number; pct_obligado: number; disponible: number };
+  ultimaActualizacion: string | null;
 }
 
 const DEFAULT: PresupuestoData = {
   proyectos: [],
   totales: { apropiacion: 0, comprometido: 0, pct_comprometido: 0, obligados: 0, pct_obligado: 0, disponible: 0 },
+  ultimaActualizacion: null,
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────
@@ -149,7 +151,7 @@ export default function PresupuestoPage() {
           pct_obligado: (Number(raw.totales?.pct_obligado) || 0) * 100,
           disponible: Number(raw.totales?.disponible) || DEFAULT.totales.disponible,
         };
-        setData({ proyectos, totales });
+        setData({ proyectos, totales, ultimaActualizacion: raw.ultima_actualizacion || null });
       })
       .catch(() => {});
   }, []);
@@ -165,8 +167,13 @@ export default function PresupuestoPage() {
   // Disponible = todo lo no comprometido (obligado ya está dentro del comprometido)
   const dispTotal = Math.max(0, 100 - data.totales.pct_comprometido);
 
+  // Formatear fecha de actualización para mostrar
+  const fechaCorte = data.ultimaActualizacion 
+    ? `corte ${data.ultimaActualizacion}` 
+    : "corte 1 de abril de 2026";
+
   return (
-    <DashboardLayout title="Ejecución Presupuestal 2026" subtitle="Apropiación, compromisos y obligaciones — corte 1 de abril de 2026">
+    <DashboardLayout title="Ejecución Presupuestal 2026" subtitle={`Apropiación, compromisos y obligaciones — ${fechaCorte}`}>
 
       {/* ── Row 1: KPI Cards ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">

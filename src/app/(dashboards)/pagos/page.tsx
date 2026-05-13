@@ -170,6 +170,7 @@ interface DashboardData {
   resoluciones: ResolucionItem[];
   prestadoresPendientes: PrestadorItem[];
   filtrosOpciones: FiltrosOpciones;
+  fechaCorte: string | null;
 }
 
 interface FiltrosState {
@@ -295,9 +296,13 @@ export default function PagosPage() {
   const set = (key: keyof FiltrosState) => (v: string[]) =>
     setFiltros((prev) => ({ ...prev, [key]: v }));
 
+  const subtitulo = data?.fechaCorte
+    ? `Relación de cuentas de subsidios por vigencia — corte ${data.fechaCorte}`
+    : "Relación de cuentas de subsidios por vigencia";
+
   if (loading && !data) {
     return (
-      <DashboardLayout title="Detalle de pagos" subtitle="Relación de cuentas de subsidios por vigencia">
+      <DashboardLayout title="Detalle de pagos" subtitle={subtitulo}>
         <div className="flex items-center justify-center h-64 text-theme-muted">Cargando datos…</div>
       </DashboardLayout>
     );
@@ -305,7 +310,7 @@ export default function PagosPage() {
 
   if (error) {
     return (
-      <DashboardLayout title="Detalle de pagos" subtitle="Relación de cuentas de subsidios por vigencia">
+      <DashboardLayout title="Detalle de pagos" subtitle={subtitulo}>
         <div className="flex items-center justify-center h-64 text-red-400">
           Error al cargar datos: {error}
         </div>
@@ -315,7 +320,7 @@ export default function PagosPage() {
 
   if (!data) {
     return (
-      <DashboardLayout title="Detalle de pagos" subtitle="Relación de cuentas de subsidios por vigencia">
+      <DashboardLayout title="Detalle de pagos" subtitle={subtitulo}>
         <div className="flex items-center justify-center h-64 text-theme-muted">Sin datos disponibles</div>
       </DashboardLayout>
     );
@@ -352,7 +357,7 @@ export default function PagosPage() {
   const optsResoluciones = filtrosOpciones.resoluciones.map(String);
 
   return (
-    <DashboardLayout title="Detalle de pagos" subtitle="Relación de cuentas de subsidios por vigencia">
+    <DashboardLayout title="Detalle de pagos" subtitle={subtitulo}>
 
       {/* ── KPIs ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-5">
