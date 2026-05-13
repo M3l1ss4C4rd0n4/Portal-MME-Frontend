@@ -90,14 +90,15 @@ export async function GET(request: NextRequest) {
     // ── KPIs ──
     const hayFiltros = p1 || p2 || p3 || p4 || p5 || p6 || p7 || p8 || p9;
 
-    // kpis_resumen se usa SOLO cuando año de vigencia = FISCAL_YEAR y no hay otros filtros
-    // de scope (prestador, área, fondo, depto, resolución, trimestre, año expedición).
-    // "Todos" (p2=null) usa subsidios_pagos histórico completo.
-    // Año de vigencia (p2=anio) y año de expedición (p3=anio_trimestre_resolucion) son
-    // campos distintos en subsidios_pagos y se tratan de forma independiente.
+    // kpis_resumen.anio corresponde al AÑO DE EXPEDICIÓN de la resolución
+    // (LEFT(anio_trimestre_resolucion,4)), NO al año de vigencia (sp.anio).
+    // Se usa SOLO cuando el usuario filtra por año de expedición = FISCAL_YEAR
+    // sin otros filtros de scope.
+    // Año de vigencia (p2=sp.anio) y año de expedición (p3=anio_trimestre_resolucion)
+    // son campos completamente independientes en subsidios_pagos.
     const usarKpisResumen =
-      !p1 && !p3 && !p5 && !p6 && !p7 && !p8 && !p9 &&
-      p2 !== null && p2.length === 1 && p2[0] === FISCAL_YEAR;
+      !p1 && !p2 && !p5 && !p6 && !p7 && !p8 && !p9 &&
+      p3 !== null && p3.length === 1 && p3[0] === FISCAL_YEAR;
 
     const todosEstadosPago    = !p4 || (p4.includes("Pagado") && p4.includes("Pendiente"));
     const soloFiltroPagado    = usarKpisResumen && p4?.length === 1 && p4[0] === "Pagado";
@@ -157,8 +158,9 @@ export async function GET(request: NextRequest) {
         resoluciones_pendientes: 0,
       };
     } else if (soloFiltroPendiente) {
-      // Año=2026 + solo Pendiente: subsidios_pagos sin filtro de anio — la deuda real
-      // está en rows con anio != 2026 y filtrar por anio la pierde.
+      // Año expedición=2026 + solo Pendiente: todas las pendientes expedidas en 2026.
+      // Las 6 resoluciones pendientes tienen LEFT(anio_trimestre_resolucion,4)=2026,
+      // aunque su anio_vigencia (sp.anio) sea 2025 o 2026.
       const kpisRes = await pool.query<KpisRow>(`
         SELECT
           COALESCE(SUM(valor_resolucion), 0) as valor_asignado,
@@ -168,6 +170,7 @@ export async function GET(request: NextRequest) {
           COUNT(DISTINCT CASE WHEN saldo_pendiente > 0 THEN no_resolucion END) as resoluciones_pendientes
         FROM subsidios.subsidios_pagos
         WHERE estado_pago = 'Pendiente'
+          AND LEFT(anio_trimestre_resolucion, 4)::int = ${FISCAL_YEAR}
       `);
       kpisRow = kpisRes.rows[0];
     } else {
