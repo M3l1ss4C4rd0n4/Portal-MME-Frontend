@@ -91,7 +91,7 @@ export const homeDashboardData: Record<string, DashboardCardData> = {
       { label: '% Comprometido', value: 33.7, color: 'gold' },
       { label: '% Obligado', value: 0.08, color: 'white' },
     ],
-    updateTime: 'corte 1 de abril de 2026',
+    updateTime: undefined, // Se actualiza dinámicamente desde la API
     link: '/presupuesto',
   },
 

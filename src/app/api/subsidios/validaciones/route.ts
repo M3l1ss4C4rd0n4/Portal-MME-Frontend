@@ -17,10 +17,10 @@ const ESTADO_SQL = `
   END
 `;
 
-// Mapear area: FOES con NA → SIN
+// Mapear area: FOES con NA o NULL → SIN
 const AREA_SQL = `
   CASE
-    WHEN sv.area = 'NA' AND sv.fondo = 'FOES' THEN 'SIN'
+    WHEN (sv.area = 'NA' OR sv.area IS NULL) AND sv.fondo = 'FOES' THEN 'SIN'
     ELSE sv.area
   END
 `;

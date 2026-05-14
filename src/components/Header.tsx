@@ -44,6 +44,7 @@ const navItems: NavItem[] = [
       { label: 'Tablero de validaciones', href: '/validaciones' },
     ],
   },
+  { label: 'Colombia Solar', href: '/colombia-solar' },
 ];
 
 export default function Header() {

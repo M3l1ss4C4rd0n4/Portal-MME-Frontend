@@ -54,6 +54,7 @@ export interface HomeSliderProps {
       obligados: number;
       pct_obligado: number;
     };
+    ultimaActualizacion?: string | null;
   };
   cemData: { implementadas: number; inversionEstimada: number; capacidadKwp: number };
   cemDepts?: Array<{ name: string; count: number; capacidad?: number }>;

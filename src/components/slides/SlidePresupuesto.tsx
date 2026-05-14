@@ -9,6 +9,7 @@ export function SlidePresupuesto({ d }: { d: HomeSliderProps["presuData"] }) {
   const { apropiacion, pct_comprometido, obligados, pct_obligado } = d.totales;
   const pctDisp = Math.max(0, 100 - pct_comprometido);
   const pctCompNoObl = Math.max(0, pct_comprometido - pct_obligado);
+  const fechaCorte = d.ultimaActualizacion ?? "1 de abril de 2026";
 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center bg-[#060B14] overflow-hidden">
@@ -20,7 +21,7 @@ export function SlidePresupuesto({ d }: { d: HomeSliderProps["presuData"] }) {
         <div className="text-center">
           <SectionBadge label="Ejecución Presupuestal 2026" dot="#F59E0B" />
           <p className="text-slate-500 text-base xl:text-lg">
-            Ejecución de proyectos DEE — corte 1 de abril de 2026
+            Ejecución de proyectos DEE — corte {fechaCorte}
           </p>
         </div>
 
