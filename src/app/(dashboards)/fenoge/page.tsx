@@ -219,7 +219,8 @@ export default function FenogePage() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/fenoge/seguimiento")
+    const ctrl = new AbortController();
+    fetch("/api/fenoge/seguimiento", { cache: "no-store", signal: ctrl.signal })
       .then(r => r.json())
       .then((raw) => {
         if (raw.error) return;
@@ -230,6 +231,7 @@ export default function FenogePage() {
         });
       })
       .catch(() => {});
+    return () => ctrl.abort();
   }, []);
 
   // ─── Filtrado principal (fase + dept) ────────────────────────────────────────
@@ -774,14 +776,10 @@ export default function FenogePage() {
                 tickSize: 0,
                 tickPadding: 8,
                 tickRotation: -35,
-                tickValues: (() => {
-                  const allDates = seguimientoSeries[0].data.map(d => d.x as string);
-                  if (allDates.length <= 12) return allDates;
-                  const step = Math.ceil(allDates.length / 12);
-                  return allDates.filter((_, i) => i % step === 0);
-                })(),
+                tickValues: seguimientoSeries[0].data.map(d => d.x as string),
                 format: (v) => {
-                  const d = new Date(String(v));
+                  const [y, m, day] = String(v).split("-").map(Number);
+                  const d = new Date(y, m - 1, day);
                   return isNaN(d.getTime()) ? String(v) : d.toLocaleDateString("es-CO", { day: "numeric", month: "short" }).replace(".", "");
                 },
               }}
@@ -791,7 +789,8 @@ export default function FenogePage() {
               areaOpacity={0.08}
               useMesh
               tooltip={({ point }) => {
-                const d = new Date(String(point.data.x));
+                const [y, m, day] = String(point.data.x).split("-").map(Number);
+                const d = new Date(y, m - 1, day);
                 const fecha = isNaN(d.getTime())
                   ? String(point.data.x)
                   : d.toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });

@@ -38,6 +38,52 @@ function toNum(v: string | number | null | undefined): number {
   return isNaN(n) ? 0 : n;
 }
 
+/** Construye un WHERE clause seguro con parámetros posicionales del driver pg.
+ *  Cada filtro se pasa como array JS (o null) y el driver lo convierte a array PostgreSQL.
+ *  skipIdx: índice 1-based del filtro a omitir (para cálculo de opciones dependientes). */
+function buildWhere(
+  filters: [
+    string[] | null,   // 1 prestadores
+    number[] | null,   // 2 aniosPago
+    number[] | null,   // 3 aniosExp
+    string[] | null,   // 4 estadosPago
+    number[] | null,   // 5 resoluciones
+    number[] | null,   // 6 trimestres
+    string[] | null,   // 7 areas
+    string[] | null,   // 8 fondos
+    string[] | null,   // 9 departamentos
+  ],
+  skipIdx?: number
+) {
+  const defs = [
+    { type: "text[]", clause: "sp.nombre_prestador = ANY($IDX::text[])" },
+    { type: "int[]", clause: "sp.anio = ANY($IDX::int[])" },
+    { type: "int[]", clause: "LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY($IDX::int[])" },
+    { type: "text[]", clause: "sp.estado_pago = ANY($IDX::text[])" },
+    { type: "int[]", clause: "sp.no_resolucion = ANY($IDX::int[])" },
+    { type: "int[]", clause: "RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY($IDX::int[])" },
+    { type: "text[]", clause: "sp.area = ANY($IDX::text[])" },
+    { type: "text[]", clause: "sp.fondo = ANY($IDX::text[])" },
+    { type: "text[]", clause: "COALESCE(se.departamento, 'Sin departamento') = ANY($IDX::text[])" },
+  ];
+
+  let idx = 1;
+  const params: (string[] | number[] | null)[] = [];
+  const parts: string[] = [];
+
+  for (let i = 0; i < defs.length; i++) {
+    if (i + 1 === skipIdx) continue;
+    const d = defs[i];
+    const placeholder = `$${idx}::${d.type}`;
+    params.push(filters[i]);
+    parts.push(`(${placeholder} IS NULL OR ${d.clause.replace("$IDX", `$${idx}`)})`);
+    idx++;
+  }
+
+  const where = parts.length > 0 ? "WHERE " + parts.join("\n          AND ") : "";
+  return { where, params };
+}
+
 export async function GET(request: NextRequest) {
   const pool = getPool();
   try {
@@ -65,144 +111,37 @@ export async function GET(request: NextRequest) {
     const p8 = fondos.length        > 0 ? fondos        : null;
     const p9 = departamentos.length > 0 ? departamentos : null;
 
-    // Helper para construir valores SQL con tipos explícitos
-    const sqlVal = (val: unknown, type: string): string => {
-      if (val === null) return `NULL::${type}`;
-      if (Array.isArray(val)) {
-        if (val.length === 0) return `NULL::${type}`;
-        const items = val.map(v => typeof v === 'string' ? `'${v.replace(/'/g, "''")}'` : String(v)).join(',');
-        return `ARRAY[${ items }]::${type}`;
-      }
-      return String(val);
-    };
-
-    // Construir valores SQL para cada parámetro
-    const v1 = sqlVal(p1, 'text[]');     // prestadores
-    const v2 = sqlVal(p2, 'int[]');      // aniosPago
-    const v3 = sqlVal(p3, 'int[]');      // aniosExp
-    const v4 = sqlVal(p4, 'text[]');     // estadosPago
-    const v5 = sqlVal(p5, 'bigint[]');   // resoluciones
-    const v6 = sqlVal(p6, 'int[]');      // trimestres
-    const v7 = sqlVal(p7, 'text[]');     // areas
-    const v8 = sqlVal(p8, 'text[]');     // fondos
-    const v9 = sqlVal(p9, 'text[]');     // departamentos
+    const baseFilters: [
+      string[] | null, number[] | null, number[] | null,
+      string[] | null, number[] | null, number[] | null,
+      string[] | null, string[] | null, string[] | null,
+    ] = [p1, p2, p3, p4, p5, p6, p7, p8, p9];
 
     // ── KPIs ──
-    const hayFiltros = p1 || p2 || p3 || p4 || p5 || p6 || p7 || p8 || p9;
-
-    // kpis_resumen.anio corresponde al AÑO DE EXPEDICIÓN de la resolución
-    // (LEFT(anio_trimestre_resolucion,4)), NO al año de vigencia (sp.anio).
-    // Se usa SOLO cuando el usuario filtra por año de expedición = FISCAL_YEAR
-    // sin otros filtros de scope.
-    // Año de vigencia (p2=sp.anio) y año de expedición (p3=anio_trimestre_resolucion)
-    // son campos completamente independientes en subsidios_pagos.
-    const usarKpisResumen =
-      !p1 && !p2 && !p5 && !p6 && !p7 && !p8 && !p9 &&
-      p3 !== null && p3.length === 1 && p3[0] === FISCAL_YEAR;
-
-    const todosEstadosPago    = !p4 || (p4.includes("Pagado") && p4.includes("Pendiente"));
-    const soloFiltroPagado    = usarKpisResumen && p4?.length === 1 && p4[0] === "Pagado";
-    // Con año=2026+Pendiente la deuda está en rows con anio != 2026, se consulta sin anio.
-    const soloFiltroPendiente = usarKpisResumen && p4?.length === 1 && p4[0] === "Pendiente";
-
-    let kpisRow: KpisRow | undefined;
-
-    if (usarKpisResumen && todosEstadosPago) {
-      // Año=2026 (con o sin Pagado+Pendiente): totales oficiales desde kpis_resumen.
-      // resoluciones_pendientes = conteo real en subsidios_pagos (saldo > 0).
-      const [baseRes, pendRes] = await Promise.all([
-        pool.query<Omit<KpisRow, "resoluciones_pendientes">>(`
-          SELECT
-            COALESCE(SUM(valor_asignado), 0) as valor_asignado,
-            COALESCE(SUM(valor_asignado - valor_pendiente), 0) as valor_pagado,
-            COALESCE(SUM(valor_pendiente), 0) as valor_pendiente,
-            SUM(n_resoluciones) as total_resoluciones
-          FROM subsidios.kpis_resumen
-          WHERE anio = ${FISCAL_YEAR}
-        `),
-        pool.query<{ cnt: string }>(`
-          SELECT COUNT(DISTINCT no_resolucion) as cnt
-          FROM subsidios.subsidios_pagos WHERE saldo_pendiente > 0
-        `),
-      ]);
-      const base = baseRes.rows[0];
-      kpisRow = {
-        valor_asignado:          base?.valor_asignado ?? 0,
-        valor_pagado:            base?.valor_pagado ?? 0,
-        valor_pendiente:         base?.valor_pendiente ?? 0,
-        total_resoluciones:      base?.total_resoluciones ?? 0,
-        resoluciones_pendientes: toNum(pendRes.rows[0]?.cnt),
-      };
-    } else if (soloFiltroPagado) {
-      // Año=2026 + solo Pagado: derivar de kpis_resumen 2026 - pendientes (23 - 6 = 17).
-      const [baseRes, pendRes] = await Promise.all([
-        pool.query<{ n: string; va: string }>(`
-          SELECT SUM(n_resoluciones) as n, SUM(valor_asignado) as va
-          FROM subsidios.kpis_resumen WHERE anio = ${FISCAL_YEAR}
-        `),
-        pool.query<{ cnt: string; va_pend: string }>(`
-          SELECT COUNT(DISTINCT no_resolucion) as cnt, SUM(valor_resolucion) as va_pend
-          FROM subsidios.subsidios_pagos WHERE saldo_pendiente > 0
-        `),
-      ]);
-      const nTotal       = toNum(baseRes.rows[0]?.n);
-      const nPendiente   = toNum(pendRes.rows[0]?.cnt);
-      const vaTotal      = toNum(baseRes.rows[0]?.va);
-      const vaPendientes = toNum(pendRes.rows[0]?.va_pend);
-      const vaPagado     = Math.max(0, vaTotal - vaPendientes);
-      kpisRow = {
-        valor_asignado:          vaPagado,
-        valor_pagado:            vaPagado,
-        valor_pendiente:         0,
-        total_resoluciones:      nTotal - nPendiente,
-        resoluciones_pendientes: 0,
-      };
-    } else if (soloFiltroPendiente) {
-      // Año expedición=2026 + solo Pendiente: todas las pendientes expedidas en 2026.
-      // Las 6 resoluciones pendientes tienen LEFT(anio_trimestre_resolucion,4)=2026,
-      // aunque su anio_vigencia (sp.anio) sea 2025 o 2026.
-      const kpisRes = await pool.query<KpisRow>(`
-        SELECT
-          COALESCE(SUM(valor_resolucion), 0) as valor_asignado,
-          COALESCE(SUM(valor_pagado), 0) as valor_pagado,
-          COALESCE(SUM(saldo_pendiente), 0) as valor_pendiente,
-          COUNT(DISTINCT no_resolucion) as total_resoluciones,
-          COUNT(DISTINCT CASE WHEN saldo_pendiente > 0 THEN no_resolucion END) as resoluciones_pendientes
-        FROM subsidios.subsidios_pagos
-        WHERE estado_pago = 'Pendiente'
-          AND LEFT(anio_trimestre_resolucion, 4)::int = ${FISCAL_YEAR}
-      `);
-      kpisRow = kpisRes.rows[0];
-    } else {
-      // Todos (sin año) / años históricos / otros filtros de scope: subsidios_pagos completo.
-      const kpisRes = await pool.query<KpisRow>(`
-        SELECT
-          COALESCE(SUM(sp.valor_resolucion), 0) as valor_asignado,
-          COALESCE(SUM(sp.valor_pagado), 0) as valor_pagado,
-          COALESCE(SUM(sp.saldo_pendiente), 0) as valor_pendiente,
-          COUNT(DISTINCT sp.no_resolucion) as total_resoluciones,
-          COUNT(DISTINCT CASE WHEN sp.saldo_pendiente > 0 THEN sp.no_resolucion END) as resoluciones_pendientes
-        FROM subsidios.subsidios_pagos sp
-        LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
-        WHERE (${v1} IS NULL OR sp.nombre_prestador = ANY(${v1}))
-          AND (${v2} IS NULL OR sp.anio = ANY(${v2}))
-          AND (${v3} IS NULL OR LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY(${v3}))
-          AND (${v4} IS NULL OR sp.estado_pago = ANY(${v4}))
-          AND (${v5} IS NULL OR sp.no_resolucion = ANY(${v5}))
-          AND (${v6} IS NULL OR RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY(${v6}))
-          AND (${v7} IS NULL OR sp.area = ANY(${v7}))
-          AND (${v8} IS NULL OR sp.fondo = ANY(${v8}))
-          AND (${v9} IS NULL OR COALESCE(se.departamento, 'Sin departamento') = ANY(${v9}))
-      `);
-      kpisRow = kpisRes.rows[0];
-    }
+    // Todos los KPIs se calculan directamente desde subsidios_pagos.
+    // kpis_resumen ya no se usa porque subsidios_pagos (hoja Pagos)
+    // produce los mismos valores tras corregir el hash de dedup.
+    const { where, params } = buildWhere(baseFilters);
+    const kpisRes = await pool.query<KpisRow>(`
+      SELECT
+        COALESCE(SUM(sp.valor_resolucion), 0) as valor_asignado,
+        COALESCE(SUM(sp.valor_pagado), 0) as valor_pagado,
+        COALESCE(SUM(sp.saldo_pendiente), 0) as valor_pendiente,
+        COUNT(DISTINCT sp.no_resolucion) as total_resoluciones,
+        COUNT(DISTINCT CASE WHEN sp.saldo_pendiente > 0 THEN sp.no_resolucion END) as resoluciones_pendientes
+      FROM subsidios.subsidios_pagos sp
+      LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
+      ${where}
+    `, params);
+    const kpisRow = kpisRes.rows[0];
 
     const valorAsignado  = toNum(kpisRow?.valor_asignado);
     const valorPagado    = toNum(kpisRow?.valor_pagado);
     const valorPendiente = toNum(kpisRow?.valor_pendiente);
     const pctPagado = valorAsignado > 0 ? (valorPagado / valorAsignado) * 100 : 0;
 
-    // ── Trimestres (agrupados por período de expedición de la resolución) ──
+    // ── Trimestres ──
+    const { where: whereTrim, params: paramsTrim } = buildWhere(baseFilters);
     const trimRes = await pool.query<TrimestreRow>(`
       SELECT
         sp.anio_trimestre_resolucion as periodo,
@@ -210,18 +149,10 @@ export async function GET(request: NextRequest) {
         COALESCE(SUM(sp.saldo_pendiente), 0) as pendiente
       FROM subsidios.subsidios_pagos sp
       LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
-      WHERE (${v1} IS NULL OR sp.nombre_prestador = ANY(${v1}))
-        AND (${v2} IS NULL OR sp.anio = ANY(${v2}))
-        AND (${v3} IS NULL OR LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY(${v3}))
-        AND (${v4} IS NULL OR sp.estado_pago = ANY(${v4}))
-        AND (${v5} IS NULL OR sp.no_resolucion = ANY(${v5}))
-        AND (${v6} IS NULL OR RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY(${v6}))
-        AND (${v7} IS NULL OR sp.area = ANY(${v7}))
-        AND (${v8} IS NULL OR sp.fondo = ANY(${v8}))
-        AND (${v9} IS NULL OR COALESCE(se.departamento, 'Sin departamento') = ANY(${v9}))
+      ${whereTrim}
       GROUP BY sp.anio_trimestre_resolucion
       ORDER BY sp.anio_trimestre_resolucion
-    `);
+    `, paramsTrim);
 
     const trimestresData = trimRes.rows.map((r) => {
       const periodo = (r.periodo ?? "").replace("/", " ");
@@ -231,7 +162,8 @@ export async function GET(request: NextRequest) {
       return { periodo, anio, trimestre, pagado: toNum(r.pagado), pendiente: toNum(r.pendiente) };
     });
 
-    // ── Resoluciones (una fila por resolución, agrupando todas sus vigencias) ──
+    // ── Resoluciones ──
+    const { where: whereResol, params: paramsResol } = buildWhere(baseFilters);
     const resolRes = await pool.query<ResolucionRow>(`
       SELECT
         sp.no_resolucion,
@@ -241,19 +173,11 @@ export async function GET(request: NextRequest) {
         COALESCE(SUM(sp.saldo_pendiente), 0) as saldo_pendiente
       FROM subsidios.subsidios_pagos sp
       LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
-      WHERE (${v1} IS NULL OR sp.nombre_prestador = ANY(${v1}))
-        AND (${v2} IS NULL OR sp.anio = ANY(${v2}))
-        AND (${v3} IS NULL OR LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY(${v3}))
-        AND (${v4} IS NULL OR sp.estado_pago = ANY(${v4}))
-        AND (${v5} IS NULL OR sp.no_resolucion = ANY(${v5}))
-        AND (${v6} IS NULL OR RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY(${v6}))
-        AND (${v7} IS NULL OR sp.area = ANY(${v7}))
-        AND (${v8} IS NULL OR sp.fondo = ANY(${v8}))
-        AND (${v9} IS NULL OR COALESCE(se.departamento, 'Sin departamento') = ANY(${v9}))
+      ${whereResol}
       GROUP BY sp.no_resolucion
       ORDER BY SUM(sp.saldo_pendiente) DESC, sp.no_resolucion DESC
       LIMIT 200
-    `);
+    `, paramsResol);
 
     const resolucionesData = resolRes.rows.map((r) => ({
       noResolucion: Number(r.no_resolucion),
@@ -264,279 +188,124 @@ export async function GET(request: NextRequest) {
     }));
 
     // ── Prestadores pendientes ──
+    const { where: wherePrest, params: paramsPrest } = buildWhere(baseFilters);
     const prestRes = await pool.query<PrestadorRow>(`
       SELECT
         sp.nombre_prestador,
         COALESCE(SUM(sp.saldo_pendiente), 0) as saldo_pendiente
       FROM subsidios.subsidios_pagos sp
       LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
-      WHERE (${v1} IS NULL OR sp.nombre_prestador = ANY(${v1}))
-        AND (${v2} IS NULL OR sp.anio = ANY(${v2}))
-        AND (${v3} IS NULL OR LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY(${v3}))
-        AND (${v4} IS NULL OR sp.estado_pago = ANY(${v4}))
-        AND (${v5} IS NULL OR sp.no_resolucion = ANY(${v5}))
-        AND (${v6} IS NULL OR RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY(${v6}))
-        AND (${v7} IS NULL OR sp.area = ANY(${v7}))
-        AND (${v8} IS NULL OR sp.fondo = ANY(${v8}))
-        AND (${v9} IS NULL OR COALESCE(se.departamento, 'Sin departamento') = ANY(${v9}))
+      ${wherePrest}
       GROUP BY sp.nombre_prestador
       HAVING SUM(sp.saldo_pendiente) > 0
       ORDER BY SUM(sp.saldo_pendiente) DESC
       LIMIT 10
-    `);
+    `, paramsPrest);
 
     const prestadoresPendientes = prestRes.rows.map((r) => ({
       nombre: r.nombre_prestador,
       saldoPendiente: toNum(r.saldo_pendiente),
     }));
 
-    // ── Opciones de filtros (dependientes - calculadas basándose en filtros activos) ──
-    // Para cada filtro, calculamos las opciones disponibles aplicando TODOS los filtros EXCEPTO el propio
-    // Esto permite ver qué opciones están disponibles para el usuario dado el contexto actual
-
-    const whereSinPrestador = `
-      WHERE ($2::int[]    IS NULL OR sp.anio = ANY($2::int[]))
-        AND ($3::int[]    IS NULL OR LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY($3::int[]))
-        AND ($4::text[]   IS NULL OR sp.estado_pago = ANY($4::text[]))
-        AND ($5::bigint[] IS NULL OR sp.no_resolucion = ANY($5::bigint[]))
-        AND ($6::int[]    IS NULL OR RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY($6::int[]))
-        AND ($7::text[]   IS NULL OR sp.area = ANY($7::text[]))
-        AND ($8::text[]   IS NULL OR sp.fondo = ANY($8::text[]))
-        AND ($9::text[]   IS NULL OR COALESCE(se.departamento, 'Sin departamento') = ANY($9::text[]))
-    `;
-
-    const whereSinAnioPago = `
-      WHERE ($1::text[]   IS NULL OR sp.nombre_prestador = ANY($1::text[]))
-        AND ($3::int[]    IS NULL OR LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY($3::int[]))
-        AND ($4::text[]   IS NULL OR sp.estado_pago = ANY($4::text[]))
-        AND ($5::bigint[] IS NULL OR sp.no_resolucion = ANY($5::bigint[]))
-        AND ($6::int[]    IS NULL OR RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY($6::int[]))
-        AND ($7::text[]   IS NULL OR sp.area = ANY($7::text[]))
-        AND ($8::text[]   IS NULL OR sp.fondo = ANY($8::text[]))
-        AND ($9::text[]   IS NULL OR COALESCE(se.departamento, 'Sin departamento') = ANY($9::text[]))
-    `;
-
-    const whereSinAnioExp = `
-      WHERE ($1::text[]   IS NULL OR sp.nombre_prestador = ANY($1::text[]))
-        AND ($2::int[]    IS NULL OR sp.anio = ANY($2::int[]))
-        AND ($4::text[]   IS NULL OR sp.estado_pago = ANY($4::text[]))
-        AND ($5::bigint[] IS NULL OR sp.no_resolucion = ANY($5::bigint[]))
-        AND ($6::int[]    IS NULL OR RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY($6::int[]))
-        AND ($7::text[]   IS NULL OR sp.area = ANY($7::text[]))
-        AND ($8::text[]   IS NULL OR sp.fondo = ANY($8::text[]))
-        AND ($9::text[]   IS NULL OR COALESCE(se.departamento, 'Sin departamento') = ANY($9::text[]))
-    `;
-
-    const whereSinEstadoPago = `
-      WHERE ($1::text[]   IS NULL OR sp.nombre_prestador = ANY($1::text[]))
-        AND ($2::int[]    IS NULL OR sp.anio = ANY($2::int[]))
-        AND ($3::int[]    IS NULL OR LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY($3::int[]))
-        AND ($5::bigint[] IS NULL OR sp.no_resolucion = ANY($5::bigint[]))
-        AND ($6::int[]    IS NULL OR RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY($6::int[]))
-        AND ($7::text[]   IS NULL OR sp.area = ANY($7::text[]))
-        AND ($8::text[]   IS NULL OR sp.fondo = ANY($8::text[]))
-        AND ($9::text[]   IS NULL OR COALESCE(se.departamento, 'Sin departamento') = ANY($9::text[]))
-    `;
-
-    const whereSinResolucion = `
-      WHERE ($1::text[]   IS NULL OR sp.nombre_prestador = ANY($1::text[]))
-        AND ($2::int[]    IS NULL OR sp.anio = ANY($2::int[]))
-        AND ($3::int[]    IS NULL OR LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY($3::int[]))
-        AND ($4::text[]   IS NULL OR sp.estado_pago = ANY($4::text[]))
-        AND ($6::int[]    IS NULL OR RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY($6::int[]))
-        AND ($7::text[]   IS NULL OR sp.area = ANY($7::text[]))
-        AND ($8::text[]   IS NULL OR sp.fondo = ANY($8::text[]))
-        AND ($9::text[]   IS NULL OR COALESCE(se.departamento, 'Sin departamento') = ANY($9::text[]))
-    `;
-
-    const whereSinTrimestre = `
-      WHERE ($1::text[]   IS NULL OR sp.nombre_prestador = ANY($1::text[]))
-        AND ($2::int[]    IS NULL OR sp.anio = ANY($2::int[]))
-        AND ($3::int[]    IS NULL OR LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY($3::int[]))
-        AND ($4::text[]   IS NULL OR sp.estado_pago = ANY($4::text[]))
-        AND ($5::bigint[] IS NULL OR sp.no_resolucion = ANY($5::bigint[]))
-        AND ($7::text[]   IS NULL OR sp.area = ANY($7::text[]))
-        AND ($8::text[]   IS NULL OR sp.fondo = ANY($8::text[]))
-        AND ($9::text[]   IS NULL OR COALESCE(se.departamento, 'Sin departamento') = ANY($9::text[]))
-    `;
-
-    const whereSinArea = `
-      WHERE ($1::text[]   IS NULL OR sp.nombre_prestador = ANY($1::text[]))
-        AND ($2::int[]    IS NULL OR sp.anio = ANY($2::int[]))
-        AND ($3::int[]    IS NULL OR LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY($3::int[]))
-        AND ($4::text[]   IS NULL OR sp.estado_pago = ANY($4::text[]))
-        AND ($5::bigint[] IS NULL OR sp.no_resolucion = ANY($5::bigint[]))
-        AND ($6::int[]    IS NULL OR RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY($6::int[]))
-        AND ($8::text[]   IS NULL OR sp.fondo = ANY($8::text[]))
-        AND ($9::text[]   IS NULL OR COALESCE(se.departamento, 'Sin departamento') = ANY($9::text[]))
-    `;
-
-    const whereSinFondo = `
-      WHERE ($1::text[]   IS NULL OR sp.nombre_prestador = ANY($1::text[]))
-        AND ($2::int[]    IS NULL OR sp.anio = ANY($2::int[]))
-        AND ($3::int[]    IS NULL OR LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY($3::int[]))
-        AND ($4::text[]   IS NULL OR sp.estado_pago = ANY($4::text[]))
-        AND ($5::bigint[] IS NULL OR sp.no_resolucion = ANY($5::bigint[]))
-        AND ($6::int[]    IS NULL OR RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY($6::int[]))
-        AND ($7::text[]   IS NULL OR sp.area = ANY($7::text[]))
-        AND ($9::text[]   IS NULL OR COALESCE(se.departamento, 'Sin departamento') = ANY($9::text[]))
-    `;
-
-    const whereSinDepartamento = `
-      WHERE ($1::text[]   IS NULL OR sp.nombre_prestador = ANY($1::text[]))
-        AND ($2::int[]    IS NULL OR sp.anio = ANY($2::int[]))
-        AND ($3::int[]    IS NULL OR LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY($3::int[]))
-        AND ($4::text[]   IS NULL OR sp.estado_pago = ANY($4::text[]))
-        AND ($5::bigint[] IS NULL OR sp.no_resolucion = ANY($5::bigint[]))
-        AND ($6::int[]    IS NULL OR RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY($6::int[]))
-        AND ($7::text[]   IS NULL OR sp.area = ANY($7::text[]))
-        AND ($8::text[]   IS NULL OR sp.fondo = ANY($8::text[]))
-    `;
-
+    // ── Opciones de filtros (dependientes) ──
     const [
       prestadoresOpts, aniosPagoOpts, aniosExpOpts,
       estadosOpts, resolucionesOpts, trimestresOpts,
       areasOpts, fondosOpts, deptosOpts, fechaCorteRes,
     ] = await Promise.all([
-      // Prestadores disponibles (sin filtrar por prestador mismo - excluye $1)
-      pool.query<{ nombre_prestador: string }>(`
-        SELECT DISTINCT sp.nombre_prestador 
-        FROM subsidios.subsidios_pagos sp
-        LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
-        WHERE (${v2} IS NULL OR sp.anio = ANY(${v2}))
-          AND (${v3} IS NULL OR LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY(${v3}))
-          AND (${v4} IS NULL OR sp.estado_pago = ANY(${v4}))
-          AND (${v5} IS NULL OR sp.no_resolucion = ANY(${v5}))
-          AND (${v6} IS NULL OR RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY(${v6}))
-          AND (${v7} IS NULL OR sp.area = ANY(${v7}))
-          AND (${v8} IS NULL OR sp.fondo = ANY(${v8}))
-          AND (${v9} IS NULL OR COALESCE(se.departamento, 'Sin departamento') = ANY(${v9}))
-        ORDER BY sp.nombre_prestador
-      `),
-      // Años de pago disponibles (sin filtrar por año de pago - excluye $2)
-      pool.query<{ anio: number }>(`
-        SELECT DISTINCT sp.anio 
-        FROM subsidios.subsidios_pagos sp
-        LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
-        WHERE (${v1} IS NULL OR sp.nombre_prestador = ANY(${v1}))
-          AND (${v3} IS NULL OR LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY(${v3}))
-          AND (${v4} IS NULL OR sp.estado_pago = ANY(${v4}))
-          AND (${v5} IS NULL OR sp.no_resolucion = ANY(${v5}))
-          AND (${v6} IS NULL OR RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY(${v6}))
-          AND (${v7} IS NULL OR sp.area = ANY(${v7}))
-          AND (${v8} IS NULL OR sp.fondo = ANY(${v8}))
-          AND (${v9} IS NULL OR COALESCE(se.departamento, 'Sin departamento') = ANY(${v9}))
-        ORDER BY sp.anio DESC
-      `),
-      // Años de expedición disponibles (sin filtrar por año de expedición - excluye $3)
-      pool.query<{ anio: number }>(`
-        SELECT DISTINCT LEFT(sp.anio_trimestre_resolucion, 4)::int as anio 
-        FROM subsidios.subsidios_pagos sp
-        LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
-        WHERE (${v1} IS NULL OR sp.nombre_prestador = ANY(${v1}))
-          AND (${v2} IS NULL OR sp.anio = ANY(${v2}))
-          AND (${v4} IS NULL OR sp.estado_pago = ANY(${v4}))
-          AND (${v5} IS NULL OR sp.no_resolucion = ANY(${v5}))
-          AND (${v6} IS NULL OR RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY(${v6}))
-          AND (${v7} IS NULL OR sp.area = ANY(${v7}))
-          AND (${v8} IS NULL OR sp.fondo = ANY(${v8}))
-          AND (${v9} IS NULL OR COALESCE(se.departamento, 'Sin departamento') = ANY(${v9}))
-        ORDER BY anio DESC
-      `),
-      // Estados de pago disponibles (sin filtrar por estado - excluye $4)
-      pool.query<{ estado_pago: string }>(`
-        SELECT DISTINCT sp.estado_pago 
-        FROM subsidios.subsidios_pagos sp
-        LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
-        WHERE (${v1} IS NULL OR sp.nombre_prestador = ANY(${v1}))
-          AND (${v2} IS NULL OR sp.anio = ANY(${v2}))
-          AND (${v3} IS NULL OR LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY(${v3}))
-          AND (${v5} IS NULL OR sp.no_resolucion = ANY(${v5}))
-          AND (${v6} IS NULL OR RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY(${v6}))
-          AND (${v7} IS NULL OR sp.area = ANY(${v7}))
-          AND (${v8} IS NULL OR sp.fondo = ANY(${v8}))
-          AND (${v9} IS NULL OR COALESCE(se.departamento, 'Sin departamento') = ANY(${v9}))
-        ORDER BY sp.estado_pago
-      `),
-      // Resoluciones disponibles (sin filtrar por resolución - excluye $5)
-      pool.query<{ no_resolucion: number }>(`
-        SELECT DISTINCT sp.no_resolucion 
-        FROM subsidios.subsidios_pagos sp
-        LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
-        WHERE (${v1} IS NULL OR sp.nombre_prestador = ANY(${v1}))
-          AND (${v2} IS NULL OR sp.anio = ANY(${v2}))
-          AND (${v3} IS NULL OR LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY(${v3}))
-          AND (${v4} IS NULL OR sp.estado_pago = ANY(${v4}))
-          AND (${v6} IS NULL OR RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY(${v6}))
-          AND (${v7} IS NULL OR sp.area = ANY(${v7}))
-          AND (${v8} IS NULL OR sp.fondo = ANY(${v8}))
-          AND (${v9} IS NULL OR COALESCE(se.departamento, 'Sin departamento') = ANY(${v9}))
-        ORDER BY sp.no_resolucion DESC
-        LIMIT 500
-      `),
-      // Trimestres disponibles (sin filtrar por trimestre - excluye $6)
-      pool.query<{ trimestre: number }>(`
-        SELECT DISTINCT RIGHT(sp.anio_trimestre_resolucion, 1)::int as trimestre 
-        FROM subsidios.subsidios_pagos sp
-        LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
-        WHERE (${v1} IS NULL OR sp.nombre_prestador = ANY(${v1}))
-          AND (${v2} IS NULL OR sp.anio = ANY(${v2}))
-          AND (${v3} IS NULL OR LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY(${v3}))
-          AND (${v4} IS NULL OR sp.estado_pago = ANY(${v4}))
-          AND (${v5} IS NULL OR sp.no_resolucion = ANY(${v5}))
-          AND (${v7} IS NULL OR sp.area = ANY(${v7}))
-          AND (${v8} IS NULL OR sp.fondo = ANY(${v8}))
-          AND (${v9} IS NULL OR COALESCE(se.departamento, 'Sin departamento') = ANY(${v9}))
-        ORDER BY trimestre
-      `),
-      // Áreas disponibles (sin filtrar por área - excluye $7)
-      pool.query<{ area: string | null }>(`
-        SELECT DISTINCT sp.area 
-        FROM subsidios.subsidios_pagos sp
-        LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
-        WHERE (${v1} IS NULL OR sp.nombre_prestador = ANY(${v1}))
-          AND (${v2} IS NULL OR sp.anio = ANY(${v2}))
-          AND (${v3} IS NULL OR LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY(${v3}))
-          AND (${v4} IS NULL OR sp.estado_pago = ANY(${v4}))
-          AND (${v5} IS NULL OR sp.no_resolucion = ANY(${v5}))
-          AND (${v6} IS NULL OR RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY(${v6}))
-          AND (${v8} IS NULL OR sp.fondo = ANY(${v8}))
-          AND (${v9} IS NULL OR COALESCE(se.departamento, 'Sin departamento') = ANY(${v9}))
-        ORDER BY sp.area
-      `),
-      // Fondos disponibles (sin filtrar por fondo - excluye $8)
-      pool.query<{ fondo: string | null }>(`
-        SELECT DISTINCT sp.fondo 
-        FROM subsidios.subsidios_pagos sp
-        LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
-        WHERE (${v1} IS NULL OR sp.nombre_prestador = ANY(${v1}))
-          AND (${v2} IS NULL OR sp.anio = ANY(${v2}))
-          AND (${v3} IS NULL OR LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY(${v3}))
-          AND (${v4} IS NULL OR sp.estado_pago = ANY(${v4}))
-          AND (${v5} IS NULL OR sp.no_resolucion = ANY(${v5}))
-          AND (${v6} IS NULL OR RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY(${v6}))
-          AND (${v7} IS NULL OR sp.area = ANY(${v7}))
-          AND (${v9} IS NULL OR COALESCE(se.departamento, 'Sin departamento') = ANY(${v9}))
-        ORDER BY sp.fondo
-      `),
-      // Departamentos disponibles (sin filtrar por departamento - excluye $9)
-      pool.query<{ departamento: string | null }>(`
-        SELECT DISTINCT COALESCE(se.departamento, 'Sin departamento') as departamento
-        FROM subsidios.subsidios_pagos sp
-        LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
-        WHERE (${v1} IS NULL OR sp.nombre_prestador = ANY(${v1}))
-          AND (${v2} IS NULL OR sp.anio = ANY(${v2}))
-          AND (${v3} IS NULL OR LEFT(sp.anio_trimestre_resolucion, 4)::int = ANY(${v3}))
-          AND (${v4} IS NULL OR sp.estado_pago = ANY(${v4}))
-          AND (${v5} IS NULL OR sp.no_resolucion = ANY(${v5}))
-          AND (${v6} IS NULL OR RIGHT(sp.anio_trimestre_resolucion, 1)::int = ANY(${v6}))
-          AND (${v7} IS NULL OR sp.area = ANY(${v7}))
-          AND (${v8} IS NULL OR sp.fondo = ANY(${v8}))
-        ORDER BY departamento
-      `),
-      // Fecha de la última importación desde SharePoint
+      (() => {
+        const { where, params } = buildWhere(baseFilters, 1);
+        return pool.query<{ nombre_prestador: string }>(`
+          SELECT DISTINCT sp.nombre_prestador 
+          FROM subsidios.subsidios_pagos sp
+          LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
+          ${where}
+          ORDER BY sp.nombre_prestador
+        `, params);
+      })(),
+      (() => {
+        const { where, params } = buildWhere(baseFilters, 2);
+        return pool.query<{ anio: number }>(`
+          SELECT DISTINCT sp.anio 
+          FROM subsidios.subsidios_pagos sp
+          LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
+          ${where}
+          ORDER BY sp.anio DESC
+        `, params);
+      })(),
+      (() => {
+        const { where, params } = buildWhere(baseFilters, 3);
+        return pool.query<{ anio: number }>(`
+          SELECT DISTINCT LEFT(sp.anio_trimestre_resolucion, 4)::int as anio 
+          FROM subsidios.subsidios_pagos sp
+          LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
+          ${where}
+          ORDER BY anio DESC
+        `, params);
+      })(),
+      (() => {
+        const { where, params } = buildWhere(baseFilters, 4);
+        return pool.query<{ estado_pago: string }>(`
+          SELECT DISTINCT sp.estado_pago 
+          FROM subsidios.subsidios_pagos sp
+          LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
+          ${where}
+          ORDER BY sp.estado_pago
+        `, params);
+      })(),
+      (() => {
+        const { where, params } = buildWhere(baseFilters, 5);
+        return pool.query<{ no_resolucion: number }>(`
+          SELECT DISTINCT sp.no_resolucion 
+          FROM subsidios.subsidios_pagos sp
+          LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
+          ${where}
+          ORDER BY sp.no_resolucion DESC
+          LIMIT 500
+        `, params);
+      })(),
+      (() => {
+        const { where, params } = buildWhere(baseFilters, 6);
+        return pool.query<{ trimestre: number }>(`
+          SELECT DISTINCT RIGHT(sp.anio_trimestre_resolucion, 1)::int as trimestre 
+          FROM subsidios.subsidios_pagos sp
+          LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
+          ${where}
+          ORDER BY trimestre
+        `, params);
+      })(),
+      (() => {
+        const { where, params } = buildWhere(baseFilters, 7);
+        return pool.query<{ area: string | null }>(`
+          SELECT DISTINCT sp.area 
+          FROM subsidios.subsidios_pagos sp
+          LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
+          ${where}
+          ORDER BY sp.area
+        `, params);
+      })(),
+      (() => {
+        const { where, params } = buildWhere(baseFilters, 8);
+        return pool.query<{ fondo: string | null }>(`
+          SELECT DISTINCT sp.fondo 
+          FROM subsidios.subsidios_pagos sp
+          LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
+          ${where}
+          ORDER BY sp.fondo
+        `, params);
+      })(),
+      (() => {
+        const { where, params } = buildWhere(baseFilters, 9);
+        return pool.query<{ departamento: string | null }>(`
+          SELECT DISTINCT COALESCE(se.departamento, 'Sin departamento') as departamento
+          FROM subsidios.subsidios_pagos sp
+          LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
+          ${where}
+          ORDER BY departamento
+        `, params);
+      })(),
       pool.query<{ fecha_corte: Date | null }>(`
-        SELECT MAX(fecha_importacion) as fecha_corte FROM subsidios.subsidios_pagos
+        SELECT MAX(fecha) as fecha_corte FROM subsidios.subsidios_import_log
       `),
     ]);
 

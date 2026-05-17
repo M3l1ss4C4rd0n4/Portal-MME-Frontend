@@ -86,6 +86,7 @@ export interface HomeSliderProps {
     anio2025: { resoluciones: number; valorAsignado: number; pendiente: number; pagado: number };
     anio2026: { resoluciones: number; valorAsignado: number; pendiente: number; pagado: number };
     historico?: { anio: number; fondo: string; valor_asignado: number; pagado: number; pendiente: number }[];
+    ultimaActualizacion?: string | null;
   };
   deficitFssri?: number;
   deficitSeries?: Array<{ x: string; y: number }>;

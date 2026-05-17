@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const pool = getPool();
   try {
-    // ── Últimos 90 días (para gráfica diaria en home) ──
+    // ── Últimos 60 días (para gráfica diaria en home) ──
     const dailyRes = await pool.query<{
       fecha: Date;
       componente_g: number;

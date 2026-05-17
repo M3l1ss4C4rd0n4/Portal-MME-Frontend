@@ -36,7 +36,7 @@ function formatFetchedAt(iso: string): string {
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export function useHomeSlider(newsSlideCount: number = 0): UseHomeSliderReturn {
+export function useHomeSlider(extraSlidesCount: number = 0): UseHomeSliderReturn {
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState(1);
   const [news, setNews] = useState<NewsItem[]>([]);
@@ -62,8 +62,8 @@ export function useHomeSlider(newsSlideCount: number = 0): UseHomeSliderReturn {
     return () => clearInterval(timer);
   }, []);
 
-  // Total slides: 6 KPI + news
-  const totalSlides = 6 + news.length;
+  // Total slides: 6 KPI + news + extra sections (e.g. redes sociales)
+  const totalSlides = 6 + news.length + extraSlidesCount;
 
   const goTo = useCallback(
     (idx: number, dir: number) => {

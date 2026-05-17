@@ -1,7 +1,7 @@
 "use client";
 
 import SemiGauge from "@/components/ui/SemiGauge";
-import { fmtFull } from "@/lib/format";
+import { fmtFull, fmtCortePresupuesto } from "@/lib/format";
 import type { HomeSliderProps } from "@/types/home-slider";
 import { TopAccent, SectionBadge } from "./SlideUI";
 
@@ -9,7 +9,7 @@ export function SlidePresupuesto({ d }: { d: HomeSliderProps["presuData"] }) {
   const { apropiacion, pct_comprometido, obligados, pct_obligado } = d.totales;
   const pctDisp = Math.max(0, 100 - pct_comprometido);
   const pctCompNoObl = Math.max(0, pct_comprometido - pct_obligado);
-  const fechaCorte = d.ultimaActualizacion ?? "1 de abril de 2026";
+  const fechaCorte = fmtCortePresupuesto(d.ultimaActualizacion);
 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center bg-[#060B14] overflow-hidden">

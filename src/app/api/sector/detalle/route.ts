@@ -132,40 +132,51 @@ export async function GET() {
     `);
     const fechaAporte = latestAporteFecha.rows[0]?.fecha;
 
-    const aportesPorRio = await pool.query<{
+    let aportesPorRio: {
       codigo: string;
       nombre: string;
       actualGwh: number;
       historicoGwh: number;
       porcentaje: number;
-    }>(`
-      WITH actual AS (
-        SELECT recurso, valor_gwh
-        FROM sector_energetico.metrics
-        WHERE metrica = 'AporEner' AND entidad = 'Rio' AND fecha = $1
-      ),
-      historico AS (
-        SELECT recurso, valor_gwh
-        FROM sector_energetico.metrics
-        WHERE metrica = 'AporEnerMediHist' AND entidad = 'Rio' AND fecha = $1
-      ),
-      porc AS (
-        SELECT recurso, valor_gwh
-        FROM sector_energetico.metrics
-        WHERE metrica = 'PorcApor' AND entidad = 'Rio' AND fecha = $1
-      )
-      SELECT 
-        a.recurso as codigo,
-        COALESCE(c.nombre, a.recurso) as nombre,
-        ROUND(a.valor_gwh::numeric, 2) as "actualGwh",
-        ROUND(COALESCE(h.valor_gwh, 0)::numeric, 2) as "historicoGwh",
-        ROUND(COALESCE(p.valor_gwh * 100, 0)::numeric, 1) as porcentaje
-      FROM actual a
-      LEFT JOIN historico h ON a.recurso = h.recurso
-      LEFT JOIN porc p ON a.recurso = p.recurso
-      LEFT JOIN sector_energetico.catalogos c ON a.recurso = c.codigo AND c.catalogo = 'ListadoRios'
-      ORDER BY a.valor_gwh DESC
-    `, [fechaAporte]);
+    }[] = [];
+
+    if (fechaAporte) {
+      const aportesRes = await pool.query<{
+        codigo: string;
+        nombre: string;
+        actualGwh: number;
+        historicoGwh: number;
+        porcentaje: number;
+      }>(`
+        WITH actual AS (
+          SELECT recurso, valor_gwh
+          FROM sector_energetico.metrics
+          WHERE metrica = 'AporEner' AND entidad = 'Rio' AND fecha = $1
+        ),
+        historico AS (
+          SELECT recurso, valor_gwh
+          FROM sector_energetico.metrics
+          WHERE metrica = 'AporEnerMediHist' AND entidad = 'Rio' AND fecha = $1
+        ),
+        porc AS (
+          SELECT recurso, valor_gwh
+          FROM sector_energetico.metrics
+          WHERE metrica = 'PorcApor' AND entidad = 'Rio' AND fecha = $1
+        )
+        SELECT 
+          a.recurso as codigo,
+          COALESCE(c.nombre, a.recurso) as nombre,
+          ROUND(a.valor_gwh::numeric, 2) as "actualGwh",
+          ROUND(COALESCE(h.valor_gwh, 0)::numeric, 2) as "historicoGwh",
+          ROUND(COALESCE(p.valor_gwh * 100, 0)::numeric, 1) as porcentaje
+        FROM actual a
+        LEFT JOIN historico h ON a.recurso = h.recurso
+        LEFT JOIN porc p ON a.recurso = p.recurso
+        LEFT JOIN sector_energetico.catalogos c ON a.recurso = c.codigo AND c.catalogo = 'ListadoRios'
+        ORDER BY a.valor_gwh DESC
+      `, [fechaAporte]);
+      aportesPorRio = aportesRes.rows;
+    }
 
     // 8. Series históricas para sparklines (últimos 7 días)
     const embalsesSparkline = await pool.query<{ fecha: Date; valor: number }>(`
@@ -232,8 +243,8 @@ export async function GET() {
         }))
       },
       aportes: {
-        fecha: fechaAporte,
-        rios: aportesPorRio.rows.map(r => ({
+        fecha: fechaAporte ?? null,
+        rios: aportesPorRio.map(r => ({
           codigo: r.codigo,
           nombre: r.nombre,
           actualGwh: Number(r.actualGwh),

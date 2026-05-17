@@ -24,6 +24,11 @@ function Card({ children, className = "", delay = 0 }: { children: React.ReactNo
 
 const fmtCOP = (v: number) => `$ ${Math.round(v).toLocaleString("es-CO")}`;
 const fmtFull = (v: number) => v.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const toNum = (v: string | number | null | undefined): number => {
+  if (v === null || v === undefined) return 0;
+  const n = typeof v === "string" ? parseFloat(v) : v;
+  return isNaN(n) ? 0 : n;
+};
 
 // ─── MultiSelect ──────────────────────────────────────────────────────────
 function MultiSelect({
@@ -188,7 +193,7 @@ interface FiltrosState {
 const FILTROS_VACIOS: FiltrosState = {
   prestadores: [],
   aniosPago: [],
-  aniosExp: [],
+  aniosExp: ["2026"],
   estadosPago: [],
   resoluciones: [],
   trimestres: [],
@@ -330,15 +335,15 @@ export default function PagosPage() {
 
   const trimestreBarData = trimestres.map((t) => ({
     periodo: t.periodo,
-    Pagado: +(t.pagado / 1e6).toFixed(1),
-    Pendiente: +(t.pendiente / 1e6).toFixed(1),
+    Pagado: +(toNum(t.pagado) / 1e6).toFixed(1),
+    Pendiente: +(toNum(t.pendiente) / 1e6).toFixed(1),
   }));
 
   const prestadoresBarData = [...prestadoresPendientes]
     .reverse()
     .map((p) => ({
       prestador: p.nombre.length > 35 ? p.nombre.slice(0, 35) + "…" : p.nombre,
-      Pendiente: +(p.saldoPendiente / 1e6).toFixed(1),
+      Pendiente: +(toNum(p.saldoPendiente) / 1e6).toFixed(1),
     }));
 
   const tooltipStyle = {
@@ -362,7 +367,7 @@ export default function PagosPage() {
       {/* ── KPIs ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-5">
         <Card delay={0.05}>
-          <div className="text-[10px] text-amber-400/80 font-semibold uppercase tracking-wide">Valor Asignado</div>
+          <div className="text-[10px] text-amber-400/80 font-semibold uppercase tracking-wide">Valor Comprometido en Resoluciones</div>
           <div className="mt-1.5 text-lg font-extrabold text-theme-primary leading-none tabular-nums">
             {fmtCOP(kpis.valorAsignado)}
           </div>
@@ -518,7 +523,7 @@ export default function PagosPage() {
           <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px] mb-4">
             Porcentaje pagado
           </span>
-          <SemiGauge value={kpis.pctPagado} label="Pagado / Asignado" size="lg" color="gold" />
+          <SemiGauge value={kpis.pctPagado} label="Pagado / Comprometido en Resoluciones" size="lg" color="gold" />
           <div className="mt-4 text-center">
             <div className="text-2xl font-bold text-theme-primary">
               {kpis.pctPagado.toFixed(2)}%
@@ -542,7 +547,7 @@ export default function PagosPage() {
                 <tr className="border-b border-theme-card">
                   <th className="text-left py-2 pr-3 text-theme-muted font-semibold">No.</th>
                   <th className="text-left py-2 pr-3 text-theme-muted font-semibold">Año</th>
-                  <th className="text-right py-2 pr-3 text-theme-muted font-semibold">Asignado</th>
+                  <th className="text-right py-2 pr-3 text-theme-muted font-semibold">Comprometido en Resoluciones</th>
                   <th className="text-right py-2 pr-3 text-theme-muted font-semibold">Pagado</th>
                   <th className="text-right py-2 text-theme-muted font-semibold">Pendiente</th>
                 </tr>

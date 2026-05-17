@@ -15,6 +15,7 @@ module.exports = {
         PGPORT: '5432',
         PGDATABASE: 'portal_energetico',
         PGUSER: 'mme_user',
+        PGPASSWORD: '',
       },
       watch: false,
       max_memory_restart: '1G',

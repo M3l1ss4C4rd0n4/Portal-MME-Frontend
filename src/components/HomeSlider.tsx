@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { ResponsiveLine } from "@nivo/line";
@@ -10,6 +10,9 @@ import SemiGauge from "@/components/ui/SemiGauge";
 import { TrendBadge, TrendArrow, getTrendColor } from "@/components/ui/TrendBadge";
 import type { MetricaTendencia } from "@/components/ui/TrendBadge";
 import { useHomeSlider } from "@/hooks/useHomeSlider";
+import { fmtCortePresupuesto } from "@/lib/format";
+import SlideRedesX, { ALL_X_ACCOUNTS } from "@/components/SlideRedesX";
+import CapacidadEmbalseChart, { type CapacidadEmbalseData } from "@/components/charts/CapacidadEmbalseChart";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const fmtCOP = (v: number) => `$ ${Math.round(v).toLocaleString("es-CO")}`;
@@ -500,6 +503,14 @@ function DualGaugeSparklines({ embalsesPct, aportesPct, sparklines }: {
 
 // ─── Slide 1: Gestión del Sector ───────────────────────────────────────────────
 function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; detalle?: HomeSliderProps["sectorDetalle"] }) {
+  const [embalseData, setEmbalseData] = useState<CapacidadEmbalseData | null>(null);
+  useEffect(() => {
+    fetch("/api/embalses/capacidad-historica")
+      .then((r) => r.json())
+      .then((json) => setEmbalseData(json))
+      .catch(() => undefined);
+  }, []);
+
   const hasDetalle = !!detalle && detalle.generacionPorFuente.length > 0;
   const hasPrecioSeries = !!detalle && detalle.precioBolsaSeries.length > 0 && detalle.precioBolsaSeries[0].data.length > 0;
   const aportes = d.aportesHidricos;
@@ -603,16 +614,16 @@ function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; 
 
         {/* Gráficos — 3 columnas: Precio | Generación | Aportes */}
         {hasDetalle && (
-          <div className="grid grid-cols-1 md:grid-cols-3 w-full gap-3 xl:gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-[3fr_3fr_4fr] w-full gap-3 xl:gap-4">
             {/* Precio de Bolsa (PPP) - Línea */}
             {hasPrecioSeries && (
               <div className="flex flex-col">
                 <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Precio de Bolsa (PPP) · Tendencia</p>
-                <div className="h-[120px] xl:h-[140px]">
+                <div className="h-[140px] xl:h-[160px]">
                   <ResponsiveLine
                     data={detalle!.precioBolsaSeries}
                     theme={NIVO_SLIDER}
-                    margin={{ top: 6, right: 12, bottom: 28, left: 36 }}
+                    margin={{ top: 6, right: 12, bottom: 52, left: 36 }}
                     xScale={{ type: "point" }}
                     yScale={{ type: "linear", min: "auto", max: "auto" }}
                     curve="catmullRom"
@@ -622,13 +633,15 @@ function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; 
                     axisRight={null}
                     axisBottom={{
                       tickSize: 0,
-                      tickPadding: 6,
-                      tickRotation: 0,
-                      tickValues: "every 4 days",
+                      tickPadding: 8,
+                      tickRotation: -45,
+                      tickValues: detalle!.precioBolsaSeries[0]?.data
+                        .filter((_, i) => i % 4 === 0 || i === detalle!.precioBolsaSeries[0].data.length - 1)
+                        .map(d => d.x) ?? [],
                       format: (value) => {
                         const dataPoint = detalle!.precioBolsaSeries[0]?.data.find(d => d.x === value);
                         if (dataPoint?.fecha) {
-                          return String(new Date(dataPoint.fecha).getDate());
+                          return new Date(dataPoint.fecha).toLocaleDateString("es-CO", { day: "numeric", month: "short" });
                         }
                         return value;
                       },
@@ -658,11 +671,11 @@ function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; 
             {/* Generación por Fuente - Donut */}
             <div className="flex flex-col items-center">
               <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1 self-start">Generación por Fuente</p>
-              <div className="relative h-[120px] xl:h-[140px] w-full">
+              <div className="relative h-[110px] xl:h-[120px] w-full">
                 <ResponsivePie
                   data={detalle!.generacionPorFuente}
                   theme={NIVO_SLIDER}
-                  margin={{ top: 4, right: 35, bottom: 4, left: 4 }}
+                  margin={{ top: 4, right: 4, bottom: 4, left: 4 }}
                   innerRadius={0.65}
                   padAngle={2}
                   cornerRadius={3}
@@ -673,22 +686,7 @@ function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; 
                   arcLabelsSkipAngle={12}
                   arcLabelsTextColor="#fff"
                   arcLabelsRadiusOffset={0.75}
-                  legends={[
-                    {
-                      anchor: "right" as const,
-                      direction: "column" as const,
-                      justify: false,
-                      translateX: 30,
-                      translateY: 0,
-                      itemsSpacing: 3,
-                      itemWidth: 60,
-                      itemHeight: 12,
-                      itemTextColor: "#94A3B8",
-                      itemDirection: "left-to-right" as const,
-                      symbolSize: 7,
-                      symbolShape: "circle" as const,
-                    },
-                  ]}
+                  legends={[]}
                   tooltip={({ datum }) => (
                     <div className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-xs text-slate-200">
                       <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ background: datum.color }} />
@@ -696,65 +694,33 @@ function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; 
                     </div>
                   )}
                 />
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pr-12">
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <span className="text-base xl:text-lg font-bold text-white leading-none">{d.generacionGwh.toFixed(1)}</span>
                   <span className="text-[9px] text-slate-400">GWh</span>
                 </div>
               </div>
+              {/* Leyenda personalizada — 2 filas con flex-wrap */}
+              <div className="flex flex-wrap justify-center gap-x-3 gap-y-0.5 mt-1">
+                {detalle!.generacionPorFuente.map((item) => (
+                  <div key={item.id} className="flex items-center gap-1">
+                    <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ background: item.color }} />
+                    <span className="text-[8px] text-slate-400">{item.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Hidrología: Aportes (izq) + Embalses (der) — top 12 cada uno */}
-            {detalle?.aportesRios && detalle.aportesRios.length > 0 && (
-              <div className="flex flex-col h-[120px] xl:h-[140px]">
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Hidrología · Aportes y Embalses</p>
-                <div className="flex-1 grid grid-cols-2 gap-2 overflow-hidden">
-                  {/* Izquierda — Aportes */}
-                  <div>
-                    <p className="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5">Aportes · vs Hist.</p>
-                    <div className="space-y-[1px]">
-                      {detalle.aportesRios.slice(0, 15).map((rio) => {
-                        const maxVal = Math.max(rio.actualGwh, rio.historicoGwh);
-                        const pct = rio.porcentaje;
-                        const pctColor = pct >= 100 ? "text-emerald-400" : pct >= 80 ? "text-amber-400" : "text-red-400";
-                        const barColor = pct >= 100 ? "bg-emerald-500" : pct >= 80 ? "bg-amber-500" : "bg-red-500";
-                        return (
-                          <div key={rio.codigo} className="flex items-center gap-1 text-[9px] leading-none py-[1px]">
-                            <span className="w-12 text-right text-slate-400 truncate" title={rio.nombre}>{rio.nombre}</span>
-                            <div className="w-12 h-1.5 bg-slate-700/40 rounded-sm relative overflow-hidden">
-                              <div className="absolute top-0 left-0 h-full bg-slate-600/30 rounded-sm" style={{ width: `${Math.min((rio.historicoGwh / maxVal) * 100, 100)}%` }} />
-                              <div className={`absolute top-0 left-0 h-full ${barColor} rounded-sm`} style={{ width: `${Math.min((rio.actualGwh / maxVal) * 100, 100)}%` }} />
-                            </div>
-                            <span className={`w-5 text-right font-medium ${pctColor}`}>{pct.toFixed(0)}%</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  {/* Derecha — Embalses críticos */}
-                  <div>
-                    <p className="text-[9px] text-slate-500 uppercase tracking-wider mb-0.5">Embalses · % Actual</p>
-                    <div className="space-y-[1px]">
-                      {detalle.embalses
-                        ?.slice()
-                        .sort((a, b) => b.capacidadGwh - a.capacidadGwh)
-                        .slice(0, 15)
-                        .map((emb) => {
-                          const embColor = emb.porcentaje < 50 ? "bg-red-500" : emb.porcentaje < 60 ? "bg-orange-500" : emb.porcentaje < 70 ? "bg-amber-500" : emb.porcentaje < 80 ? "bg-cyan-500" : "bg-emerald-500";
-                          return (
-                            <div key={emb.codigo} className="flex items-center gap-1 text-[9px] leading-none py-[1px]">
-                              <span className="w-12 text-right text-slate-400 truncate" title={emb.nombre}>{emb.nombre}</span>
-                              <div className="w-12 h-1.5 bg-slate-700/40 rounded-sm relative overflow-hidden">
-                                <div className={`absolute top-0 left-0 h-full ${embColor} rounded-sm`} style={{ width: `${Math.min(emb.porcentaje, 100)}%` }} />
-                              </div>
-                              <span className="w-5 text-right font-medium text-slate-300">{emb.porcentaje.toFixed(0)}%</span>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  </div>
+            {/* Hidrología: Capacidad Embalse SIN (gráfico de área histórico) */}
+            <div className="flex flex-col">
+              <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Capacidad Embalse</p>
+              {embalseData ? (
+                <CapacidadEmbalseChart data={embalseData} height={220} />
+              ) : (
+                <div className="flex items-center justify-center h-[220px] text-slate-600 text-xs">
+                  Cargando embalses…
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -778,7 +744,7 @@ function SlidePresupuesto({ d }: { d: HomeSliderProps["presuData"] }) {
         <div className="text-center">
           <SectionBadge label="Ejecución Presupuestal 2026" dot="#F59E0B" />
           <p className="text-slate-500 text-base xl:text-lg">
-            Ejecución de proyectos DEE — corte {d.ultimaActualizacion ?? "1 de abril de 2026"}
+            Ejecución de proyectos DEE — corte {fmtCortePresupuesto(d.ultimaActualizacion)}
           </p>
         </div>
 
@@ -1158,7 +1124,7 @@ function SlideSubsidios({ d, deficitFssri, deficitSeries, subBarData }: { d: Hom
             valueClass="text-slate-200"
           />
           <KpiBlock
-            label="ASIGNADO 2026"
+            label="COMPROMETIDO EN RESOLUCIONES 2026"
             value={fmtFull(asig)}
             valueClass="text-purple-400"
           />
@@ -1501,7 +1467,7 @@ export default function HomeSlider(props: HomeSliderProps) {
     handlePrev,
     handleNext,
     setPaused,
-  } = useHomeSlider();
+  } = useHomeSlider(3); // +3 slides de redes sociales (3 cuentas c/u)
 
   // Render slide content
   function renderSlide(idx: number) {
@@ -1522,6 +1488,11 @@ export default function HomeSlider(props: HomeSliderProps) {
         />
       );
     }
+    const redesIdx = idx - (6 + news.length);
+    if (redesIdx >= 0 && redesIdx <= 2) {
+      const start = redesIdx * 3;
+      return <SlideRedesX accounts={ALL_X_ACCOUNTS.slice(start, start + 3)} />;
+    }
     return null;
   }
 
@@ -1533,6 +1504,9 @@ export default function HomeSlider(props: HomeSliderProps) {
       label: `Noticia ${i + 1}`,
       color: "#94A3B8",
     })),
+    { id: "redes-x-1", label: "Redes 1", color: "#1DA1F2" },
+    { id: "redes-x-2", label: "Redes 2", color: "#1DA1F2" },
+    { id: "redes-x-3", label: "Redes 3", color: "#1DA1F2" },
   ];
 
   return (

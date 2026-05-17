@@ -68,7 +68,7 @@ export function SlideSubsidios({
 
         <div className="text-center">
           <p className="text-slate-400 text-sm xl:text-base uppercase tracking-[0.15em] font-medium mb-1">
-            Déficit acumulado<span className="normal-case tracking-normal"> — Corte 1 de abril</span>
+            Déficit acumulado<span className="normal-case tracking-normal"> — Corte {d.ultimaActualizacion ?? "1 de abril de 2026"}</span>
           </p>
           <div className="text-4xl xl:text-5xl 2xl:text-6xl font-black text-red-400 leading-none">
             {fmtFull(deficitPrincipal)}
@@ -83,7 +83,7 @@ export function SlideSubsidios({
             valueClass="text-amber-400"
           />
           <KpiBlock
-            label="Asignado 2026"
+            label="Comprometido en Resoluciones 2026"
             value={fmtFull(asig)}
             unit={`${d.anio2026.resoluciones} resoluciones`}
             valueClass="text-purple-400"

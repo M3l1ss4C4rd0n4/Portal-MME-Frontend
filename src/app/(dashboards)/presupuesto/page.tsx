@@ -11,6 +11,7 @@ import BulletChart from "@/components/ui/BulletChart";
 import SemiPieChart from "@/components/ui/SemiPieChart";
 
 import { getNivoTheme } from "@/lib/nivo-theme";
+import { fmtCortePresupuesto } from "@/lib/format";
 
 // ─── Local helpers ────────────────────────────────────────────────────────
 function Card({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
@@ -167,10 +168,7 @@ export default function PresupuestoPage() {
   // Disponible = todo lo no comprometido (obligado ya está dentro del comprometido)
   const dispTotal = Math.max(0, 100 - data.totales.pct_comprometido);
 
-  // Formatear fecha de actualización para mostrar
-  const fechaCorte = data.ultimaActualizacion 
-    ? `corte ${data.ultimaActualizacion}` 
-    : "corte 1 de abril de 2026";
+  const fechaCorte = `corte ${fmtCortePresupuesto(data.ultimaActualizacion)}`;
 
   return (
     <DashboardLayout title="Ejecución Presupuestal 2026" subtitle={`Apropiación, compromisos y obligaciones — ${fechaCorte}`}>

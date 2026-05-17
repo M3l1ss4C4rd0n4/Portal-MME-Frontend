@@ -7,6 +7,7 @@ import dynamic from "next/dynamic";
 import { ResponsiveLine } from "@nivo/line";
 import { ResponsivePie } from "@nivo/pie";
 import { ResponsiveBar } from "@nivo/bar";
+import CapacidadEmbalseChart from "@/components/charts/CapacidadEmbalseChart";
 import { Zap, Droplets, TrendingUp, AlertTriangle, Waves, Database } from "lucide-react";
 import { useTheme } from "@/providers/ThemeProvider";
 
@@ -189,12 +190,21 @@ export default function GestionSectorPage() {
 
   const [loading, setLoading] = useState(true);
 
+  // ── Estado: datos para gráfico de capacidad de embalses ───────────────
+  const [capacidadEmbalseData, setCapacidadEmbalseData] = useState<any>(null);
+  const [capacidadEmbalseLoading, setCapacidadEmbalseLoading] = useState(true);
+
   // ── Cargar datos reales ───────────────────────────────────────────────
   useEffect(() => {
     Promise.all([
       fetch("/api/sector").then((r) => r.json()).catch(() => null),
       fetch("/api/sector/detalle").then((r) => r.json()).catch(() => null),
-    ]).then(([snap, det]) => {
+      fetch("/api/embalses/capacidad-historica?dias=120").then((r) => r.json()).catch(() => null),
+    ]).then(([snap, det, cap]) => {
+      setCapacidadEmbalseLoading(false);
+      if (cap && !cap.error) {
+        setCapacidadEmbalseData(cap);
+      }
       setLoading(false);
 
       if (snap && !snap.error) {
@@ -730,7 +740,7 @@ export default function GestionSectorPage() {
             </div>
           </motion.div>
 
-          {/* Aportes Hídricos por Río */}
+          {/* Capacidad de Embalses — Stacked Area + Históricos */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -739,66 +749,25 @@ export default function GestionSectorPage() {
           >
             <div className="mb-3">
               <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
-                Aportes Hídricos por Río
+                Capacidad de Embalses
               </span>
               <p className="text-[10px] text-theme-muted mt-0.5">
-                Actual vs histórico promedio (GWh)
+                Energía almacenada por región (GWh) · % SIN vs histórico
               </p>
             </div>
 
-            {aportesBarData.length > 0 ? (
-              <div className="h-[220px]">
-                <ResponsiveBar
-                  data={[...aportesBarData].reverse()}
-                  theme={T}
-                  keys={["Actual", "Histórico"]}
-                  indexBy="rio"
-                  layout="horizontal"
-                  margin={{ top: 4, right: 20, bottom: 4, left: 100 }}
-                  padding={0.25}
-                  colors={["#06B6D4", "#475569"]}
-                  borderRadius={3}
-                  axisTop={null}
-                  axisRight={null}
-                  axisBottom={{
-                    tickSize: 0,
-                    tickPadding: 6,
-                    tickValues: 4,
-                  }}
-                  axisLeft={{
-                    tickSize: 0,
-                    tickPadding: 8,
-                  }}
-                  enableGridX
-                  enableGridY={false}
-                  labelSkipWidth={12}
-                  labelSkipHeight={12}
-                  labelTextColor="#E2E8F0"
-                  tooltip={({ id, value, indexValue }) => (
-                    <div className="nt">
-                      <strong className="text-cyan-400">{indexValue}</strong>
-                      <br />
-                      {String(id)}: <strong>{Number(value).toFixed(1)} GWh</strong>
-                    </div>
-                  )}
-                  legends={[
-                    {
-                      dataFrom: "keys",
-                      anchor: "bottom-right",
-                      direction: "row",
-                      translateY: 30,
-                      itemWidth: 80,
-                      itemHeight: 14,
-                      symbolSize: 10,
-                      symbolShape: "circle",
-                      itemTextColor: "#94A3B8",
-                    },
-                  ]}
+            {capacidadEmbalseData && !capacidadEmbalseData.error ? (
+              <div className="h-[280px]">
+                <CapacidadEmbalseChart
+                  data={capacidadEmbalseData}
+                  height={280}
                 />
               </div>
             ) : (
-              <div className="h-[220px] flex items-center justify-center text-theme-muted text-sm">
-                {loading ? "Cargando aportes hídricos…" : "Sin datos de aportes disponibles"}
+              <div className="h-[280px] flex items-center justify-center text-theme-muted text-sm">
+                {capacidadEmbalseLoading
+                  ? "Cargando capacidad de embalses…"
+                  : "Sin datos de embalses disponibles"}
               </div>
             )}
           </motion.div>
