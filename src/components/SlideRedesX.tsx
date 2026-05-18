@@ -1,3 +1,19 @@
+/**
+ * ⚠️  COMPONENTE SUSPENDIDO TEMPORALMENTE  ⚠️
+ *
+ * Motivo de suspensión:
+ * X (Twitter) bloquea los embeds oficiales de timeline con HTTP 429
+ * (Too Many Requests). No existe tier gratuito de API para lectura.
+ *
+ * Para reactivar:
+ * 1. Obtener presupuesto para API paga (TwitterAPI.io ~$10-20/mes,
+ *    o X API Basic ~$100/mes)
+ * 2. Descomentar los slides de redes en HomeSlider.tsx
+ * 3. Cambiar useHomeSlider(0) → useHomeSlider(3)
+ * 4. Este componente seguirá funcionando sin modificaciones
+ *
+ * Fecha de suspensión: 2026-05-16
+ */
 "use client";
 
 import { useEffect, useRef } from "react";

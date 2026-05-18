@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { ResponsiveLine } from "@nivo/line";
+import { ResponsiveLine } from "@nivo/line";0
 import { ResponsivePie } from "@nivo/pie";
 import { ResponsiveBar } from "@nivo/bar";
 import { useTheme } from "@/providers/ThemeProvider";

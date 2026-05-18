@@ -1467,7 +1467,11 @@ export default function HomeSlider(props: HomeSliderProps) {
     handlePrev,
     handleNext,
     setPaused,
-  } = useHomeSlider(3); // +3 slides de redes sociales (3 cuentas c/u)
+  } = useHomeSlider(0); // NOTE: Slides de Redes Sociales X suspendidos temporalmente.
+  // Motivo: X (Twitter) bloquea embeds gratuitos con HTTP 429.
+  // Reactivar cuando haya presupuesto para API paga (TwitterAPI.io ~$10-20/mes).
+  // Para reactivar: cambiar useHomeSlider(0) → useHomeSlider(3) y descomentar
+  // los dots y renderSlide de redes sociales más abajo.
 
   // Render slide content
   function renderSlide(idx: number) {
@@ -1488,11 +1492,13 @@ export default function HomeSlider(props: HomeSliderProps) {
         />
       );
     }
-    const redesIdx = idx - (6 + news.length);
-    if (redesIdx >= 0 && redesIdx <= 2) {
-      const start = redesIdx * 3;
-      return <SlideRedesX accounts={ALL_X_ACCOUNTS.slice(start, start + 3)} />;
-    }
+    // ── SUSPENDIDO: Slides de Redes Sociales X ──
+    // const redesIdx = idx - (6 + news.length);
+    // if (redesIdx >= 0 && redesIdx <= 2) {
+    //   const start = redesIdx * 3;
+    //   return <SlideRedesX accounts={ALL_X_ACCOUNTS.slice(start, start + 3)} />;
+    // }
+    // Para reactivar: descomentar el bloque de arriba y cambiar useHomeSlider(0) → (3)
     return null;
   }
 
@@ -1504,9 +1510,10 @@ export default function HomeSlider(props: HomeSliderProps) {
       label: `Noticia ${i + 1}`,
       color: "#94A3B8",
     })),
-    { id: "redes-x-1", label: "Redes 1", color: "#1DA1F2" },
-    { id: "redes-x-2", label: "Redes 2", color: "#1DA1F2" },
-    { id: "redes-x-3", label: "Redes 3", color: "#1DA1F2" },
+    // ── SUSPENDIDO: Dots de Redes Sociales X ──
+    // { id: "redes-x-1", label: "Redes 1", color: "#1DA1F2" },
+    // { id: "redes-x-2", label: "Redes 2", color: "#1DA1F2" },
+    // { id: "redes-x-3", label: "Redes 3", color: "#1DA1F2" },
   ];
 
   return (
