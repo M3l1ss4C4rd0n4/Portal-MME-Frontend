@@ -62,8 +62,8 @@ export function useHomeSlider(extraSlidesCount: number = 0): UseHomeSliderReturn
     return () => clearInterval(timer);
   }, []);
 
-  // Total slides: 6 KPI + news + extra sections (e.g. redes sociales)
-  const totalSlides = 6 + news.length + extraSlidesCount;
+  // Total slides: 7 KPI + news + extra sections (e.g. redes sociales)
+  const totalSlides = 7 + news.length + extraSlidesCount;
 
   const goTo = useCallback(
     (idx: number, dir: number) => {

@@ -11,6 +11,7 @@ import { useTheme } from "@/providers/ThemeProvider";
 
 import SemiGauge from "@/components/ui/SemiGauge";
 import HomeSlider from "@/components/HomeSlider";
+import type { TermicaSliderData } from "@/types/home-slider";
 import type { MetricaTendencia } from "@/components/ui/TrendBadge";
 import { homeDashboardData } from "@/mocks/home-data";
 import {
@@ -270,9 +271,25 @@ export default function Home() {
     aportesHidricos: {
       actualGwh: 0, historicoGwh: 0,
       pct: null as number | null,
+      hsinPct: null as number | null,
+      pctMtd: null as number | null,
+      indiceHsin: null as string | null,
       dailyActualGwh: null as number | null,
       dailyHistGwh: null as number | null,
     },
+    umbralesRegulatorios: null as {
+      sendaReferenciaPct?: number;
+      indiceNe?: string;
+      indiceHsin?: string;
+      indicePbp?: string;
+      condicionSistema?: string;
+      pei?: number;
+      pe?: number;
+      pes?: number;
+      preciosOrigen?: string;
+    } | null,
+    estadoSin: null as string | null,
+    colorSin: null as string | null,
     tendencias: null as {
       embalses?: MetricaTendencia | null;
       precio?: MetricaTendencia | null;
@@ -301,6 +318,7 @@ export default function Home() {
     aportesRios: [],
     sparklines: { embalses: [], aportes: [] },
   });
+  const [termicaData, setTermicaData] = useState<TermicaSliderData | null>(null);
   const [presuData, setPresuData] = useState({
     totales: {
       apropiacion: 0, comprometido: 0,
@@ -369,6 +387,7 @@ export default function Home() {
     Promise.all([
       fetch('/api/sector').then(r => r.json()).catch(() => null),
       fetch('/api/sector/detalle').then(r => r.json()).catch(() => null),
+      fetch('/api/sector/termica').then(r => r.json()).catch(() => null),
       fetch('/api/presupuesto').then(r => r.json()).catch(() => null),
       fetch('/api/comunidades').then(r => r.json()).catch(() => null),
       fetch('/api/contratos-or').then(r => r.json()).catch(() => null),
@@ -379,7 +398,7 @@ export default function Home() {
       fetch('/api/cu-evolucion').then(r => r.json()).catch(() => null),
       fetch('/api/subsidios/validaciones').then(r => r.json()).catch(() => null),
       fetch('/api/fenoge').then(r => r.json()).catch(() => null),
-    ]).then(([s, sd, p, c, o, sp, sb, sbh, cu, cue, val, fen]) => {
+    ]).then(([s, sd, tm, p, c, o, sp, sb, sbh, cu, cue, val, fen]) => {
       if (s) setSectorData({
         generacionGwh: Number(s.generacionGwh ?? 0),
         precioBolsa: Number(s.precioBolsa ?? 0),
@@ -392,9 +411,15 @@ export default function Home() {
           actualGwh: Number(s.aportesHidricos?.actualGwh ?? 0),
           historicoGwh: Number(s.aportesHidricos?.historicoGwh ?? 0),
           pct: s.aportesHidricos?.pct != null ? Number(s.aportesHidricos.pct) : null,
+          hsinPct: s.aportesHidricos?.hsinPct != null ? Number(s.aportesHidricos.hsinPct) : null,
+          pctMtd: s.aportesHidricos?.pctMtd != null ? Number(s.aportesHidricos.pctMtd) : null,
+          indiceHsin: s.aportesHidricos?.indiceHsin ?? null,
           dailyActualGwh: s.aportesHidricos?.dailyActualGwh != null ? Number(s.aportesHidricos.dailyActualGwh) : null,
           dailyHistGwh: s.aportesHidricos?.dailyHistGwh != null ? Number(s.aportesHidricos.dailyHistGwh) : null,
         },
+        umbralesRegulatorios: s.umbralesRegulatorios ?? null,
+        estadoSin: s.estadoSin ?? null,
+        colorSin: s.colorSin ?? null,
         tendencias: s.tendencias ?? null,
         fechaGeneracion: s.fechaGeneracion ?? null,
         fechaPrecio: s.fechaPrecio ?? null,
@@ -438,6 +463,17 @@ export default function Home() {
           setEmbalseDetallePorDepto(byDepto);
         }
       }
+
+      if (tm && !tm.error) {
+        setTermicaData({
+          generacionTermica: tm.generacionTermica,
+          precios: tm.precios,
+          plantas: tm.plantas ?? [],
+          evolucionTermica: tm.evolucionTermica ?? [],
+          evolucionTotal: tm.evolucionTotal ?? [],
+        });
+      }
+
       if (p) setPresuData({
         totales: {
           apropiacion: Number(p.totales?.apropiacion ?? 0),
@@ -685,6 +721,7 @@ export default function Home() {
       <HomeSlider
         sectorData={sectorData}
         sectorDetalle={sectorDetalle}
+        termicaData={termicaData ?? undefined}
         presuData={presuData}
         cemData={cemData}
         cemDepts={cemDepts}
@@ -842,7 +879,9 @@ export default function Home() {
                 {sectorData.fechaEmbalse && <p className="text-[9px] text-theme-muted mb-1">Dato: {sectorData.fechaEmbalse}</p>}
                 {/* Ficha aportes hídricos vs media histórica */}
                 {sectorData.aportesHidricos.historicoGwh > 0 && (() => {
-                  const pctAportes = (sectorData.aportesHidricos.actualGwh / sectorData.aportesHidricos.historicoGwh) * 100;
+                  const pctAportes = sectorData.aportesHidricos.hsinPct
+                    ?? sectorData.aportesHidricos.pct
+                    ?? (sectorData.aportesHidricos.actualGwh / sectorData.aportesHidricos.historicoGwh) * 100;
                   const delta = pctAportes - 100;
                   const colorAportes = pctAportes >= 100 ? "#22C55E" : pctAportes >= 90 ? "#06B6D4" : "#EF4444";
                   return (

@@ -13,6 +13,25 @@ import { useHomeSlider } from "@/hooks/useHomeSlider";
 import { fmtCortePresupuesto } from "@/lib/format";
 import SlideRedesX, { ALL_X_ACCOUNTS } from "@/components/SlideRedesX";
 import CapacidadEmbalseChart, { type CapacidadEmbalseData } from "@/components/charts/CapacidadEmbalseChart";
+import InformesDiariosSlider from "@/components/InformesDiariosSlider";
+import { SlideGeneracionTermica } from "@/components/slides/SlideGeneracionTermica";
+import type { TermicaSliderData } from "@/types/home-slider";
+// Marco regulatorio oficial — Resolución CREG 026/2014, 209/2020, 101 066/2024
+import {
+  clasificarVisualEmbalse,
+  clasificarVisualAportes,
+  clasificarVisualPrecioBolsa,
+  clasificarIndiceNE,
+  obtenerSendaReferencia,
+  NE_UMBRAL_SUPERIOR_ABSOLUTO_PCT,
+  OBJETIVO_XM_EMBALSE_ANTE_NINO_PCT,
+  HSIN_UMBRAL_NORMAL,
+  HSIN_UMBRAL_DEFICIT_SEVERO,
+  HSIN_UMBRAL_CRITICO_HISTORICO,
+  PRECIO_ESCASEZ_PEI_REF_2026_01,
+  PRECIO_ESCASEZ_PE_REF_2026_01,
+  PRECIO_ESCASEZ_PES_REF_2026_01,
+} from "@/lib/umbralesOficiales";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const fmtCOP = (v: number) => `$ ${Math.round(v).toLocaleString("es-CO")}`;
@@ -40,9 +59,25 @@ export interface HomeSliderProps {
       actualGwh: number;
       historicoGwh: number;
       pct?: number | null;
+      hsinPct?: number | null;
+      pctMtd?: number | null;
+      indiceHsin?: string | null;
       dailyActualGwh?: number | null;
       dailyHistGwh?: number | null;
     };
+    umbralesRegulatorios?: {
+      sendaReferenciaPct?: number;
+      indiceNe?: string;
+      indiceHsin?: string;
+      indicePbp?: string;
+      condicionSistema?: string;
+      pei?: number;
+      pe?: number;
+      pes?: number;
+      preciosOrigen?: string;
+    } | null;
+    estadoSin?: string | null;
+    colorSin?: string | null;
     tendencias?: {
       embalses?: MetricaTendencia | null;
       precio?: MetricaTendencia | null;
@@ -64,6 +99,7 @@ export interface HomeSliderProps {
     aportesRios: Array<{ codigo: string; nombre: string; actualGwh: number; historicoGwh: number; porcentaje: number }>;
     sparklines: { embalses: Array<{ x: string; y: number }>; aportes: Array<{ x: string; y: number }> };
   };
+  termicaData?: TermicaSliderData;
   presuData: {
     totales: {
       apropiacion: number;
@@ -269,32 +305,61 @@ const NIVO_SLIDER = {
 };
 
 // ─── Helpers de estado por métrica ────────────────────────────────────────────
+// IMPORTANTE: Todos los estados ahora se calculan con el marco regulatorio
+// oficial colombiano (Estatuto CREG para Situaciones de Riesgo de Desabasteci-
+// miento). Ver @/lib/umbralesOficiales para detalle de cada umbral y su fuente.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Tailwind classes asociadas a cada color hex oficial
+const _TW_COLOR_MAP: Record<string, string> = {
+  "#22C55E": "text-emerald-400",  // Verde
+  "#06B6D4": "text-cyan-400",     // Cian
+  "#F59E0B": "text-amber-400",    // Ámbar
+  "#F97316": "text-orange-400",   // Naranja
+  "#EF4444": "text-red-400",      // Rojo
+};
+
+/**
+ * Estado de reservas hídricas — Índice NE oficial (Resolución CREG 209/2020).
+ * Compara contra Senda de Referencia mensual publicada por XM/CND.
+ */
 function estadoReservas(pct: number) {
-  if (pct >= 80) return { label: "NORMAL",             color: "#22C55E", tw: "text-emerald-400" };
-  if (pct >= 70) return { label: "ESTABLE",            color: "#06B6D4", tw: "text-cyan-400"    };
-  if (pct >= 60) return { label: "ALERTA TEMPRANA",    color: "#F59E0B", tw: "text-amber-400"   };
-  if (pct >= 50) return { label: "ALERTA ALTA",        color: "#F97316", tw: "text-orange-400"  };
-  return           { label: "CRÍTICO",                 color: "#EF4444", tw: "text-red-400"     };
+  const v = clasificarVisualEmbalse(pct);
+  return { label: v.label, color: v.color, tw: _TW_COLOR_MAP[v.color] ?? "text-slate-400" };
 }
+
+/**
+ * Estado de aportes hídricos — Índice HSIN oficial (CREG 026/2014 art. 2).
+ * HSIN = aportes vs media histórica × 100.
+ */
 function estadoAportes(pct: number) {
-  if (pct >= 120) return { label: "MUY FAVORABLE",     color: "#22C55E" };
-  if (pct >= 100) return { label: "NORMAL",            color: "#06B6D4" };
-  if (pct >= 90)  return { label: "VIGILANCIA",        color: "#F59E0B" };
-  if (pct >= 70)  return { label: "DÉFICIT HÍDRICO",   color: "#F97316" };
-  return            { label: "CRÍTICO — SEQUÍA",       color: "#EF4444" };
+  const v = clasificarVisualAportes(pct);
+  return { label: v.label, color: v.color };
 }
-function estadoPrecio(precio: number) {
-  if (precio < 200) return { label: "CÓMODO",          color: "#22C55E" };
-  if (precio < 300) return { label: "ESTRÉS MODERADO", color: "#F59E0B" };
-  if (precio < 400) return { label: "ALERTA",          color: "#F97316" };
-  return              { label: "CRISIS ENERGÉTICA",    color: "#EF4444" };
+
+/**
+ * Estado de precio de bolsa — niveles oficiales CREG 101 066/2024.
+ * Compara contra PEI/PE/PES (tres niveles regulatorios de precio de escasez).
+ */
+function estadoPrecio(
+  precio: number,
+  precios?: { pei?: number; pe?: number; pes?: number },
+) {
+  const v = clasificarVisualPrecioBolsa(
+    precio,
+    precios?.pei ?? PRECIO_ESCASEZ_PEI_REF_2026_01,
+    precios?.pe ?? PRECIO_ESCASEZ_PE_REF_2026_01,
+    precios?.pes ?? PRECIO_ESCASEZ_PES_REF_2026_01,
+  );
+  return { label: v.label, color: v.color };
 }
 
 const _GEN_PRIO: Record<string, number> = {
-  "CRISIS ENERGÉTICA": 4, "CRÍTICO": 4,
-  "ALERTA": 3,
+  "TECHO REGULATORIO": 4, "CRISIS ENERGÉTICA": 4, "CRÍTICO": 4,
+  "RIESGO — DESABASTECIMIENTO": 4, "CRÍTICO HISTÓRICO — SEQUÍA": 4,
+  "ALTA PRESIÓN": 3, "ALERTA": 3,
   "ESTRÉS MODERADO": 2, "ALERTA MEDIA": 2,
-  "VIGILANCIA": 1,
+  "VIGILANCIA": 1, "VIGILANCIA CREG": 1,
 };
 function _prio(label: string) { return _GEN_PRIO[label] ?? 0; }
 
@@ -315,10 +380,11 @@ function estadoGeneracion(
   fuentes: Array<{ id: string; value: number }> | undefined,
   totalGwh: number,
   dailyAportesGwh: number | null | undefined,
-  precio: number
+  precio: number,
+  precios?: { pei?: number; pe?: number; pes?: number },
 ): { label: string; color: string } {
   const all: Array<{ label: string; color: string }> = [];
-  const stPr = estadoPrecio(precio);
+  const stPr = estadoPrecio(precio, precios);
   all.push(stPr);
   if (fuentes && fuentes.length > 0) {
     const hidro   = fuentes.find(f => f.id === "HIDRAULICA");
@@ -333,19 +399,35 @@ function estadoGeneracion(
   return all[0] ?? { label: "CONTEXTUAL", color: "#64748B" };
 }
 
+/**
+ * Diagnóstico textual del SIN basado en el Índice NE y HSIN oficiales.
+ * Marco regulatorio: Estatuto CREG 026/2014 + Res. CREG 209/2020.
+ */
 function diagnosticoSIN(reservasPct: number, aportesPct: number | null, precio: number): string {
-  if (reservasPct < 50)
-    return "Sistema en estado crítico — se requieren medidas urgentes de racionamiento.";
-  if (reservasPct < 60)
-    return "Sistema en alerta alta — riesgo de desabastecimiento si los aportes no mejoran.";
-  if (reservasPct < 70) {
-    if (aportesPct !== null && aportesPct < 90)
-      return "Sistema bajo vigilancia, con riesgo si los aportes no mejoran.";
-    return "Sistema en alerta temprana — monitoreando evolución de embalses y aportes.";
+  const ne = clasificarIndiceNE(reservasPct);
+  const sendaPct = ne.sendaReferenciaPct;
+
+  // NE Inferior: condición regulatoria de riesgo (CREG 026/2014 art. 3)
+  if (ne.nivel === "INFERIOR") {
+    return `Sistema en RIESGO — embalse ${reservasPct.toFixed(1)}% bajo senda CREG ${sendaPct.toFixed(1)}%. Se activa Mecanismo de Sostenimiento de Confiabilidad (CREG 026/2014 art. 7).`;
   }
-  if (reservasPct < 80)
-    return "Sistema estable, con seguimiento preventivo de niveles hídricos.";
-  return "Sistema en condiciones normales — niveles cómodos.";
+
+  // NE Alerta: persistencia 2 verificaciones → riesgo
+  if (ne.nivel === "ALERTA") {
+    if (aportesPct !== null && aportesPct < HSIN_UMBRAL_NORMAL) {
+      return `Sistema en VIGILANCIA — embalse bajo senda CREG ${sendaPct.toFixed(1)}% + HSIN ${aportesPct.toFixed(1)}% < 90% (CREG 026/2014 art. 2). Si persiste 2 verificaciones semanales → RIESGO.`;
+    }
+    return `Sistema en alerta temprana — embalse bajo senda CREG ${sendaPct.toFixed(1)}%. Vigilar evolución semanal.`;
+  }
+
+  // NE Superior: sub-clasificación visual
+  if (reservasPct >= OBJETIVO_XM_EMBALSE_ANTE_NINO_PCT) {
+    return `Sistema en condiciones normales — embalse ${reservasPct.toFixed(1)}% ≥ objetivo XM ante El Niño (${OBJETIVO_XM_EMBALSE_ANTE_NINO_PCT}%).`;
+  }
+  if (reservasPct >= NE_UMBRAL_SUPERIOR_ABSOLUTO_PCT) {
+    return `Sistema estable — embalse ${reservasPct.toFixed(1)}% ≥ 70% (regla absoluta CREG 209/2020).`;
+  }
+  return `Sistema sobre senda CREG ${sendaPct.toFixed(1)}% — seguimiento preventivo.`;
 }
 
 // ─── StatusChip: sub-ficha de estado ──────────────────────────────────────────
@@ -514,22 +596,26 @@ function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; 
   const hasDetalle = !!detalle && detalle.generacionPorFuente.length > 0;
   const hasPrecioSeries = !!detalle && detalle.precioBolsaSeries.length > 0 && detalle.precioBolsaSeries[0].data.length > 0;
   const aportes = d.aportesHidricos;
-  const aportesPct = aportes?.pct ?? (aportes && aportes.historicoGwh > 0 ? (aportes.actualGwh / aportes.historicoGwh) * 100 : null);
+  const preciosReg = d.umbralesRegulatorios;
+  const aportesPct = aportes?.hsinPct ?? aportes?.pct ?? (
+    aportes && aportes.historicoGwh > 0 ? (aportes.actualGwh / aportes.historicoGwh) * 100 : null
+  );
 
   const stRes = estadoReservas(d.pctEmbalses);
   const stAp  = aportesPct !== null ? estadoAportes(aportesPct) : null;
-  const stPr  = estadoPrecio(d.precioBolsa);
+  const stPr  = estadoPrecio(d.precioBolsa, preciosReg ?? undefined);
   const stGen = estadoGeneracion(
     detalle?.generacionPorFuente,
     d.generacionGwh,
     aportes?.dailyActualGwh,
-    d.precioBolsa
+    d.precioBolsa,
+    preciosReg ?? undefined,
   );
   const diagnostico = diagnosticoSIN(d.pctEmbalses, aportesPct, d.precioBolsa);
 
   const aportesColor = aportesPct === null ? "text-slate-400"
-    : aportesPct >= 100 ? "text-emerald-400"
-    : aportesPct >= 80  ? "text-amber-400"
+    : aportesPct >= HSIN_UMBRAL_NORMAL ? "text-emerald-400"
+    : aportesPct >= HSIN_UMBRAL_DEFICIT_SEVERO ? "text-amber-400"
     : "text-red-400";
 
   return (
@@ -537,6 +623,11 @@ function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; 
       <TopAccent color="#3B82F6" />
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-amber-900/15 pointer-events-none" />
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[60%] h-[30%] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Slider informes diarios XM — esquina superior izquierda */}
+      <div className="absolute top-5 left-5 xl:top-6 xl:left-6 z-20">
+        <InformesDiariosSlider />
+      </div>
 
       <div className="relative z-10 flex flex-col items-center w-full max-w-7xl px-6 xl:px-8 gap-4 xl:gap-6">
         {/* Header con diagnóstico dinámico */}
@@ -1445,6 +1536,7 @@ function NavArrow({
 // ─── Slide definitions metadata ────────────────────────────────────────────────
 const SLIDE_META = [
   { id: "sector",      label: "Sector",      color: "#3B82F6", href: "/energia"      },
+  { id: "termica",     label: "Térmica",     color: "#EF4444", href: "/energia"      },
   { id: "presupuesto", label: "Presupuesto", color: "#F59E0B", href: "/presupuesto"  },
   { id: "comunidades", label: "Comunidades", color: "#10B981", href: "/comunidades"  },
   { id: "contratos",   label: "Contratos OR",color: "#8B5CF6", href: "/contratos-or" },
@@ -1454,7 +1546,7 @@ const SLIDE_META = [
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function HomeSlider(props: HomeSliderProps) {
-  const { sectorData, sectorDetalle, presuData, cemData, cemDepts, orData, supData, subData, deficitFssri, deficitSeries, subBarData } = props;
+  const { sectorData, sectorDetalle, termicaData, presuData, cemData, cemDepts, orData, supData, subData, deficitFssri, deficitSeries, subBarData } = props;
 
   const {
     current,
@@ -1476,12 +1568,22 @@ export default function HomeSlider(props: HomeSliderProps) {
   // Render slide content
   function renderSlide(idx: number) {
     if (idx === 0) return <SlideGestionSector d={sectorData} detalle={sectorDetalle} />;
-    if (idx === 1) return <SlidePresupuesto d={presuData} />;
-    if (idx === 2) return <SlideComunidades d={cemData} depts={cemDepts} />;
-    if (idx === 3) return <SlideContratosOR d={orData} />;
-    if (idx === 4) return <SlideSupervision d={supData} />;
-    if (idx === 5) return <SlideSubsidios d={subData} deficitFssri={deficitFssri} deficitSeries={deficitSeries} subBarData={subBarData} />;
-    const newsIdx = idx - 6;
+    if (idx === 1) {
+      if (!termicaData) {
+        return (
+          <div className="w-full h-full flex items-center justify-center bg-[#060B14] text-slate-500">
+            Cargando generación térmica…
+          </div>
+        );
+      }
+      return <SlideGeneracionTermica d={termicaData} />;
+    }
+    if (idx === 2) return <SlidePresupuesto d={presuData} />;
+    if (idx === 3) return <SlideComunidades d={cemData} depts={cemDepts} />;
+    if (idx === 4) return <SlideContratosOR d={orData} />;
+    if (idx === 5) return <SlideSupervision d={supData} />;
+    if (idx === 6) return <SlideSubsidios d={subData} deficitFssri={deficitFssri} deficitSeries={deficitSeries} subBarData={subBarData} />;
+    const newsIdx = idx - 7;
     if (news[newsIdx]) {
       return (
         <SlideNoticia
