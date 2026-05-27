@@ -4,6 +4,8 @@
  * Usado para posicionar círculos en el mapa de embalses.
  */
 
+import { clasificarVisualEmbalse } from "./umbralesOficiales";
+
 export interface EmbalseCoord {
   codigo: string;
   lat: number;
@@ -158,41 +160,20 @@ export function calcularAportesPorDepto(
 }
 
 /**
- * Semáforo de embalses según metodología oficial colombiana
- * (XM, UPME, Superservicios).
- *
- * Nivel agregado del SIN:
- *  > 80%  → NORMAL  (Verde)
- *  70-80% → ESTABLE (Cyan)
- *  60-70% → ALERTA  (Amarillo)
- *  50-60% → DELICADA(Naranja)
- *  < 50%  → CRÍTICO (Rojo)
+ * Semáforo de embalses alineado con Índice NE / Senda CREG (Res. 209/2020).
  */
 export function getEmbalseColor(pct: number): string {
-  if (pct > 80) return "#22C55E";   // Normal
-  if (pct >= 70) return "#06B6D4";  // Estable
-  if (pct >= 60) return "#F59E0B";  // Alerta
-  if (pct >= 50) return "#F97316";  // Delicada
-  return "#EF4444";                 // Crítico
+  return clasificarVisualEmbalse(pct).color;
 }
 
 export function getEmbalseRiesgo(pct: number): string {
-  if (pct > 80) return "NORMAL";
-  if (pct >= 70) return "ESTABLE";
-  if (pct >= 60) return "ALERTA";
-  if (pct >= 50) return "DELICADA";
-  return "CRÍTICO";
+  return clasificarVisualEmbalse(pct).label;
 }
 
-/**
- * Estado del SIN (promedio nacional) según metodología oficial.
- */
+/** Estado del SIN según clasificación visual CREG. */
 export function getEstadoSin(pct: number): { estado: string; color: string } {
-  if (pct > 80) return { estado: "NORMAL", color: "#22C55E" };
-  if (pct >= 70) return { estado: "ESTABLE", color: "#06B6D4" };
-  if (pct >= 60) return { estado: "ALERTA TEMPRANA", color: "#F59E0B" };
-  if (pct >= 50) return { estado: "SITUACIÓN DELICADA", color: "#F97316" };
-  return { estado: "CRÍTICO", color: "#EF4444" };
+  const v = clasificarVisualEmbalse(pct);
+  return { estado: v.label, color: v.color };
 }
 
 /**

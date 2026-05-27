@@ -1,5 +1,6 @@
 'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
+import PanoramaInformeFab from './PanoramaInformeFab';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface BotBtn {
@@ -22,17 +23,45 @@ interface ChatMsg {
 interface Pos { x: number; y: number; }
 
 // ── Constants ──────────────────────────────────────────────────────────────────
+const FAB_SIZE = 56;
+const FAB_GAP = 10;
+const FAB_STACK_OFFSET = FAB_SIZE + FAB_GAP;
+
+const PORTAL_SHORT = 'Portal de Dirección MME';
+
 const MAIN_MENU: BotBtn[] = [
-  { label: '📊 Estado actual del sector',               intent: 'estado_actual' },
-  { label: '🔮 Predicciones del sector',                intent: '__pred_menu' },
-  { label: '🚨 Anomalías detectadas del sector',        intent: 'anomalias_sector' },
-  { label: '📰 Noticias del sector',                    intent: 'noticias_sector' },
-  { label: '💰 Subsidios energéticos',                  intent: '__subsidios_menu' },
-  { label: '📋 Más información del sector energético',  intent: 'informe_ejecutivo' },
-  { label: '💬 Hacer una pregunta',                     intent: '__free_text' },
+  { label: '📊 Gestión del sector',          intent: '__gestion_menu' },
+  { label: '🏘️ Comunidades energéticas',    intent: '__comunidades_menu' },
+  { label: '📋 Subsidios',                   intent: '__subsidios_menu' },
+  { label: '🔍 Supervisión',                 intent: 'supervision_menu' },
+  { label: '💼 Ejecución presupuestal',      intent: 'presupuesto_menu' },
+  { label: '📄 Informe ejecutivo',           intent: 'informe_ejecutivo' },
+  { label: '➕ Más opciones',                intent: '__mas_opciones' },
+];
+
+const GESTION_MENU: BotBtn[] = [
+  { label: '📊 Estado actual',        intent: 'estado_actual' },
+  { label: '🔮 Predicciones XM',      intent: '__pred_menu' },
+  { label: '🚨 Anomalías detectadas', intent: 'anomalias_sector' },
+  { label: '⬅️ Menú principal',       intent: 'menu' },
+];
+
+const COMUNIDADES_MENU: BotBtn[] = [
+  { label: '🏘️ Implementadas',    intent: 'comunidades_implementadas' },
+  { label: '📄 Contratos OR',      intent: 'contratos_or_menu' },
+  { label: '☀️ Fenoge 1.0 / 1.1', intent: 'fenoge_menu' },
+  { label: '🌞 Colombia Solar',    intent: 'colombia_solar_menu' },
+  { label: '⬅️ Menú principal',    intent: 'menu' },
 ];
 
 const SUBSIDIOS_MENU: BotBtn[] = [
+  { label: '📉 Déficit histórico',  intent: 'subsidios_deficit_historico' },
+  { label: '💳 Detalle de pagos',   intent: '__subsidios_pagos_menu' },
+  { label: '✅ Validaciones',       intent: 'subsidios_validaciones' },
+  { label: '⬅️ Menú principal',   intent: 'menu' },
+];
+
+const SUBSIDIOS_PAGOS_MENU: BotBtn[] = [
   { label: '💰 Deuda total',       intent: 'subsidios_deuda_total' },
   { label: '🏢 Deuda empresa',     intent: 'subsidios_deuda_empresa' },
   { label: '📅 Trimestre pagado',  intent: 'subsidios_trimestre' },
@@ -41,7 +70,14 @@ const SUBSIDIOS_MENU: BotBtn[] = [
   { label: '📈 % Pagado',          intent: 'subsidios_pct_pagado' },
   { label: '🏦 Deuda FSSRI/FOES',  intent: 'subsidios_deuda_fondo' },
   { label: '💵 Pagado por año',     intent: 'subsidios_pagado_anio' },
+  { label: '⬅️ Subsidios',         intent: '__subsidios_menu' },
   { label: '⬅️ Menú principal',    intent: 'menu' },
+];
+
+const MAS_OPCIONES_MENU: BotBtn[] = [
+  { label: '📰 Noticias del sector', intent: 'noticias_sector' },
+  { label: '❓ Pregunta libre',      intent: '__free_text' },
+  { label: '⬅️ Menú principal',     intent: 'menu' },
 ];
 
 const PRED_MENU: BotBtn[] = [
@@ -211,15 +247,40 @@ function NewsList({ data }: { data: Record<string, any> }) {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function KpiCards({ data }: { data: Record<string, any> }) {
+  const kpis = (data.kpis ?? []) as Array<{
+    label: string; emoji: string; valor: string | number; unidad?: string;
+  }>;
+  if (!kpis.length) return null;
+  return (
+    <div className="grid gap-1.5 mt-1.5">
+      {kpis.map((k, i) => (
+        <div key={i} className="flex items-center gap-2 bg-slate-800/70 rounded-xl px-3 py-2">
+          <span className="text-base shrink-0">{k.emoji}</span>
+          <div className="flex-1 min-w-0">
+            <div className="text-[10px] text-slate-400 truncate">{k.label}</div>
+            <div className="font-bold text-sm text-amber-300/90">
+              {k.valor}{k.unidad ? ` ${k.unidad}` : ''}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Data renderer dispatcher ──────────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function DataBlock({ intent, data }: { intent?: string; data?: Record<string, any> }) {
   if (!data || !intent) return null;
+  const hasKpis      = Array.isArray(data.kpis)         && data.kpis.length         > 0;
   const hasFichas    = Array.isArray(data.fichas)       && data.fichas.length       > 0;
   const hasPreds     = Array.isArray(data.predicciones) && data.predicciones.length > 0;
   const hasAnomalies = 'anomalias' in data;
   const hasNews      = Array.isArray(data.noticias)     || Array.isArray(data.news);
 
+  if (hasKpis)       return <KpiCards data={data} />;
   if (hasFichas)     return <FichasCards data={data} />;
   if (hasPreds)      return <PredCards data={data} />;
   if (hasAnomalies)  return <AnomalyList data={data} />;
@@ -240,10 +301,21 @@ function LoadingDots() {
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
+const WELCOME_TEXT =
+  '¡Hola! 👋 Soy el asistente del **Portal de Dirección de Despacho del Viceministro de Minas y Energía**.\n\n' +
+  'Consulto los mismos tableros del portal, organizados en capítulos:\n\n' +
+  '**Cap. 1 — Gestión del sector (XM):** estado, predicciones y anomalías\n' +
+  '**Cap. 2 — Comunidades:** implementadas, Contratos OR, Fenoge y Colombia Solar\n' +
+  '**Cap. 3 — Subsidios:** déficit histórico, pagos y validaciones\n' +
+  '**Cap. 4 — Supervisión** de contratos MinMinas\n' +
+  '**Cap. 5 — Ejecución presupuestal** DEE\n' +
+  '**Cap. 6 — Informe ejecutivo** PDF integrado\n\n' +
+  'También puedes escribirme en cualquier momento.';
+
 const WELCOME: ChatMsg = {
   id: 'welcome',
   role: 'bot',
-  text: '¡Hola! 👋 Soy el asistente del **Portal Energético** del Ministerio de Minas y Energía de Colombia.\n\nPuedo informarte sobre los indicadores clave del sector energético. También puedes escribirme cualquier pregunta en cualquier momento.\n\n**Indicadores clave:**\n- ⚡ Generación Total del Sistema (GWh)\n- 💰 Precio de Bolsa Nacional (COP/kWh)\n- 💧 Porcentaje de Embalses (%)',
+  text: WELCOME_TEXT,
   buttons: MAIN_MENU,
   ts: now(),
 };
@@ -304,10 +376,13 @@ export default function ChatbotWidget() {
     dragRef.current.active = false;
     e.currentTarget.releasePointerCapture(e.pointerId);
 
-    // Clamp inside viewport
+    // Clamp inside viewport (btnPos = esquina del botón chatbot)
     const W = window.innerWidth, H = window.innerHeight;
     setBtnPos(p => {
-      const clamped = { x: Math.max(8, Math.min(p.x, W - 66)), y: Math.max(8, Math.min(p.y, H - 66)) };
+      const clamped = {
+        x: Math.max(8, Math.min(p.x, W - FAB_SIZE - 8)),
+        y: Math.max(FAB_STACK_OFFSET + 8, Math.min(p.y, H - FAB_SIZE - 8)),
+      };
       localStorage.setItem('chatbot-pos', JSON.stringify(clamped));
       return clamped;
     });
@@ -333,19 +408,51 @@ export default function ChatbotWidget() {
   // ── Send intent to API ───────────────────────────────────
   const sendIntent = useCallback(async (intent: string, params: Record<string, string> = {}, userLabel?: string) => {
     // Local-only intents
-    if (intent === '__pred_menu') {
+    if (intent === '__gestion_menu') {
       setMessages(m => [...m, {
         id: `bot_${Date.now()}`, role: 'bot',
-        text: '¿Para qué horizonte temporal deseas las predicciones?',
-        buttons: PRED_MENU, ts: now(),
+        text: '📊 **Cap. 1 — Gestión del sector (XM)**\nIndicadores del sistema eléctrico: generación, precio de bolsa y embalses.',
+        buttons: GESTION_MENU, ts: now(),
+      }]);
+      return;
+    }
+    if (intent === '__comunidades_menu') {
+      setMessages(m => [...m, {
+        id: `bot_${Date.now()}`, role: 'bot',
+        text: '🏘️ **Cap. 2 — Comunidades energéticas**\nImplementadas · Contratos OR · Fenoge · Colombia Solar',
+        buttons: COMUNIDADES_MENU, ts: now(),
       }]);
       return;
     }
     if (intent === '__subsidios_menu') {
       setMessages(m => [...m, {
         id: `bot_${Date.now()}`, role: 'bot',
-        text: '💰 **MÓDULO DE SUBSIDIOS**\nBase de Subsidios DDE — Ministerio de Minas y Energía\n\nSelecciona la consulta que deseas realizar:',
+        text: '📋 **Cap. 3 — Subsidios**\nDéficit histórico · Detalle de pagos · Validaciones',
         buttons: SUBSIDIOS_MENU, ts: now(),
+      }]);
+      return;
+    }
+    if (intent === '__subsidios_pagos_menu') {
+      setMessages(m => [...m, {
+        id: `bot_${Date.now()}`, role: 'bot',
+        text: '💳 **Detalle de pagos FSSRI/FOES**',
+        buttons: SUBSIDIOS_PAGOS_MENU, ts: now(),
+      }]);
+      return;
+    }
+    if (intent === '__mas_opciones') {
+      setMessages(m => [...m, {
+        id: `bot_${Date.now()}`, role: 'bot',
+        text: '➕ **Más opciones**',
+        buttons: MAS_OPCIONES_MENU, ts: now(),
+      }]);
+      return;
+    }
+    if (intent === '__pred_menu') {
+      setMessages(m => [...m, {
+        id: `bot_${Date.now()}`, role: 'bot',
+        text: '¿Para qué horizonte temporal deseas las predicciones?',
+        buttons: PRED_MENU, ts: now(),
       }]);
       return;
     }
@@ -362,7 +469,7 @@ export default function ChatbotWidget() {
       setFreeMode(false);
       setMessages(m => [...m, {
         id: `bot_${Date.now()}`, role: 'bot',
-        text: '¿En qué puedo ayudarte?',
+        text: WELCOME_TEXT,
         buttons: MAIN_MENU, ts: now(),
       }]);
       return;
@@ -423,10 +530,29 @@ export default function ChatbotWidget() {
         backBtn = [{ label: '💬 Otra pregunta', intent: '__free_text' }, { label: '⬅️ Menú', intent: 'menu' }];
       } else if (intent.startsWith('subsidios_')) {
         text = (data.texto as string) ?? apiMsg ?? '💰 Datos de subsidios cargados.';
-        backBtn = [
-          { label: '⬅️ Módulo subsidios', intent: '__subsidios_menu' },
-          { label: '⬅️ Menú principal',   intent: 'menu' },
-        ];
+        backBtn = intent === 'subsidios_deficit_historico' || intent === 'subsidios_validaciones'
+          ? [{ label: '⬅️ Subsidios', intent: '__subsidios_menu' }, { label: '⬅️ Menú', intent: 'menu' }]
+          : [
+              { label: '⬅️ Detalle pagos', intent: '__subsidios_pagos_menu' },
+              { label: '⬅️ Subsidios', intent: '__subsidios_menu' },
+              { label: '⬅️ Menú', intent: 'menu' },
+            ];
+      } else if (
+        intent.endsWith('_menu') ||
+        intent.includes('comunidades') ||
+        intent.includes('contratos_or') ||
+        intent.includes('fenoge') ||
+        intent.includes('colombia_solar') ||
+        intent === 'supervision_menu' ||
+        intent === 'presupuesto_menu'
+      ) {
+        text = apiMsg || `**${(data.titulo as string) ?? intent}**`;
+        if (data.subtitulo) text += `\n_${data.subtitulo as string}_`;
+        if (data.fecha_corte) text += `\n📅 Corte: ${data.fecha_corte as string}`;
+        const backId = (data.opcion_regresar as { id?: string })?.id;
+        backBtn = backId === 'comunidades_menu'
+          ? [{ label: '⬅️ Comunidades', intent: '__comunidades_menu' }, { label: '⬅️ Menú', intent: 'menu' }]
+          : [{ label: '⬅️ Menú principal', intent: 'menu' }];
       } else {
         text = apiMsg || JSON.stringify(data).slice(0, 200);
       }
@@ -478,7 +604,7 @@ export default function ChatbotWidget() {
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-white font-semibold text-sm leading-tight">Portal Energético MME</div>
+              <div className="text-white font-semibold text-sm leading-tight">{PORTAL_SHORT}</div>
               <div className="text-green-400 text-[11px] leading-tight">bot · en línea</div>
             </div>
             <button
@@ -580,28 +706,42 @@ export default function ChatbotWidget() {
         </div>
       )}
 
-      {/* ── FAB Button ── */}
-      <button
-        style={{ position: 'fixed', left: btnPos.x, top: btnPos.y, zIndex: 9999, touchAction: 'none', userSelect: 'none' }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        className={[
-          'w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-transform',
-          'bg-gradient-to-br from-violet-600 to-indigo-700',
-          'hover:scale-105 active:scale-95',
-          isOpen ? 'scale-95' : '',
-        ].join(' ')}
-        aria-label="Abrir chatbot"
-        title="Asistente IA – Portal Energético MME"
+      {/* ── FAB Stack (informe + chatbot) ── */}
+      <div
+        style={{
+          position: 'fixed',
+          left: btnPos.x,
+          top: btnPos.y - FAB_STACK_OFFSET,
+          zIndex: 9999,
+          touchAction: 'none',
+          userSelect: 'none',
+        }}
+        className="flex flex-col items-center gap-2.5"
       >
-        {/* Bot icon */}
-        <svg viewBox="0 0 24 24" fill="white" className="w-7 h-7 pointer-events-none">
-          <path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7H3a7 7 0 017-7h1V5.73A2 2 0 0112 2M9 9v2h2V9H9m4 0v2h2V9h-2M3 21v-1a7 7 0 007-7h4a7 7 0 007 7v1H3z" />
-        </svg>
-        {/* Red dot notification */}
-        <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-[#060B14] animate-pulse" />
-      </button>
+        <PanoramaInformeFab />
+
+        <button
+          style={{ touchAction: 'none', userSelect: 'none' }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          className={[
+            'w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-transform relative',
+            'bg-gradient-to-br from-violet-600 to-indigo-700',
+            'hover:scale-105 active:scale-95',
+            isOpen ? 'scale-95' : '',
+          ].join(' ')}
+          aria-label="Abrir chatbot"
+          title={`Asistente IA – ${PORTAL_SHORT}`}
+        >
+          {/* Bot icon */}
+          <svg viewBox="0 0 24 24" fill="white" className="w-7 h-7 pointer-events-none">
+            <path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7H3a7 7 0 017-7h1V5.73A2 2 0 0112 2M9 9v2h2V9H9m4 0v2h2V9h-2M3 21v-1a7 7 0 007-7h4a7 7 0 007 7v1H3z" />
+          </svg>
+          {/* Red dot notification */}
+          <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-[#060B14] animate-pulse" />
+        </button>
+      </div>
     </>
   );
 }

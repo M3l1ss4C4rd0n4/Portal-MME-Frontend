@@ -1,7 +1,20 @@
 /**
- * Lógica pura de cálculo de estados y diagnósticos del SIN.
- * Sin dependencias de React — testeable unitariamente.
+ * Lógica de estados y diagnósticos del SIN.
+ * Delega en umbralesOficiales.ts (marco CREG) — mantiene API estable para tests y slides.
  */
+
+import {
+  clasificarIndiceNE,
+  clasificarVisualAportes,
+  clasificarVisualEmbalse,
+  clasificarVisualPrecioBolsa,
+  HSIN_UMBRAL_NORMAL,
+  NE_UMBRAL_SUPERIOR_ABSOLUTO_PCT,
+  OBJETIVO_XM_EMBALSE_ANTE_NINO_PCT,
+  PRECIO_ESCASEZ_PEI_REF_2026_01,
+  PRECIO_ESCASEZ_PE_REF_2026_01,
+  PRECIO_ESCASEZ_PES_REF_2026_01,
+} from "./umbralesOficiales";
 
 export interface EstadoResult {
   label: string;
@@ -12,36 +25,54 @@ export interface EstadoReservasResult extends EstadoResult {
   tw: string;
 }
 
+const TW_COLOR_MAP: Record<string, string> = {
+  "#22C55E": "text-emerald-400",
+  "#06B6D4": "text-cyan-400",
+  "#F59E0B": "text-amber-400",
+  "#F97316": "text-orange-400",
+  "#EF4444": "text-red-400",
+};
+
+export interface PreciosEscasezOpciones {
+  pei?: number;
+  pe?: number;
+  pes?: number;
+}
+
 export function estadoReservas(pct: number): EstadoReservasResult {
-  if (pct >= 80) return { label: "NORMAL", color: "#22C55E", tw: "text-emerald-400" };
-  if (pct >= 70) return { label: "ESTABLE", color: "#06B6D4", tw: "text-cyan-400" };
-  if (pct >= 60) return { label: "ALERTA TEMPRANA", color: "#F59E0B", tw: "text-amber-400" };
-  if (pct >= 50) return { label: "ALERTA ALTA", color: "#F97316", tw: "text-orange-400" };
-  return { label: "CRÍTICO", color: "#EF4444", tw: "text-red-400" };
+  const v = clasificarVisualEmbalse(pct);
+  return { label: v.label, color: v.color, tw: TW_COLOR_MAP[v.color] ?? "text-slate-400" };
 }
 
 export function estadoAportes(pct: number): EstadoResult {
-  if (pct >= 120) return { label: "MUY FAVORABLE", color: "#22C55E" };
-  if (pct >= 100) return { label: "NORMAL", color: "#06B6D4" };
-  if (pct >= 90) return { label: "VIGILANCIA", color: "#F59E0B" };
-  if (pct >= 70) return { label: "DÉFICIT HÍDRICO", color: "#F97316" };
-  return { label: "CRÍTICO — SEQUÍA", color: "#EF4444" };
+  const v = clasificarVisualAportes(pct);
+  return { label: v.label, color: v.color };
 }
 
-export function estadoPrecio(precio: number): EstadoResult {
-  if (precio < 200) return { label: "CÓMODO", color: "#22C55E" };
-  if (precio < 300) return { label: "ESTRÉS MODERADO", color: "#F59E0B" };
-  if (precio < 400) return { label: "ALERTA", color: "#F97316" };
-  return { label: "CRISIS ENERGÉTICA", color: "#EF4444" };
+export function estadoPrecio(
+  precio: number,
+  precios?: PreciosEscasezOpciones,
+): EstadoResult {
+  const v = clasificarVisualPrecioBolsa(
+    precio,
+    precios?.pei ?? PRECIO_ESCASEZ_PEI_REF_2026_01,
+    precios?.pe ?? PRECIO_ESCASEZ_PE_REF_2026_01,
+    precios?.pes ?? PRECIO_ESCASEZ_PES_REF_2026_01,
+  );
+  return { label: v.label, color: v.color };
 }
 
 const GEN_PRIO: Record<string, number> = {
-  "CRISIS ENERGÉTICA": 4,
+  "TECHO REGULATORIO": 4,
   "CRÍTICO": 4,
+  "CRÍTICO HISTÓRICO — SEQUÍA": 4,
+  "RIESGO — DESABASTECIMIENTO": 4,
+  "ALTA PRESIÓN": 3,
   "ALERTA": 3,
   "ESTRÉS MODERADO": 2,
   "ALERTA MEDIA": 2,
   "VIGILANCIA": 1,
+  "VIGILANCIA CREG": 1,
 };
 
 function prio(label: string): number {
@@ -66,10 +97,11 @@ export function estadoGeneracion(
   fuentes: Array<{ id: string; value: number }> | undefined,
   totalGwh: number,
   dailyAportesGwh: number | null | undefined,
-  precio: number
+  precio: number,
+  precios?: PreciosEscasezOpciones,
 ): EstadoResult {
   const all: Array<EstadoResult> = [];
-  all.push(estadoPrecio(precio));
+  all.push(estadoPrecio(precio, precios));
   if (fuentes && fuentes.length > 0) {
     const hidro = fuentes.find((f) => f.id === "HIDRAULICA");
     const termica = fuentes.find((f) => f.id === "TERMICA");
@@ -86,18 +118,25 @@ export function estadoGeneracion(
 export function diagnosticoSIN(
   reservasPct: number,
   aportesPct: number | null,
-  precio: number
+  _precio: number,
 ): string {
-  if (reservasPct < 50)
-    return "Sistema en estado crítico — se requieren medidas urgentes de racionamiento.";
-  if (reservasPct < 60)
-    return "Sistema en alerta alta — riesgo de desabastecimiento si los aportes no mejoran.";
-  if (reservasPct < 70) {
-    if (aportesPct !== null && aportesPct < 90)
-      return "Sistema bajo vigilancia, con riesgo si los aportes no mejoran.";
-    return "Sistema en alerta temprana — monitoreando evolución de embalses y aportes.";
+  const ne = clasificarIndiceNE(reservasPct);
+  const sendaPct = ne.sendaReferenciaPct;
+
+  if (ne.nivel === "INFERIOR") {
+    return `Sistema en RIESGO — embalse ${reservasPct.toFixed(1)}% bajo senda CREG ${sendaPct.toFixed(1)}%.`;
   }
-  if (reservasPct < 80)
-    return "Sistema estable, con seguimiento preventivo de niveles hídricos.";
-  return "Sistema en condiciones normales — niveles cómodos.";
+  if (ne.nivel === "ALERTA") {
+    if (aportesPct !== null && aportesPct < HSIN_UMBRAL_NORMAL) {
+      return `Sistema en VIGILANCIA — embalse bajo senda CREG + HSIN ${aportesPct.toFixed(1)}% < 90%.`;
+    }
+    return `Sistema en alerta temprana — embalse bajo senda CREG ${sendaPct.toFixed(1)}%.`;
+  }
+  if (reservasPct >= OBJETIVO_XM_EMBALSE_ANTE_NINO_PCT) {
+    return `Sistema en condiciones normales — embalse ≥ objetivo XM (${OBJETIVO_XM_EMBALSE_ANTE_NINO_PCT}%).`;
+  }
+  if (reservasPct >= NE_UMBRAL_SUPERIOR_ABSOLUTO_PCT) {
+    return `Sistema estable — embalse ≥ 70% (regla absoluta CREG 209/2020).`;
+  }
+  return `Sistema sobre senda CREG ${sendaPct.toFixed(1)}% — NE Superior.`;
 }

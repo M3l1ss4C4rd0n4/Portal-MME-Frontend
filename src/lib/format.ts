@@ -18,6 +18,24 @@ export function fmtFull(v: number): string {
   return `$ ${Math.round(v).toLocaleString("es-CO")}`;
 }
 
+/** Formato compacto para KPIs de billones/millones (portafolio supervisión). */
+export function fmtCOPShort(v: number): string {
+  const abs = Math.abs(v);
+  if (abs >= 1e12) {
+    const n = v / 1e12;
+    return `$ ${n.toLocaleString("es-CO", { maximumFractionDigits: 1 })} bill.`;
+  }
+  if (abs >= 1e9) {
+    const n = v / 1e9;
+    return `$ ${n.toLocaleString("es-CO", { maximumFractionDigits: 1 })} mil M`;
+  }
+  if (abs >= 1e6) {
+    const n = v / 1e6;
+    return `$ ${n.toLocaleString("es-CO", { maximumFractionDigits: 0 })} M`;
+  }
+  return fmtCOP(v);
+}
+
 const MESES = ["enero","febrero","marzo","abril","mayo","junio",
                "julio","agosto","septiembre","octubre","noviembre","diciembre"];
 

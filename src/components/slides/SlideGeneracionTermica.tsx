@@ -3,20 +3,13 @@
 import { ResponsiveLine } from "@nivo/line";
 import { ResponsiveBar, type BarCustomLayerProps } from "@nivo/bar";
 import { KpiBlock } from "@/components/kpi";
-import { TrendBadge } from "@/components/ui/TrendBadge";
+import { TrendBadge, TrendArrow, getTrendColor } from "@/components/ui/TrendBadge";
 import { estadoI3Termica, estadoPrecio } from "@/lib/kpi-logic";
 import { NIVO_SLIDER } from "@/lib/nivo-theme";
 import type { TermicaSliderData } from "@/types/home-slider";
 import { TopAccent, SectionBadge } from "./SlideUI";
 
-const BAR_THEME = {
-  ...NIVO_SLIDER,
-  axis: {
-    ticks: {
-      text: { fill: "#FFFFFF", fontSize: 9 },
-    },
-  },
-};
+const BAR_THEME = NIVO_SLIDER;
 
 function PriceCard({
   label,
@@ -36,23 +29,38 @@ function PriceCard({
   active: boolean;
 }) {
   const st = estadoPrecio(valor);
+  const trendColor =
+    tendencia && tendencia.label !== "S/D" ? getTrendColor(tendencia, "precio") : undefined;
+
   return (
     <div
-      className={`flex flex-col rounded-xl border px-4 py-3 transition-all duration-300 ${
+      className={`flex flex-col items-center justify-center text-center rounded-xl border px-4 py-3 transition-all duration-300 ${
         active
           ? "border-teal-400/60 bg-teal-900/30 shadow-[0_0_24px_rgba(45,212,191,0.15)] opacity-100"
           : "border-white/5 bg-white/[0.02] opacity-40"
       }`}
     >
-      <p className="text-slate-400 text-sm uppercase tracking-wider">{label}</p>
-      <p className="text-3xl xl:text-4xl font-black text-white mt-1">
-        ${valor.toFixed(2)}
-        <span className="text-sm font-normal text-slate-400 ml-1">COP/kWh</span>
+      <p className="text-slate-400 text-lg xl:text-xl uppercase tracking-[0.2em] font-medium">
+        {label}
       </p>
-      {fecha && <p className="text-xs text-slate-500 mt-0.5">Dato: {fecha}</p>}
+      <div
+        className={`inline-flex items-center gap-2 font-black text-3xl xl:text-4xl leading-none mt-1 ${
+          active ? "text-white" : "text-slate-400"
+        }`}
+        style={trendColor ? { color: trendColor } : undefined}
+      >
+        ${valor.toFixed(2)}
+        <TrendArrow tendencia={tendencia} metrica="precio" />
+      </div>
+      {fecha && (
+        <p className="text-slate-400 text-xs xl:text-sm mt-0.5">
+          COP/kWh · Dato: {fecha}
+        </p>
+      )}
       {variacion != null && (
         <p className={`text-xs mt-1 ${variacion < 0 ? "text-red-400" : "text-emerald-400"}`}>
-          {variacionLabel}: {variacion >= 0 ? "+" : ""}{variacion.toFixed(2)}
+          {variacionLabel}: {variacion >= 0 ? "+" : ""}
+          {variacion.toFixed(2)}
         </p>
       )}
       <div className="mt-2 flex flex-col items-center gap-1">
@@ -63,6 +71,103 @@ function PriceCard({
         >
           {st.label}
         </span>
+      </div>
+    </div>
+  );
+}
+
+function FuentesDualAxisChart({
+  data,
+  maxTotalDiarioGwh,
+}: {
+  data: TermicaSliderData["evolucionTotal"];
+  maxTotalDiarioGwh: number;
+}) {
+  if (!data.length) {
+    return (
+      <div className="flex flex-col h-[140px] xl:h-[160px] items-center justify-center text-slate-600 text-sm">
+        Sin datos
+      </div>
+    );
+  }
+
+  const yMax = maxTotalDiarioGwh > 0 ? maxTotalDiarioGwh : Math.max(...data.flatMap((s) => s.data.map((p) => p.y)));
+  const gwhTicks = [0, yMax * 0.25, yMax * 0.5, yMax * 0.75, yMax];
+  const toPct = (gwh: number) => (yMax > 0 ? (gwh / yMax) * 100 : 0);
+
+  return (
+    <div className="flex flex-col">
+      <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">
+        Generación por Fuente · 1 mes
+      </p>
+      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mb-1.5 min-h-[14px]">
+        {data.map((s) => (
+          <span key={s.id} className="inline-flex items-center gap-1 text-[9px] text-slate-400">
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
+            {s.id}
+          </span>
+        ))}
+      </div>
+      <div className="h-[130px] xl:h-[150px]">
+        <ResponsiveLine
+          data={data}
+          theme={NIVO_SLIDER}
+          margin={{ top: 4, right: 40, bottom: 28, left: 36 }}
+          xScale={{ type: "point" }}
+          yScale={{ type: "linear", min: 0, max: yMax }}
+          curve="catmullRom"
+          enablePoints={false}
+          enableGridX={false}
+          enableGridY
+          gridYValues={gwhTicks}
+          axisTop={null}
+          axisBottom={{
+            tickSize: 0,
+            tickPadding: 6,
+            tickValues: "every 5 days",
+            format: (value) => {
+              const pt = data[0]?.data.find((d) => d.x === value);
+              if (pt?.fecha) return String(new Date(pt.fecha).getDate());
+              return value;
+            },
+          }}
+          axisLeft={{
+            tickSize: 0,
+            tickValues: gwhTicks,
+            tickPadding: 6,
+            format: (v) => `${Math.round(Number(v))}`,
+          }}
+          axisRight={{
+            tickSize: 0,
+            tickValues: gwhTicks,
+            tickPadding: 6,
+            format: (v) => `${toPct(Number(v)).toFixed(0)}%`,
+          }}
+          colors={(s) => (s.color as string) ?? "#94A3B8"}
+          lineWidth={2}
+          useMesh
+          tooltip={({ point }) => {
+            const serie = data.find((s) => s.id === point.seriesId);
+            const pt = serie?.data.find((d) => d.x === point.data.x);
+            const fecha = pt?.fecha
+              ? new Date(pt.fecha).toLocaleDateString("es-CO", { day: "numeric", month: "short" })
+              : point.data.xFormatted;
+            const gwh = Number(point.data.y);
+            const pct = pt?.pct ?? toPct(gwh);
+            return (
+              <div className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-xs text-slate-200">
+                {point.seriesId} · {fecha}:{" "}
+                <strong>
+                  {gwh.toFixed(2)} GWh · {pct.toFixed(1)}%
+                </strong>
+              </div>
+            );
+          }}
+        />
+      </div>
+      <div className="flex justify-between text-[8px] text-slate-600 mt-0.5 px-1">
+        <span>← GWh</span>
+        <span>% participación →</span>
       </div>
     </div>
   );
@@ -106,6 +211,8 @@ function LineChartPanel({
           curve="catmullRom"
           enablePoints={false}
           enableGridX={false}
+          enableGridY
+          gridYValues={4}
           axisTop={null}
           axisRight={null}
           axisBottom={{
@@ -256,7 +363,7 @@ export function SlideGeneracionTermica({ d }: { d: TermicaSliderData }) {
 
         <div className="grid grid-cols-2 w-full gap-3 xl:gap-4">
           <LineChartPanel title="Evolución Generación Térmica · 1 mes" data={d.evolucionTermica} />
-          <LineChartPanel title="Generación por Fuente · 1 mes" data={d.evolucionTotal} />
+          <FuentesDualAxisChart data={d.evolucionTotal} maxTotalDiarioGwh={d.maxTotalDiarioGwh} />
         </div>
       </div>
     </div>

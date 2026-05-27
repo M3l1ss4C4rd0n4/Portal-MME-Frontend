@@ -349,6 +349,9 @@ export default function Home() {
     enEjecucion: 0, enAOM: 0, enLiquidacion: 0, liquidados: 0, perdidaCompetencia: 0,
     avanceFisico: 0, avanceFinanciero: 0,
     avanceFisicoActivos: 0, avanceFinancieroActivos: 0,
+    financiero: { valorProyecto: 0, valorDesembolsado: 0, valorPorDesembolsar: 0, pctDesembolsado: 0 },
+    usuarios: { contratados: 0, finales: 0 },
+    nFotovoltaicos: 0,
     porFondo: [] as { fondo: string; contratos: number }[],
     ultimaActualizacion: "",
   });
@@ -471,6 +474,7 @@ export default function Home() {
           plantas: tm.plantas ?? [],
           evolucionTermica: tm.evolucionTermica ?? [],
           evolucionTotal: tm.evolucionTotal ?? [],
+          maxTotalDiarioGwh: Number(tm.maxTotalDiarioGwh ?? 0),
         });
       }
 
@@ -532,6 +536,17 @@ export default function Home() {
         avanceFinanciero:        Number(sp.avanceFinanciero        ?? 0),
         avanceFisicoActivos:     Number(sp.avanceFisicoActivos     ?? 0),
         avanceFinancieroActivos: Number(sp.avanceFinancieroActivos ?? 0),
+        financiero: {
+          valorProyecto:       Number(sp.financiero?.valorProyecto       ?? 0),
+          valorDesembolsado:   Number(sp.financiero?.valorDesembolsado   ?? 0),
+          valorPorDesembolsar: Number(sp.financiero?.valorPorDesembolsar ?? 0),
+          pctDesembolsado:     Number(sp.financiero?.pctDesembolsado     ?? 0),
+        },
+        usuarios: {
+          contratados: Number(sp.usuarios?.contratados ?? 0),
+          finales:     Number(sp.usuarios?.finales     ?? 0),
+        },
+        nFotovoltaicos: Number(sp.nFotovoltaicos ?? 0),
         porFondo:                sp.porFondo ?? [],
         ultimaActualizacion:     sp.ultima_actualizacion ?? "",
       });

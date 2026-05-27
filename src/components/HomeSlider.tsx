@@ -11,6 +11,7 @@ import { TrendBadge, TrendArrow, getTrendColor } from "@/components/ui/TrendBadg
 import type { MetricaTendencia } from "@/components/ui/TrendBadge";
 import { useHomeSlider } from "@/hooks/useHomeSlider";
 import { fmtCortePresupuesto } from "@/lib/format";
+import { NIVO_SLIDER } from "@/lib/nivo-theme";
 import SlideRedesX, { ALL_X_ACCOUNTS } from "@/components/SlideRedesX";
 import CapacidadEmbalseChart, { type CapacidadEmbalseData } from "@/components/charts/CapacidadEmbalseChart";
 import InformesDiariosSlider from "@/components/InformesDiariosSlider";
@@ -133,6 +134,14 @@ export interface HomeSliderProps {
     avanceFinanciero: number;
     avanceFisicoActivos: number;
     avanceFinancieroActivos: number;
+    financiero: {
+      valorProyecto: number;
+      valorDesembolsado: number;
+      valorPorDesembolsar: number;
+      pctDesembolsado: number;
+    };
+    usuarios: { contratados: number; finales: number };
+    nFotovoltaicos: number;
     porFondo: { fondo: string; contratos: number }[];
   };
   subData: {
@@ -279,30 +288,6 @@ function SectionBadge({
     </div>
   );
 }
-
-// ─── Tema Nivo para slider oscuro ─────────────────────────────────────────────
-const NIVO_SLIDER = {
-  background: "transparent" as const,
-  text: { fill: "#94A3B8", fontSize: 10 },
-  tooltip: {
-    container: {
-      background: "#1E293B",
-      border: "1px solid #334155",
-      borderRadius: "8px",
-      color: "#E2E8F0",
-      fontSize: "12px",
-    },
-  },
-  grid: { line: { stroke: "#1A2740", strokeWidth: 1 } },
-  axis: {
-    domain: { line: { stroke: "#2A3D5A" } },
-    ticks: {
-      line: { stroke: "#2A3D5A" },
-      text: { fill: "#64748B", fontSize: 9 },
-    },
-    legend: { text: { fill: "#94A3B8", fontSize: 9 } },
-  },
-};
 
 // ─── Helpers de estado por métrica ────────────────────────────────────────────
 // IMPORTANTE: Todos los estados ahora se calculan con el marco regulatorio

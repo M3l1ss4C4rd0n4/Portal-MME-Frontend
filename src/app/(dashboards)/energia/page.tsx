@@ -216,7 +216,11 @@ export default function GestionSectorPage() {
         if (aportes && typeof aportes === "object") {
           actualGwh = Number(aportes.actualGwh ?? 0);
           historicoGwh = Number(aportes.historicoGwh ?? 0);
-          if (historicoGwh > 0) aportesPct = (actualGwh / historicoGwh) * 100;
+          const hsin = aportes.hsinPct != null ? Number(aportes.hsinPct) : null;
+          const pct = aportes.pct != null ? Number(aportes.pct) : null;
+          if (hsin != null) aportesPct = hsin;
+          else if (pct != null) aportesPct = pct;
+          else if (historicoGwh > 0) aportesPct = (actualGwh / historicoGwh) * 100;
         } else if (typeof aportes === "number") {
           aportesPct = aportes;
         }

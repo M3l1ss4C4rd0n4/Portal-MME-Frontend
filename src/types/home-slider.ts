@@ -71,8 +71,9 @@ export interface TermicaSliderData {
   evolucionTotal: Array<{
     id: string;
     color: string;
-    data: Array<{ x: string; y: number; fecha?: Date }>;
+    data: Array<{ x: string; y: number; pct?: number; fecha?: Date }>;
   }>;
+  maxTotalDiarioGwh: number;
 }
 
 export interface HomeSliderProps {
@@ -141,6 +142,14 @@ export interface HomeSliderProps {
     avanceFinanciero: number;
     avanceFisicoActivos: number;
     avanceFinancieroActivos: number;
+    financiero: {
+      valorProyecto: number;
+      valorDesembolsado: number;
+      valorPorDesembolsar: number;
+      pctDesembolsado: number;
+    };
+    usuarios: { contratados: number; finales: number };
+    nFotovoltaicos: number;
     porFondo: { fondo: string; contratos: number }[];
   };
   subData: {

@@ -166,19 +166,32 @@ export async function GET() {
       ORDER BY m.fecha ASC
     `, [fechaGene]);
 
-    const evolTotalRes = await pool.query<{ fecha: Date; tipo: string; gwh: string }>(`
+    const evolTotalRes = await pool.query<{ fecha: Date; tipo: string; gwh: string; pct: string; total_dia: string }>(`
+      WITH daily AS (
+        SELECT
+          m.fecha::date AS fecha,
+          c.tipo,
+          SUM(m.valor_gwh) AS gwh
+        FROM sector_energetico.metrics m
+        JOIN sector_energetico.catalogos c
+          ON m.recurso = c.codigo AND c.catalogo = 'ListadoRecursos'
+        WHERE m.metrica = 'Gene' AND m.entidad = 'Recurso'
+          AND m.fecha >= $1::date - INTERVAL '30 days' AND m.fecha <= $1::date
+          AND c.tipo IS NOT NULL
+        GROUP BY m.fecha, c.tipo
+      ),
+      daily_total AS (
+        SELECT fecha, SUM(gwh) AS total FROM daily GROUP BY fecha
+      )
       SELECT
-        m.fecha::date AS fecha,
-        c.tipo,
-        ROUND(SUM(m.valor_gwh)::numeric, 2) AS gwh
-      FROM sector_energetico.metrics m
-      JOIN sector_energetico.catalogos c
-        ON m.recurso = c.codigo AND c.catalogo = 'ListadoRecursos'
-      WHERE m.metrica = 'Gene' AND m.entidad = 'Recurso'
-        AND m.fecha >= $1::date - INTERVAL '30 days' AND m.fecha <= $1::date
-        AND c.tipo IS NOT NULL
-      GROUP BY m.fecha, c.tipo
-      ORDER BY m.fecha ASC
+        d.fecha,
+        d.tipo,
+        ROUND(d.gwh::numeric, 2) AS gwh,
+        ROUND((d.gwh / NULLIF(t.total, 0) * 100)::numeric, 2) AS pct,
+        ROUND(t.total::numeric, 2) AS total_dia
+      FROM daily d
+      JOIN daily_total t ON d.fecha = t.fecha
+      ORDER BY d.fecha ASC
     `, [fechaGene]);
 
     const termicaRows = evolTermicaRes.rows.map((r) => ({
@@ -209,19 +222,33 @@ export async function GET() {
       fecha: r.fecha.toISOString().split("T")[0],
       tipo: r.tipo,
       gwh: Number(r.gwh),
+      pct: Number(r.pct),
+      totalDia: Number(r.total_dia),
     }));
-    const tipos = [...new Set(totalRows.map((r) => r.tipo))];
+    const tipoOrder = ["HIDRAULICA", "TERMICA", "SOLAR", "EOLICA", "COGENERADOR"];
+    const tipos = [...new Set(totalRows.map((r) => r.tipo))].sort(
+      (a, b) =>
+        (tipoOrder.indexOf(a) === -1 ? 99 : tipoOrder.indexOf(a)) -
+        (tipoOrder.indexOf(b) === -1 ? 99 : tipoOrder.indexOf(b))
+    );
     const fechasTotal = [...new Set(totalRows.map((r) => r.fecha))].sort();
+    const maxTotalDiarioGwh = Math.max(...totalRows.map((r) => r.totalDia));
     const evolucionTotal = tipos.map((tipo) => {
-      const byFecha = new Map(totalRows.filter((r) => r.tipo === tipo).map((r) => [r.fecha, r.gwh]));
+      const byFecha = new Map(
+        totalRows.filter((r) => r.tipo === tipo).map((r) => [r.fecha, { gwh: r.gwh, pct: r.pct }])
+      );
       return {
         id: LABEL_TIPO[tipo] ?? tipo,
         color: COLORES_TIPO[tipo] ?? "#6B7280",
-        data: fechasTotal.map((f, i) => ({
-          x: String(i + 1),
-          y: byFecha.get(f) ?? 0,
-          fecha: new Date(f),
-        })),
+        data: fechasTotal.map((f, i) => {
+          const pt = byFecha.get(f);
+          return {
+            x: String(i + 1),
+            y: pt?.gwh ?? 0,
+            pct: pt?.pct ?? 0,
+            fecha: new Date(f),
+          };
+        }),
       };
     });
 
@@ -255,6 +282,7 @@ export async function GET() {
       })),
       evolucionTermica,
       evolucionTotal,
+      maxTotalDiarioGwh,
     });
   } catch (err) {
     console.error("[api/sector/termica]", err);

@@ -68,14 +68,128 @@ const DEFAULT: ContratosData = {
   proyectos: [],
 };
 
+interface CurvaSPoint {
+  fecha: string;
+  programado: number;
+  real: number;
+}
+
+interface CurvaSProyecto {
+  nombre: string;
+  departamento: string;
+  programado: CurvaSPoint[];
+  realFuente?: "reportado" | "reportado_usuarios" | "sin_datos";
+}
+
+interface CurvaSCategoria {
+  id: string;
+  label: string;
+  proyectos: CurvaSProyecto[];
+}
+
 interface CurvaSData {
-  promedioGlobal: { x: string; programado: number; real: number }[];
-  proyectos: {
-    nombre: string;
-    departamento: string;
-    usuariosTotales: number;
-    programado: { fecha: string; programado: number; real: number }[];
-  }[];
+  categorias: CurvaSCategoria[];
+}
+
+type NivoTheme = ReturnType<typeof getNivoTheme>;
+
+function CurvaSChart({
+  title,
+  puntos,
+  realFuente,
+  theme,
+}: {
+  title: string;
+  puntos: CurvaSPoint[];
+  realFuente?: "reportado" | "reportado_usuarios" | "sin_datos";
+  theme: NivoTheme;
+}) {
+  const realNota =
+    realFuente === "reportado_usuarios"
+      ? "Real: hoja Usuarios (sin reporte en esta dimensión)"
+      : realFuente === "sin_datos"
+        ? "Real: sin reporte en Excel"
+        : null;
+
+  if (!puntos.length) {
+    return (
+      <div className="flex flex-col h-full min-h-[220px]">
+        <span className="text-[11px] font-semibold text-theme-primary mb-2">{title}</span>
+        <div className="flex-1 flex items-center justify-center text-theme-muted text-xs">Sin datos</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full min-h-[220px]">
+      <div className="mb-2">
+        <span className="text-[11px] font-semibold text-theme-primary">{title}</span>
+        {realNota && (
+          <p className="text-[9px] text-amber-400/80 mt-0.5 leading-tight">{realNota}</p>
+        )}
+      </div>
+      <div className="flex-1 min-h-[200px]">
+        <ResponsiveLine
+          data={[
+            {
+              id: "Programado",
+              color: "#06B6D4",
+              data: puntos.map((d) => ({ x: d.fecha, y: Number(d.programado.toFixed(2)) })),
+            },
+            {
+              id: "Real",
+              color: "#F59E0B",
+              data: puntos.map((d) => ({ x: d.fecha, y: Number(d.real.toFixed(2)) })),
+            },
+          ]}
+          theme={theme}
+          margin={{ top: 8, right: 16, bottom: 32, left: 44 }}
+          xScale={{ type: "point" }}
+          yScale={{ type: "linear", min: 0, max: 100, stacked: false }}
+          curve="monotoneX"
+          axisTop={null}
+          axisRight={null}
+          axisBottom={{
+            tickSize: 4,
+            tickPadding: 4,
+            tickRotation: -35,
+            legendOffset: 36,
+            legendPosition: "middle",
+          }}
+          axisLeft={{
+            tickSize: 4,
+            tickPadding: 4,
+            tickRotation: 0,
+            legend: "%",
+            legendOffset: -36,
+            legendPosition: "middle",
+            format: (v) => `${v}%`,
+          }}
+          colors={["#06B6D4", "#F59E0B"]}
+          lineWidth={2}
+          pointSize={4}
+          pointColor={{ theme: "background" }}
+          pointBorderWidth={2}
+          pointBorderColor={{ from: "serieColor" }}
+          enableArea
+          areaOpacity={0.12}
+          useMesh
+          enableGridX={false}
+          tooltip={({ point }) => (
+            <div className="px-3 py-2 rounded-lg border border-theme-card bg-[#1E293B] text-[11px] text-theme-primary">
+              <div className="font-semibold mb-1">{point.data.x as string}</div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full inline-block" style={{ background: point.seriesColor }} />
+                <span>
+                  {point.seriesId}: <strong>{Number(point.data.y).toFixed(2)}%</strong>
+                </span>
+              </div>
+            </div>
+          )}
+        />
+      </div>
+    </div>
+  );
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────
@@ -123,11 +237,10 @@ export default function ContratosORPage() {
     fetch("/api/colombia-solar/curva-s")
       .then((r) => r.json())
       .then((raw) => {
-        if (raw.promedioGlobal) {
-          setCurvaS(raw);
-          if (raw.proyectos?.length > 0) {
-            setProyectoSeleccionado(raw.proyectos[0].nombre);
-          }
+        if (raw.categorias?.length > 0) {
+          setCurvaS(raw as CurvaSData);
+          const primerProyecto = raw.categorias[0]?.proyectos?.[0]?.nombre;
+          if (primerProyecto) setProyectoSeleccionado(primerProyecto);
         }
       })
       .catch(() => {});
@@ -407,109 +520,70 @@ export default function ContratosORPage() {
         </div>
       </Card>
 
-      {/* ── Row 4: Curva S — Por Proyecto ── */}
-      {curvaS && curvaS.proyectos.length > 0 && (
+      {/* ── Row 4: Curvas S — 4 dimensiones por proyecto ── */}
+      {curvaS && curvaS.categorias.length > 0 && (
         <Card delay={0.35}>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <div>
-              <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">COLOMBIA SOLAR — CURVA S POR PROYECTO</span>
-              <p className="text-[9px] text-theme-muted mt-0.5">Avance programado vs real acumulado por proyecto</p>
+              <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
+                COLOMBIA SOLAR — CURVAS S POR PROYECTO
+              </span>
+              <p className="text-[9px] text-theme-muted mt-0.5">
+                Avance programado vs real — obras civiles, usuarios, potencia e internas
+              </p>
+              <div className="flex items-center gap-4 mt-2 text-[10px] text-theme-muted">
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-2.5 h-2.5 rounded-full bg-cyan-400 shrink-0" />
+                  Programado
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0" />
+                  Real
+                </span>
+              </div>
             </div>
             <div className="relative">
               <select
                 value={proyectoSeleccionado}
                 onChange={(e) => setProyectoSeleccionado(e.target.value)}
                 className="appearance-none bg-[#0B1120] text-white border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-[11px] focus:outline-none focus:border-amber-500/40 cursor-pointer"
-                style={{ backgroundColor: '#0B1120', color: '#ffffff' }}
+                style={{ backgroundColor: "#0B1120", color: "#ffffff" }}
               >
-                {curvaS.proyectos.map((p) => (
-                  <option key={p.nombre} value={p.nombre} style={{ backgroundColor: '#0B1120', color: '#ffffff' }}>{p.nombre}</option>
+                {(curvaS.categorias[0]?.proyectos ?? []).map((p) => (
+                  <option
+                    key={p.nombre}
+                    value={p.nombre}
+                    style={{ backgroundColor: "#0B1120", color: "#ffffff" }}
+                  >
+                    {p.nombre}
+                  </option>
                 ))}
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white">
-                <svg className="h-3 w-3 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+                <svg className="h-3 w-3 fill-current" viewBox="0 0 20 20">
+                  <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                </svg>
               </div>
             </div>
           </div>
-          {(() => {
-            const proyecto = curvaS.proyectos.find((p) => p.nombre === proyectoSeleccionado);
-            if (!proyecto) return null;
-            return (
-              <div className="h-[320px]">
-                <ResponsiveLine
-                  data={[
-                    {
-                      id: "Programado",
-                      color: "#06B6D4",
-                      data: proyecto.programado.map((d) => ({ x: d.fecha, y: Number(d.programado.toFixed(2)) })),
-                    },
-                    {
-                      id: "Real",
-                      color: "#F59E0B",
-                      data: proyecto.programado.map((d) => ({ x: d.fecha, y: Number(d.real.toFixed(2)) })),
-                    },
-                  ]}
-                  theme={T}
-                  margin={{ top: 10, right: 30, bottom: 50, left: 50 }}
-                  xScale={{ type: "point" }}
-                  yScale={{ type: "linear", min: 0, max: 100, stacked: false }}
-                  curve="monotoneX"
-                  axisTop={null}
-                  axisRight={null}
-                  axisBottom={{
-                    tickSize: 5,
-                    tickPadding: 5,
-                    tickRotation: -35,
-                    legendOffset: 40,
-                    legendPosition: "middle",
-                  }}
-                  axisLeft={{
-                    tickSize: 5,
-                    tickPadding: 5,
-                    tickRotation: 0,
-                    legend: "% Acumulado",
-                    legendOffset: -40,
-                    legendPosition: "middle",
-                    format: (v) => `${v}%`,
-                  }}
-                  colors={["#06B6D4", "#F59E0B"]}
-                  lineWidth={3}
-                  pointSize={6}
-                  pointColor={{ theme: "background" }}
-                  pointBorderWidth={2}
-                  pointBorderColor={{ from: "serieColor" }}
-                  enableArea
-                  areaOpacity={0.15}
-                  useMesh
-                  legends={[
-                    {
-                      anchor: "bottom",
-                      direction: "row",
-                      justify: false,
-                      translateX: 0,
-                      translateY: 50,
-                      itemsSpacing: 20,
-                      itemDirection: "left-to-right",
-                      itemWidth: 100,
-                      itemHeight: 16,
-                      itemTextColor: "#94A3B8",
-                      symbolSize: 10,
-                      symbolShape: "circle",
-                    },
-                  ]}
-                  tooltip={({ point }) => (
-                    <div className="px-3 py-2 rounded-lg border border-theme-card bg-[#1E293B] text-[12px] text-theme-primary">
-                      <div className="font-semibold mb-1">{point.data.x as string}</div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full inline-block" style={{ background: point.seriesColor }} />
-                        <span>{point.seriesId}: <strong>{Number(point.data.y).toFixed(2)}%</strong></span>
-                      </div>
-                    </div>
-                  )}
-                />
-              </div>
-            );
-          })()}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {curvaS.categorias.map((cat) => {
+              const proyecto = cat.proyectos.find((p) => p.nombre === proyectoSeleccionado);
+              return (
+                <div
+                  key={cat.id}
+                  className="rounded-xl border border-theme-card bg-dash-chip/30 p-3"
+                >
+                  <CurvaSChart
+                    title={cat.label}
+                    puntos={proyecto?.programado ?? []}
+                    realFuente={proyecto?.realFuente}
+                    theme={T}
+                  />
+                </div>
+              );
+            })}
+          </div>
         </Card>
       )}
 

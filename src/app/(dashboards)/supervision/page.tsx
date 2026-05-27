@@ -4,10 +4,12 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { ResponsivePie } from "@nivo/pie";
 import { ResponsiveLine } from "@nivo/line";
+import * as XLSX from "xlsx";
 import { useTheme } from "@/providers/ThemeProvider";
 import DashboardLayout from "@/components/DashboardLayout";
 import SemiGauge from "@/components/ui/SemiGauge";
 import { getNivoTheme } from "@/lib/nivo-theme";
+import { fmtCOP, fmtCOPShort, fmtNum } from "@/lib/format";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 function Card({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
@@ -93,15 +95,44 @@ function YearRangeSlider({ anoMin, anoMax, onChange }: {
 interface FondoRow   { fondo: string; contratos: number }
 interface AnioRow    { anio: number; avg_avance_obra: number }
 interface SankeyNode { valor: string; n: number }
+interface TipoSolucionRow { tipo: string; proyectos: number }
+interface SupervisionFinanciero {
+  valorProyecto: number; valorDesembolsado: number; valorPorDesembolsar: number;
+  pctDesembolsado: number; filasConValor: number; filasConDesembolso: number;
+}
+interface SupervisionUsuarios {
+  contratados: number; finales: number; filasContratados: number; filasFinales: number;
+}
+interface SupervisionProyecto {
+  anio: number | null; contrato: string | null; nombreProyecto: string | null;
+  fondo: string | null; tipoSolucion: string | null; estado: string | null; etapa: string | null;
+  ejecutor: string | null; departamento: string | null; municipio: string | null;
+  usuariosContratados: number | null; usuariosFinales: number | null;
+  valorProyecto: number | null; valorDesembolsado: number | null; valorPorDesembolsar: number | null;
+  avanceObraPct: number; avanceFinancieroPct: number;
+}
 interface SupervisionData {
   nContratos: number; nProyectos: number;
   enEjecucion: number; enAOM: number; enLiquidacion: number;
   liquidados: number; perdidaCompetencia: number;
   avanceFisico: number; avanceFinanciero: number;
   avanceFisicoActivos: number; avanceFinancieroActivos: number;
+  financiero: SupervisionFinanciero;
+  usuarios: SupervisionUsuarios;
+  nFotovoltaicos: number;
+  porTipoSolucion: TipoSolucionRow[];
   porFondo: FondoRow[]; avancePorAnio: AnioRow[];
   sankey: { fondo: SankeyNode[]; estado: SankeyNode[]; etapa: SankeyNode[]; ejecutor: SankeyNode[] };
+  ultimaActualizacion?: string;
 }
+
+const EMPTY_FIN: SupervisionFinanciero = {
+  valorProyecto: 0, valorDesembolsado: 0, valorPorDesembolsar: 0,
+  pctDesembolsado: 0, filasConValor: 0, filasConDesembolso: 0,
+};
+const EMPTY_USR: SupervisionUsuarios = {
+  contratados: 0, finales: 0, filasContratados: 0, filasFinales: 0,
+};
 
 const EMPTY_SANKEY = { fondo: [], estado: [], etapa: [], ejecutor: [] };
 const DEFAULT: SupervisionData = {
@@ -109,6 +140,8 @@ const DEFAULT: SupervisionData = {
   enEjecucion: 295, enAOM: 219, enLiquidacion: 129, liquidados: 166, perdidaCompetencia: 22,
   avanceFisico: 87.49, avanceFinanciero: 88.43,
   avanceFisicoActivos: 30.48, avanceFinancieroActivos: 46.97,
+  financiero: EMPTY_FIN, usuarios: EMPTY_USR,
+  nFotovoltaicos: 0, porTipoSolucion: [],
   porFondo: [], avancePorAnio: [],
   sankey: EMPTY_SANKEY,
 };
@@ -213,10 +246,51 @@ export default function SupervisionPage() {
   const [anoMin, setAnoMin] = useState(YEAR_MIN);
   const [anoMax, setAnoMax] = useState(YEAR_MAX);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const yearDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchData = useCallback((f: SankeyFilters, yMin: number, yMax: number) => {
-    setLoading(true);
+  const parseDashboard = useCallback((raw: Record<string, unknown>): SupervisionData => ({
+    nContratos:              Number(raw.nContratos)              || 0,
+    nProyectos:              Number(raw.nProyectos)              || 0,
+    enEjecucion:             Number(raw.enEjecucion)             || 0,
+    enAOM:                   Number(raw.enAOM)                   || 0,
+    enLiquidacion:           Number(raw.enLiquidacion)           || 0,
+    liquidados:              Number(raw.liquidados)              || 0,
+    perdidaCompetencia:      Number(raw.perdidaCompetencia)      || 0,
+    avanceFisico:            Number(raw.avanceFisico)            || 0,
+    avanceFinanciero:        Number(raw.avanceFinanciero)        || 0,
+    avanceFisicoActivos:     Number(raw.avanceFisicoActivos)     || 0,
+    avanceFinancieroActivos: Number(raw.avanceFinancieroActivos) || 0,
+    financiero: {
+      valorProyecto:       Number((raw.financiero as SupervisionFinanciero)?.valorProyecto)       || 0,
+      valorDesembolsado:   Number((raw.financiero as SupervisionFinanciero)?.valorDesembolsado)   || 0,
+      valorPorDesembolsar: Number((raw.financiero as SupervisionFinanciero)?.valorPorDesembolsar) || 0,
+      pctDesembolsado:     Number((raw.financiero as SupervisionFinanciero)?.pctDesembolsado)     || 0,
+      filasConValor:       Number((raw.financiero as SupervisionFinanciero)?.filasConValor)       || 0,
+      filasConDesembolso:  Number((raw.financiero as SupervisionFinanciero)?.filasConDesembolso)  || 0,
+    },
+    usuarios: {
+      contratados:      Number((raw.usuarios as SupervisionUsuarios)?.contratados)      || 0,
+      finales:          Number((raw.usuarios as SupervisionUsuarios)?.finales)          || 0,
+      filasContratados: Number((raw.usuarios as SupervisionUsuarios)?.filasContratados) || 0,
+      filasFinales:     Number((raw.usuarios as SupervisionUsuarios)?.filasFinales)     || 0,
+    },
+    nFotovoltaicos: Number(raw.nFotovoltaicos) || 0,
+    porTipoSolucion: ((raw.porTipoSolucion as TipoSolucionRow[]) ?? []).map(r => ({
+      tipo: String(r.tipo), proyectos: Number(r.proyectos) || 0,
+    })),
+    porFondo:      ((raw.porFondo as FondoRow[])      ?? []).map(r => ({ fondo: String(r.fondo), contratos: Number(r.contratos) })),
+    avancePorAnio: ((raw.avancePorAnio as AnioRow[]) ?? []).map(r => ({ anio: Number(r.anio), avg_avance_obra: Number(r.avg_avance_obra) })),
+    sankey: {
+      fondo:    ((raw.sankey as { fondo?: SankeyNode[] })?.fondo    ?? []).map(n => ({ valor: String(n.valor), n: Number(n.n) })),
+      estado:   ((raw.sankey as { estado?: SankeyNode[] })?.estado   ?? []).map(n => ({ valor: String(n.valor), n: Number(n.n) })),
+      etapa:    ((raw.sankey as { etapa?: SankeyNode[] })?.etapa    ?? []).map(n => ({ valor: String(n.valor), n: Number(n.n) })),
+      ejecutor: ((raw.sankey as { ejecutor?: SankeyNode[] })?.ejecutor ?? []).map(n => ({ valor: String(n.valor), n: Number(n.n) })),
+    },
+    ultimaActualizacion: String(raw.ultima_actualizacion ?? raw.ultimaActualizacion ?? ""),
+  }), []);
+
+  const buildParams = useCallback((f: SankeyFilters, yMin: number, yMax: number) => {
     const params = new URLSearchParams();
     if (f.fondo)    params.set("fondo",    f.fondo);
     if (f.estado)   params.set("estado",   f.estado);
@@ -224,35 +298,19 @@ export default function SupervisionPage() {
     if (f.ejecutor) params.set("ejecutor", f.ejecutor);
     if (yMin !== YEAR_MIN) params.set("anoMin", String(yMin));
     if (yMax !== YEAR_MAX) params.set("anoMax", String(yMax));
-    const url = `/api/supervision${params.toString() ? "?" + params.toString() : ""}`;
+    return params;
+  }, []);
+
+  const fetchData = useCallback((f: SankeyFilters, yMin: number, yMax: number) => {
+    setLoading(true);
+    const qs = buildParams(f, yMin, yMax);
+    const url = `/api/supervision${qs.toString() ? "?" + qs.toString() : ""}`;
     fetch(url)
       .then(r => r.json())
-      .then(raw => {
-        setData({
-          nContratos:              Number(raw.nContratos)              || 0,
-          nProyectos:              Number(raw.nProyectos)              || 0,
-          enEjecucion:             Number(raw.enEjecucion)             || 0,
-          enAOM:                   Number(raw.enAOM)                   || 0,
-          enLiquidacion:           Number(raw.enLiquidacion)           || 0,
-          liquidados:              Number(raw.liquidados)              || 0,
-          perdidaCompetencia:      Number(raw.perdidaCompetencia)      || 0,
-          avanceFisico:            Number(raw.avanceFisico)            || 0,
-          avanceFinanciero:        Number(raw.avanceFinanciero)        || 0,
-          avanceFisicoActivos:     Number(raw.avanceFisicoActivos)     || 0,
-          avanceFinancieroActivos: Number(raw.avanceFinancieroActivos) || 0,
-          porFondo:      (raw.porFondo      || []).map((r: any) => ({ fondo: String(r.fondo), contratos: Number(r.contratos) })),
-          avancePorAnio: (raw.avancePorAnio || []).map((r: any) => ({ anio: Number(r.anio), avg_avance_obra: Number(r.avg_avance_obra) })),
-          sankey: {
-            fondo:    (raw.sankey?.fondo    || []).map((n: any) => ({ valor: String(n.valor), n: Number(n.n) })),
-            estado:   (raw.sankey?.estado   || []).map((n: any) => ({ valor: String(n.valor), n: Number(n.n) })),
-            etapa:    (raw.sankey?.etapa    || []).map((n: any) => ({ valor: String(n.valor), n: Number(n.n) })),
-            ejecutor: (raw.sankey?.ejecutor || []).map((n: any) => ({ valor: String(n.valor), n: Number(n.n) })),
-          },
-        });
-      })
+      .then(raw => setData(parseDashboard(raw)))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [buildParams, parseDashboard]);
 
   useEffect(() => { fetchData({ fondo: null, estado: null, etapa: null, ejecutor: null }, YEAR_MIN, YEAR_MAX); }, []);
 
@@ -276,6 +334,63 @@ export default function SupervisionPage() {
     yearDebounce.current = setTimeout(() => fetchData(filters, min, max), 400);
   }, [fetchData, filters]);
 
+  const handleExportExcel = useCallback(async () => {
+    setExporting(true);
+    try {
+      const qs = buildParams(filters, anoMin, anoMax);
+      const res = await fetch(`/api/supervision/detalle${qs.toString() ? "?" + qs.toString() : ""}`);
+      const json = await res.json();
+      const rows: SupervisionProyecto[] = json.proyectos ?? [];
+
+      const exportData = rows.map(p => ({
+        "Año": p.anio ?? "",
+        "Contrato": p.contrato ?? "",
+        "Proyecto": p.nombreProyecto ?? "",
+        "Fondo": p.fondo ?? "",
+        "Tipo de Solución": p.tipoSolucion ?? "",
+        "Estado": p.estado ?? "",
+        "Etapa": p.etapa ?? "",
+        "Ejecutor": p.ejecutor ?? "",
+        "Departamento": p.departamento ?? "",
+        "Municipio": p.municipio ?? "",
+        "Usuarios Contratados": p.usuariosContratados ?? "",
+        "Usuarios Finales": p.usuariosFinales ?? "",
+        "Valor por Proyecto (AR)": p.valorProyecto ?? "",
+        "Valor Desembolsado (AU)": p.valorDesembolsado ?? "",
+        "Valor por Desembolsar (AV)": p.valorPorDesembolsar ?? "",
+        "Avance Obra (%)": p.avanceObraPct != null ? p.avanceObraPct / 100 : "",
+        "Avance Financiero (%)": p.avanceFinancieroPct != null ? p.avanceFinancieroPct / 100 : "",
+      }));
+
+      exportData.push({
+        "Año": "",
+        "Contrato": "TOTALES PORTAFOLIO",
+        "Proyecto": `${rows.length} proyectos`,
+        "Fondo": "",
+        "Tipo de Solución": "",
+        "Estado": "",
+        "Etapa": "",
+        "Ejecutor": "",
+        "Departamento": "",
+        "Municipio": "",
+        "Usuarios Contratados": data.usuarios.contratados,
+        "Usuarios Finales": data.usuarios.finales,
+        "Valor por Proyecto (AR)": data.financiero.valorProyecto,
+        "Valor Desembolsado (AU)": data.financiero.valorDesembolsado,
+        "Valor por Desembolsar (AV)": data.financiero.valorPorDesembolsar,
+        "Avance Obra (%)": data.avanceFisico / 100,
+        "Avance Financiero (%)": data.avanceFinanciero / 100,
+      });
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Supervisión");
+      XLSX.writeFile(wb, `supervision_contratos_${new Date().toISOString().split("T")[0]}.xlsx`);
+    } finally {
+      setExporting(false);
+    }
+  }, [buildParams, filters, anoMin, anoMax, data]);
+
   const fondoDonut = data.porFondo.slice(0, 10).map((f, i) => ({
     id: f.fondo, label: f.fondo, value: f.contratos, color: COLORS[i % COLORS.length],
   }));
@@ -288,6 +403,18 @@ export default function SupervisionPage() {
 
   return (
     <DashboardLayout title="Supervisión de Contratos" subtitle="Estado, avance y distribución de contratos y proyectos supervisados">
+
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={handleExportExcel}
+          disabled={exporting || loading}
+          className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl
+            bg-amber-500/15 border border-amber-500/40 text-amber-400
+            hover:bg-amber-500/25 transition-colors disabled:opacity-50"
+        >
+          {exporting ? "Generando…" : "Exportar Excel"}
+        </button>
+      </div>
 
       {/* ── Fila 1: KPIs + Gauges + Donut ── */}
       <Card delay={0.05} className="mb-5">
@@ -389,6 +516,51 @@ export default function SupervisionPage() {
             </div>
           </div>
 
+        </div>
+      </Card>
+
+      {/* ── Fila 1b: Portafolio financiero, usuarios y tipo de solución ── */}
+      <Card delay={0.08} className="mb-5">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div>
+            <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">PORTAFOLIO FINANCIERO</span>
+            <p className="text-[9px] text-theme-muted mt-0.5 mb-3">Suma del portafolio · {data.financiero.filasConValor.toLocaleString("es-CO")} proyectos con valor</p>
+            <div className="grid grid-cols-1 gap-2">
+              <KpiChip label="AR · Valor por proyecto" value={fmtCOPShort(data.financiero.valorProyecto)} colorClass="text-amber-300" />
+              <KpiChip label="AU · Valor desembolsado" value={fmtCOPShort(data.financiero.valorDesembolsado)} colorClass="text-emerald-400" />
+              <KpiChip label="AV · Valor por desembolsar" value={fmtCOPShort(data.financiero.valorPorDesembolsar)} colorClass="text-cyan-400" />
+              <KpiChip label="% Ejecutado (AU / AU+AV)" value={`${data.financiero.pctDesembolsado.toFixed(1)}%`} colorClass="text-slate-300" />
+            </div>
+            <p className="text-[9px] text-theme-muted/70 mt-2 leading-relaxed">
+              Detalle: {fmtCOP(data.financiero.valorProyecto)} · {fmtCOP(data.financiero.valorDesembolsado)} · {fmtCOP(data.financiero.valorPorDesembolsar)}
+            </p>
+          </div>
+
+          <div>
+            <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">USUARIOS ENERGÉTICOS</span>
+            <p className="text-[9px] text-theme-muted mt-0.5 mb-3">Beneficiarios ZNI/SIN según matriz de reparto</p>
+            <div className="grid grid-cols-2 gap-2">
+              <KpiChip label="Contratados" value={fmtNum(data.usuarios.contratados)} accent />
+              <KpiChip label="Finales" value={fmtNum(data.usuarios.finales)} colorClass="text-teal-400" />
+              <KpiChip label="Proyectos c/ usuarios cont." value={fmtNum(data.usuarios.filasContratados)} colorClass="text-slate-400" />
+              <KpiChip label="Proyectos c/ usuarios fin." value={fmtNum(data.usuarios.filasFinales)} colorClass="text-slate-400" />
+            </div>
+          </div>
+
+          <div>
+            <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">TIPO DE SOLUCIÓN</span>
+            <p className="text-[9px] text-theme-muted mt-0.5 mb-3">
+              Parques solares/generadores: <span className="text-yellow-400 font-semibold">{data.nFotovoltaicos}</span> proyectos
+            </p>
+            <div className="space-y-2">
+              {data.porTipoSolucion.map(t => (
+                <div key={t.tipo} className="flex items-center justify-between bg-dash-chip rounded-lg px-3 py-2">
+                  <span className="text-[11px] text-theme-secondary truncate pr-2">{t.tipo}</span>
+                  <span className="text-sm font-bold text-theme-primary shrink-0">{t.proyectos.toLocaleString("es-CO")}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </Card>
 

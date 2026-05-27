@@ -13,12 +13,12 @@ export const NIVO_DARK = {
       fontSize: "12px",
     },
   },
-  grid: { line: { stroke: "#1A2740", strokeWidth: 1 } },
+  grid: { line: { stroke: "rgba(255,255,255,0.06)", strokeWidth: 1 } },
   axis: {
-    domain: { line: { stroke: "#2A3D5A" } },
+    domain: { line: { stroke: "rgba(255,255,255,0.08)" } },
     ticks: {
-      line: { stroke: "#2A3D5A" },
-      text: { fill: "#64748B", fontSize: 10 },
+      line: { stroke: "transparent" },
+      text: { fill: "#F1F5F9", fontSize: 10 },
     },
     legend: { text: { fill: "#94A3B8", fontSize: 10 } },
   },
@@ -56,5 +56,26 @@ export function getNivoTheme(isDark: boolean) {
   return isDark ? NIVO_DARK : NIVO_LIGHT;
 }
 
-// Stub para satisfacer import legacy en HomeSlider.tsx (no se usa realmente)
-export const NIVO_SLIDER = {};
+/** Tema oscuro para sliders y cards del home — cuadrícula tenue, ejes blancos. */
+export const NIVO_SLIDER = {
+  background: "transparent" as const,
+  text: { fill: "#F1F5F9", fontSize: 10 },
+  tooltip: {
+    container: {
+      background: "#1E293B",
+      border: "1px solid #334155",
+      borderRadius: "8px",
+      color: "#E2E8F0",
+      fontSize: "12px",
+    },
+  },
+  grid: { line: { stroke: "rgba(255,255,255,0.06)", strokeWidth: 1 } },
+  axis: {
+    domain: { line: { stroke: "rgba(255,255,255,0.08)" } },
+    ticks: {
+      line: { stroke: "transparent" },
+      text: { fill: "#F1F5F9", fontSize: 9 },
+    },
+    legend: { text: { fill: "#94A3B8", fontSize: 9 } },
+  },
+};

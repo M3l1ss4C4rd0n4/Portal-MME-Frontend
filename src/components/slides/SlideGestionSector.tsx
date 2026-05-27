@@ -18,24 +18,28 @@ export function SlideGestionSector({
   const hasDetalle = !!detalle && detalle.generacionPorFuente.length > 0;
   const hasPrecioSeries = !!detalle && detalle.precioBolsaSeries.length > 0 && detalle.precioBolsaSeries[0].data.length > 0;
   const aportes = d.aportesHidricos;
-  const aportesPct = aportes?.pct ?? (aportes && aportes.historicoGwh > 0 ? (aportes.actualGwh / aportes.historicoGwh) * 100 : null);
+  const preciosReg = d.umbralesRegulatorios;
+  const aportesPct = aportes?.hsinPct ?? aportes?.pct ?? (
+    aportes && aportes.historicoGwh > 0 ? (aportes.actualGwh / aportes.historicoGwh) * 100 : null
+  );
 
   const stRes = estadoReservas(d.pctEmbalses);
   const stAp = aportesPct !== null ? estadoAportes(aportesPct) : null;
-  const stPr = estadoPrecio(d.precioBolsa);
+  const stPr = estadoPrecio(d.precioBolsa, preciosReg ?? undefined);
   const stGen = estadoGeneracion(
     detalle?.generacionPorFuente,
     d.generacionGwh,
     aportes?.dailyActualGwh,
-    d.precioBolsa
+    d.precioBolsa,
+    preciosReg ?? undefined,
   );
   const diagnostico = diagnosticoSIN(d.pctEmbalses, aportesPct, d.precioBolsa);
 
   const aportesColor = aportesPct === null
     ? "text-slate-400"
-    : aportesPct >= 100
+    : aportesPct >= 90
     ? "text-emerald-400"
-    : aportesPct >= 80
+    : aportesPct >= 70
     ? "text-amber-400"
     : "text-red-400";
 
