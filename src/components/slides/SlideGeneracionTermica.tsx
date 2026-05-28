@@ -292,7 +292,7 @@ export function SlideGeneracionTermica({ d }: { d: TermicaSliderData }) {
         <div className="text-center">
           <SectionBadge label="Generación Térmica" pulse dot="#EF4444" />
           <p className="text-slate-300 text-sm xl:text-base font-medium">
-            Despacho térmico del SIN · participación {d.generacionTermica.participacionPct.toFixed(1)}% del total
+            Despacho térmico del SIN · participación {d.generacionTermica.participacionPct.toFixed(1)}% de la generación total del SIN
           </p>
           <p className="text-slate-600 text-xs xl:text-sm mt-0.5">Datos XM · sector_energetico</p>
         </div>

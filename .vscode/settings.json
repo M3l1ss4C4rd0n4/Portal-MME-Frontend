@@ -11,5 +11,8 @@
             "matchCommandLine": true
         }
     },
-    "chat.agent.maxRequests": 100
+    "chat.agent.maxRequests": 100,
+    "cursorpyright.analysis.extraPaths": [
+        "/home/admonctrlxm/server/venv/lib/python3.12/site-packages"
+    ]
 }

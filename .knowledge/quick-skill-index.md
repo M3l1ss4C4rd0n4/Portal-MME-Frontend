@@ -96,6 +96,7 @@
 | Verificar tabla PostgreSQL | Ejecutar `./verify-table-snapshot.sh` |
 | Patrones de API routes | `.knowledge/bff-patterns.md` |
 | Skill específico detallado | `SKILL_PACK_V5.0.md` → Sección del skill |
+| Mapa completo portal + servidor | `.knowledge/CODEMAP_COMPLETO.md` (graphify 6.236 nodos) |
 | Arquitectura del proyecto | `PROPUESTA_MAESTRA.md` → Sección 2 (Estado Actual) |
 | Reglas del proyecto | `AGENTS.md` → Sección "Reglas Absolutas" |
 

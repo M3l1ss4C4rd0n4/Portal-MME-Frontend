@@ -122,7 +122,7 @@ interface SupervisionData {
   nFotovoltaicos: number;
   porTipoSolucion: TipoSolucionRow[];
   porFondo: FondoRow[]; avancePorAnio: AnioRow[];
-  sankey: { fondo: SankeyNode[]; estado: SankeyNode[]; etapa: SankeyNode[]; ejecutor: SankeyNode[] };
+  sankey: { fondo: SankeyNode[]; estado: SankeyNode[]; etapa: SankeyNode[]; departamento: SankeyNode[]; municipio: SankeyNode[] };
   ultimaActualizacion?: string;
 }
 
@@ -134,7 +134,7 @@ const EMPTY_USR: SupervisionUsuarios = {
   contratados: 0, finales: 0, filasContratados: 0, filasFinales: 0,
 };
 
-const EMPTY_SANKEY = { fondo: [], estado: [], etapa: [], ejecutor: [] };
+const EMPTY_SANKEY = { fondo: [], estado: [], etapa: [], departamento: [], municipio: [] };
 const DEFAULT: SupervisionData = {
   nContratos: 840, nProyectos: 2422,
   enEjecucion: 295, enAOM: 219, enLiquidacion: 129, liquidados: 166, perdidaCompetencia: 22,
@@ -148,26 +148,31 @@ const DEFAULT: SupervisionData = {
 const COLORS = ["#F59E0B","#8B5CF6","#06B6D4","#22C55E","#EF4444","#F97316","#EC4899","#14B8A6","#6366F1","#84CC16","#0EA5E9"];
 
 // ─── SankeyFlow ────────────────────────────────────────────────────────────
-interface SankeyFilters { fondo: string | null; estado: string | null; etapa: string | null; ejecutor: string | null }
+interface SankeyFilters {
+  fondo: string | null; estado: string | null; etapa: string | null;
+  departamento: string | null; municipio: string | null;
+}
 
 function SankeyFlow({
-  sankey, totalContratos, filters, onFilter,
+  sankey, totalContratos, filters, onFilter, onClearAll,
 }: {
   sankey: SupervisionData["sankey"];
   totalContratos: number;
   filters: SankeyFilters;
   onFilter: (level: keyof SankeyFilters, valor: string | null) => void;
+  onClearAll: () => void;
 }) {
   const cols: Array<{ key: keyof SankeyFilters; label: string; nodes: SankeyNode[] }> = [
-    { key: "fondo",    label: "FONDO",    nodes: sankey.fondo    },
-    { key: "estado",   label: "ESTADO",   nodes: sankey.estado   },
-    { key: "etapa",    label: "ETAPA",    nodes: sankey.etapa    },
-    { key: "ejecutor", label: "EJECUTOR", nodes: sankey.ejecutor },
+    { key: "fondo",        label: "FONDO",        nodes: sankey.fondo        },
+    { key: "estado",       label: "ESTADO",       nodes: sankey.estado       },
+    { key: "etapa",        label: "ETAPA",        nodes: sankey.etapa        },
+    { key: "departamento", label: "DEPARTAMENTO", nodes: sankey.departamento },
+    { key: "municipio",    label: "MUNICIPIO",    nodes: sankey.municipio    },
   ];
 
   return (
     <div className="w-full overflow-x-auto">
-      <div className="flex gap-0 min-w-[700px]">
+      <div className="flex gap-0 min-w-[960px]">
         <div className="flex flex-col items-center justify-center w-28 shrink-0 pr-2">
           <div className="bg-amber-500/20 border border-amber-500/50 rounded-xl px-3 py-3 text-center w-full">
             <div className="text-amber-400 font-bold text-lg leading-none">{totalContratos}</div>
@@ -217,8 +222,8 @@ function SankeyFlow({
         })}
       </div>
       {Object.values(filters).some(Boolean) && (
-        <div className="flex flex-wrap gap-2 mt-3">
-          {(["fondo","estado","etapa","ejecutor"] as (keyof SankeyFilters)[]).map(k =>
+        <div className="flex flex-wrap items-center gap-2 mt-3">
+          {(["fondo","estado","etapa","departamento","municipio"] as (keyof SankeyFilters)[]).map(k =>
             filters[k] ? (
               <span key={k} className="flex items-center gap-1 text-[10px] bg-amber-500/15 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/30">
                 {filters[k]}
@@ -227,9 +232,9 @@ function SankeyFlow({
             ) : null
           )}
           <button
-            onClick={() => { onFilter("fondo",null); onFilter("estado",null); onFilter("etapa",null); onFilter("ejecutor",null); }}
+            onClick={onClearAll}
             className="text-[10px] text-theme-muted hover:text-red-400 transition-colors">
-            Limpiar todo
+            Limpiar filtros
           </button>
         </div>
       )}
@@ -242,7 +247,9 @@ export default function SupervisionPage() {
   const { resolvedTheme } = useTheme();
   const T = getNivoTheme(resolvedTheme === "dark");
   const [data, setData] = useState<SupervisionData>(DEFAULT);
-  const [filters, setFilters] = useState<SankeyFilters>({ fondo: null, estado: null, etapa: null, ejecutor: null });
+  const [filters, setFilters] = useState<SankeyFilters>({
+    fondo: null, estado: null, etapa: null, departamento: null, municipio: null,
+  });
   const [anoMin, setAnoMin] = useState(YEAR_MIN);
   const [anoMax, setAnoMax] = useState(YEAR_MAX);
   const [loading, setLoading] = useState(false);
@@ -285,19 +292,21 @@ export default function SupervisionPage() {
       fondo:    ((raw.sankey as { fondo?: SankeyNode[] })?.fondo    ?? []).map(n => ({ valor: String(n.valor), n: Number(n.n) })),
       estado:   ((raw.sankey as { estado?: SankeyNode[] })?.estado   ?? []).map(n => ({ valor: String(n.valor), n: Number(n.n) })),
       etapa:    ((raw.sankey as { etapa?: SankeyNode[] })?.etapa    ?? []).map(n => ({ valor: String(n.valor), n: Number(n.n) })),
-      ejecutor: ((raw.sankey as { ejecutor?: SankeyNode[] })?.ejecutor ?? []).map(n => ({ valor: String(n.valor), n: Number(n.n) })),
+      departamento: ((raw.sankey as { departamento?: SankeyNode[] })?.departamento ?? []).map(n => ({ valor: String(n.valor), n: Number(n.n) })),
+      municipio:    ((raw.sankey as { municipio?: SankeyNode[] })?.municipio    ?? []).map(n => ({ valor: String(n.valor), n: Number(n.n) })),
     },
     ultimaActualizacion: String(raw.ultima_actualizacion ?? raw.ultimaActualizacion ?? ""),
   }), []);
 
   const buildParams = useCallback((f: SankeyFilters, yMin: number, yMax: number) => {
     const params = new URLSearchParams();
-    if (f.fondo)    params.set("fondo",    f.fondo);
-    if (f.estado)   params.set("estado",   f.estado);
-    if (f.etapa)    params.set("etapa",    f.etapa);
-    if (f.ejecutor) params.set("ejecutor", f.ejecutor);
-    if (yMin !== YEAR_MIN) params.set("anoMin", String(yMin));
-    if (yMax !== YEAR_MAX) params.set("anoMax", String(yMax));
+    if (f.fondo)        params.set("fondo",        f.fondo);
+    if (f.estado)       params.set("estado",       f.estado);
+    if (f.etapa)        params.set("etapa",        f.etapa);
+    if (f.departamento) params.set("departamento", f.departamento);
+    if (f.municipio)    params.set("municipio",    f.municipio);
+    params.set("anoMin", String(yMin));
+    params.set("anoMax", String(yMax));
     return params;
   }, []);
 
@@ -312,10 +321,12 @@ export default function SupervisionPage() {
       .finally(() => setLoading(false));
   }, [buildParams, parseDashboard]);
 
-  useEffect(() => { fetchData({ fondo: null, estado: null, etapa: null, ejecutor: null }, YEAR_MIN, YEAR_MAX); }, []);
+  useEffect(() => {
+    fetchData({ fondo: null, estado: null, etapa: null, departamento: null, municipio: null }, YEAR_MIN, YEAR_MAX);
+  }, [fetchData]);
 
   const handleFilter = useCallback((level: keyof SankeyFilters, valor: string | null) => {
-    const order: (keyof SankeyFilters)[] = ["fondo", "estado", "etapa", "ejecutor"];
+    const order: (keyof SankeyFilters)[] = ["fondo", "estado", "etapa", "departamento", "municipio"];
     const levelIdx = order.indexOf(level);
     setFilters(prev => {
       const next = { ...prev, [level]: valor };
@@ -325,6 +336,12 @@ export default function SupervisionPage() {
       fetchData(next, anoMin, anoMax);
       return next;
     });
+  }, [fetchData, anoMin, anoMax]);
+
+  const handleClearAll = useCallback(() => {
+    const cleared: SankeyFilters = { fondo: null, estado: null, etapa: null, departamento: null, municipio: null };
+    setFilters(cleared);
+    fetchData(cleared, anoMin, anoMax);
   }, [fetchData, anoMin, anoMax]);
 
   const handleYearChange = useCallback((min: number, max: number) => {
@@ -355,9 +372,9 @@ export default function SupervisionPage() {
         "Municipio": p.municipio ?? "",
         "Usuarios Contratados": p.usuariosContratados ?? "",
         "Usuarios Finales": p.usuariosFinales ?? "",
-        "Valor por Proyecto (AR)": p.valorProyecto ?? "",
-        "Valor Desembolsado (AU)": p.valorDesembolsado ?? "",
-        "Valor por Desembolsar (AV)": p.valorPorDesembolsar ?? "",
+        "Valor por proyecto": p.valorProyecto ?? "",
+        "Valor desembolsado": p.valorDesembolsado ?? "",
+        "Valor por desembolsar": p.valorPorDesembolsar ?? "",
         "Avance Obra (%)": p.avanceObraPct != null ? p.avanceObraPct / 100 : "",
         "Avance Financiero (%)": p.avanceFinancieroPct != null ? p.avanceFinancieroPct / 100 : "",
       }));
@@ -375,9 +392,9 @@ export default function SupervisionPage() {
         "Municipio": "",
         "Usuarios Contratados": data.usuarios.contratados,
         "Usuarios Finales": data.usuarios.finales,
-        "Valor por Proyecto (AR)": data.financiero.valorProyecto,
-        "Valor Desembolsado (AU)": data.financiero.valorDesembolsado,
-        "Valor por Desembolsar (AV)": data.financiero.valorPorDesembolsar,
+        "Valor por proyecto": data.financiero.valorProyecto,
+        "Valor desembolsado": data.financiero.valorDesembolsado,
+        "Valor por desembolsar": data.financiero.valorPorDesembolsar,
         "Avance Obra (%)": data.avanceFisico / 100,
         "Avance Financiero (%)": data.avanceFinanciero / 100,
       });
@@ -401,23 +418,55 @@ export default function SupervisionPage() {
 
   const hasFilter = Object.values(filters).some(Boolean) || anoMin !== YEAR_MIN || anoMax !== YEAR_MAX;
 
+  const canExport = !loading;
+
   return (
     <DashboardLayout title="Supervisión de Contratos" subtitle="Estado, avance y distribución de contratos y proyectos supervisados">
 
-      <div className="flex justify-end mb-4">
-        <button
-          onClick={handleExportExcel}
-          disabled={exporting || loading}
-          className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl
-            bg-amber-500/15 border border-amber-500/40 text-amber-400
-            hover:bg-amber-500/25 transition-colors disabled:opacity-50"
-        >
-          {exporting ? "Generando…" : "Exportar Excel"}
-        </button>
-      </div>
+      {/* ── Filtro general: flujo + período ── */}
+      <Card delay={0.05} className="mb-5 ring-1 ring-amber-500/20">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+          <div>
+            <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
+              FLUJO DE CONTRATOS — FONDO › ESTADO › ETAPA › DEPARTAMENTO › MUNICIPIO
+            </span>
+            <p className="text-[10px] text-theme-muted mt-1 max-w-2xl">
+              Filtro general del tablero. Seleccione fondo, estado, etapa, departamento o municipio; el resto de indicadores se actualiza con esa selección.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-[10px] text-theme-muted bg-dash-chip px-2 py-1 rounded-full border border-theme-card">
+              Período {anoMin}–{anoMax}
+            </span>
+            {Object.values(filters).some(Boolean) && (
+              <span className="text-[10px] text-amber-400/80 bg-amber-500/10 px-2 py-1 rounded-full border border-amber-500/25">
+                filtrado
+              </span>
+            )}
+            {loading && <span className="text-[10px] text-theme-muted animate-pulse">actualizando…</span>}
+            <button
+              onClick={handleExportExcel}
+              disabled={exporting || !canExport}
+              className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl
+                bg-amber-500/15 border border-amber-500/40 text-amber-400
+                hover:bg-amber-500/25 transition-colors disabled:opacity-40"
+            >
+              {exporting ? "Generando…" : "Exportar Excel"}
+            </button>
+          </div>
+        </div>
+        <YearRangeSlider anoMin={anoMin} anoMax={anoMax} onChange={handleYearChange} />
+        <SankeyFlow
+          sankey={data.sankey}
+          totalContratos={data.nContratos}
+          filters={filters}
+          onFilter={handleFilter}
+          onClearAll={handleClearAll}
+        />
+      </Card>
 
-      {/* ── Fila 1: KPIs + Gauges + Donut ── */}
-      <Card delay={0.05} className="mb-5">
+      {/* ── KPIs + Gauges + Donut (filtrados) ── */}
+      <Card delay={0.08} className="mb-5">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* KPI chips — ciclo de vida completo del contrato */}
@@ -519,17 +568,17 @@ export default function SupervisionPage() {
         </div>
       </Card>
 
-      {/* ── Fila 1b: Portafolio financiero, usuarios y tipo de solución ── */}
-      <Card delay={0.08} className="mb-5">
+      {/* ── Portafolio financiero, usuarios y tipo de solución (filtrados) ── */}
+      <Card delay={0.1} className="mb-5">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div>
             <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">PORTAFOLIO FINANCIERO</span>
             <p className="text-[9px] text-theme-muted mt-0.5 mb-3">Suma del portafolio · {data.financiero.filasConValor.toLocaleString("es-CO")} proyectos con valor</p>
             <div className="grid grid-cols-1 gap-2">
-              <KpiChip label="AR · Valor por proyecto" value={fmtCOPShort(data.financiero.valorProyecto)} colorClass="text-amber-300" />
-              <KpiChip label="AU · Valor desembolsado" value={fmtCOPShort(data.financiero.valorDesembolsado)} colorClass="text-emerald-400" />
-              <KpiChip label="AV · Valor por desembolsar" value={fmtCOPShort(data.financiero.valorPorDesembolsar)} colorClass="text-cyan-400" />
-              <KpiChip label="% Ejecutado (AU / AU+AV)" value={`${data.financiero.pctDesembolsado.toFixed(1)}%`} colorClass="text-slate-300" />
+              <KpiChip label="Valor total" value={fmtCOPShort(data.financiero.valorProyecto)} colorClass="text-amber-300" />
+              <KpiChip label="Valor desembolsado" value={fmtCOPShort(data.financiero.valorDesembolsado)} colorClass="text-emerald-400" />
+              <KpiChip label="Valor por desembolsar" value={fmtCOPShort(data.financiero.valorPorDesembolsar)} colorClass="text-cyan-400" />
+              <KpiChip label="% Ejecutado financiero" value={`${data.financiero.pctDesembolsado.toFixed(1)}%`} colorClass="text-slate-300" />
             </div>
             <p className="text-[9px] text-theme-muted/70 mt-2 leading-relaxed">
               Detalle: {fmtCOP(data.financiero.valorProyecto)} · {fmtCOP(data.financiero.valorDesembolsado)} · {fmtCOP(data.financiero.valorPorDesembolsar)}
@@ -564,26 +613,9 @@ export default function SupervisionPage() {
         </div>
       </Card>
 
-      {/* ── Fila 2: Flujo + Filtro de años ── */}
-      <Card delay={0.1} className="mb-5">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
-            FLUJO DE CONTRATOS — FONDO › ESTADO › ETAPA › EJECUTOR
-          </span>
-          {loading && <span className="text-[10px] text-theme-muted animate-pulse">actualizando…</span>}
-        </div>
-        <YearRangeSlider anoMin={anoMin} anoMax={anoMax} onChange={handleYearChange} />
-        <SankeyFlow
-          sankey={data.sankey}
-          totalContratos={data.nContratos}
-          filters={filters}
-          onFilter={handleFilter}
-        />
-      </Card>
-
-      {/* ── Fila 3: Línea evolución avance ── */}
+      {/* ── Evolución avance (filtrada) ── */}
       {avanceLine.length > 0 && (
-        <Card delay={0.15}>
+        <Card delay={0.12}>
           <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">EVOLUCIÓN DEL AVANCE DE OBRA PROMEDIO (%)</span>
           <div className="h-[220px] mt-4">
             <ResponsiveLine

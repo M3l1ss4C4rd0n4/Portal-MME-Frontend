@@ -7,17 +7,19 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
   const qs = new URLSearchParams();
-  const fondo    = searchParams.get("fondo");
-  const estado   = searchParams.get("estado");
-  const etapa    = searchParams.get("etapa");
-  const ejecutor = searchParams.get("ejecutor");
-  const anoMin   = searchParams.get("anoMin");
-  const anoMax   = searchParams.get("anoMax");
+  const fondo        = searchParams.get("fondo");
+  const estado       = searchParams.get("estado");
+  const etapa        = searchParams.get("etapa");
+  const departamento = searchParams.get("departamento");
+  const municipio    = searchParams.get("municipio");
+  const anoMin       = searchParams.get("anoMin");
+  const anoMax       = searchParams.get("anoMax");
 
-  if (fondo)    qs.set("fondo",    fondo);
-  if (estado)   qs.set("estado",   estado);
-  if (etapa)    qs.set("etapa",    etapa);
-  if (ejecutor) qs.set("ejecutor", ejecutor);
+  if (fondo)        qs.set("fondo",        fondo);
+  if (estado)       qs.set("estado",       estado);
+  if (etapa)        qs.set("etapa",        etapa);
+  if (departamento) qs.set("departamento", departamento);
+  if (municipio)    qs.set("municipio",    municipio);
   if (anoMin)   qs.set("anoMin",   anoMin);
   if (anoMax)   qs.set("anoMax",   anoMax);
 

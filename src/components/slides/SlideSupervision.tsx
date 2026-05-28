@@ -18,7 +18,7 @@ export function SlideSupervision({ d }: { d: HomeSliderProps["supData"] }) {
       <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/15 via-transparent to-slate-900/10 pointer-events-none" />
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[50%] h-[25%] bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 w-full h-full max-w-7xl px-4 xl:px-8 py-4 overflow-y-auto flex flex-col items-center justify-center gap-4">
+      <div className="relative z-10 w-full h-full max-w-7xl px-4 xl:px-8 py-4 overflow-y-auto flex flex-col items-center justify-center gap-5">
         <div className="text-center">
           <SectionBadge label="Supervisión" dot="#06B6D4" />
           <p className="text-slate-500 text-base xl:text-lg">
@@ -26,28 +26,28 @@ export function SlideSupervision({ d }: { d: HomeSliderProps["supData"] }) {
           </p>
         </div>
 
-        <div className="grid grid-cols-3 xl:grid-cols-6 w-full divide-x divide-white/5">
-          <KpiBlock label="Contratos" value={fmtNum(d.nContratos)} valueClass="text-cyan-400" unit="total portafolio" />
-          <KpiBlock label="En Ejecución" value={fmtNum(d.enEjecucion)} valueClass="text-emerald-400" unit={pct(d.enEjecucion)} />
-          <KpiBlock label="Usuarios cont." value={fmtNum(d.usuarios.contratados)} valueClass="text-amber-400" unit="beneficiarios" />
-          <KpiBlock label="Valor proyectos" value={fmtCOPShort(d.financiero.valorProyecto)} valueClass="text-yellow-400" unit="AR portafolio" />
-          <KpiBlock label="Desembolsado" value={fmtCOPShort(d.financiero.valorDesembolsado)} valueClass="text-emerald-400" unit={`${d.financiero.pctDesembolsado.toFixed(0)}% ejec.`} />
-          <KpiBlock label="Parques solares" value={fmtNum(d.nFotovoltaicos)} valueClass="text-violet-400" unit="tipo solución" />
+        <div className="grid grid-cols-2 w-full max-w-3xl gap-4">
+          <KpiBlock
+            label="Usuarios contratados"
+            value={fmtNum(d.usuarios.contratados)}
+            valueClass="text-amber-400"
+            unit="beneficiarios ZNI/SIN"
+          />
+          <KpiBlock
+            label="Valor total"
+            value={fmtCOPShort(d.financiero.valorProyecto)}
+            valueClass="text-yellow-400"
+            unit="portafolio supervisado"
+          />
         </div>
 
-        <div className="grid grid-cols-3 w-full gap-3 px-2">
-          <div className="bg-white/5 rounded-xl px-3 py-2 text-center border border-white/5">
-            <div className="text-[9px] text-slate-500 uppercase">AU desembolsado</div>
-            <div className="text-sm font-bold text-emerald-400">{fmtCOPShort(d.financiero.valorDesembolsado)}</div>
-          </div>
-          <div className="bg-white/5 rounded-xl px-3 py-2 text-center border border-white/5">
-            <div className="text-[9px] text-slate-500 uppercase">AV por desembolsar</div>
-            <div className="text-sm font-bold text-cyan-400">{fmtCOPShort(d.financiero.valorPorDesembolsar)}</div>
-          </div>
-          <div className="bg-white/5 rounded-xl px-3 py-2 text-center border border-white/5">
-            <div className="text-[9px] text-slate-500 uppercase">Usuarios finales</div>
-            <div className="text-sm font-bold text-teal-400">{fmtNum(d.usuarios.finales)}</div>
-          </div>
+        <div className="grid grid-cols-6 w-full divide-x divide-white/5">
+          <KpiBlock label="Contratos" value={fmtNum(d.nContratos)} valueClass="text-cyan-400" unit="total portafolio" />
+          <KpiBlock label="En Ejecución" value={fmtNum(d.enEjecucion)} valueClass="text-emerald-400" unit={pct(d.enEjecucion)} />
+          <KpiBlock label="AOM" value={fmtNum(d.enAOM)} valueClass="text-teal-400" unit={`${pct(d.enAOM)} · Op. y mant.`} />
+          <KpiBlock label="En Liquidación" value={fmtNum(d.enLiquidacion)} valueClass="text-amber-400" unit={pct(d.enLiquidacion)} />
+          <KpiBlock label="Liquidados" value={fmtNum(d.liquidados)} valueClass="text-slate-300" unit={pct(d.liquidados)} />
+          <KpiBlock label="Perdida Comp." value={fmtNum(d.perdidaCompetencia)} valueClass="text-rose-400" unit={pct(d.perdidaCompetencia)} />
         </div>
 
         {/* Gauges: portafolio total + solo activos + Donut */}
@@ -66,7 +66,6 @@ export function SlideSupervision({ d }: { d: HomeSliderProps["supData"] }) {
               <SemiGauge rawValue={d.avanceFinancieroActivos} label="Financiero" color="gold" size="lg" delay={0.45} />
             </div>
           </div>
-          {/* Donut Contratos por Fondo */}
           <div className="w-[340px] h-[160px] relative">
             {d.porFondo.length > 0 ? (
               <>
@@ -75,7 +74,7 @@ export function SlideSupervision({ d }: { d: HomeSliderProps["supData"] }) {
                     id: f.fondo,
                     label: f.fondo,
                     value: f.contratos,
-                    color: ['#F59E0B', '#8B5CF6', '#06B6D4', '#22C55E', '#EF4444', '#F97316'][i],
+                    color: ["#F59E0B", "#8B5CF6", "#06B6D4", "#22C55E", "#EF4444", "#F97316"][i],
                   }))}
                   theme={NIVO_SLIDER}
                   margin={{ top: 6, right: 90, bottom: 6, left: 6 }}

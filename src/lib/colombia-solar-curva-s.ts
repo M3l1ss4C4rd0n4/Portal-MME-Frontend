@@ -17,6 +17,7 @@ export interface CurvaSPoint {
 export interface ProyectoCurva {
   nombre: string;
   departamento: string;
+  operadorDeRed: string;
   programado: CurvaSPoint[];
   /** Origen de la serie Real para transparencia en UI */
   realFuente?: "reportado" | "reportado_usuarios" | "sin_datos";
@@ -221,6 +222,7 @@ export async function loadCurvaSFromDb(pool: DbPool): Promise<CurvaSCategoria[]>
       proyectos.push({
         nombre,
         departamento: row.departamento ? String(row.departamento) : "",
+        operadorDeRed: row.operador_de_red ? String(row.operador_de_red).trim() : "",
         realFuente,
         programado: fechasIso.map((fecha, j) => ({
           fecha,

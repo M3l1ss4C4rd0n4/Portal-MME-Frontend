@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 function buildQueryString(searchParams: URLSearchParams): string {
   const qs = new URLSearchParams();
-  for (const key of ["fondo", "estado", "etapa", "ejecutor", "anoMin", "anoMax"]) {
+  for (const key of ["fondo", "estado", "etapa", "departamento", "municipio", "anoMin", "anoMax"]) {
     const val = searchParams.get(key);
     if (val) qs.set(key, val);
   }

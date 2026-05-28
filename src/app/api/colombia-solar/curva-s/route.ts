@@ -19,6 +19,7 @@ type HojaParsed = {
   datos: number[][];
   totales: number[];
   departamentos: string[];
+  operadores: string[];
 };
 
 function resolveExcelPath(): string {
@@ -49,7 +50,7 @@ function procesarHojaExcel(
 ): HojaParsed {
   const ws = workbook.Sheets[sheetName];
   if (!ws) {
-    return { proyectos: [], fechas: [], datos: [], totales: [], departamentos: [] };
+    return { proyectos: [], fechas: [], datos: [], totales: [], departamentos: [], operadores: [] };
   }
 
   const json = XLSX.utils.sheet_to_json<(string | number | null)[]>(ws, {
@@ -57,7 +58,7 @@ function procesarHojaExcel(
     defval: null,
   });
   if (json.length < 2) {
-    return { proyectos: [], fechas: [], datos: [], totales: [], departamentos: [] };
+    return { proyectos: [], fechas: [], datos: [], totales: [], departamentos: [], operadores: [] };
   }
 
   const header = json[0] as (string | number | null)[];
@@ -72,6 +73,7 @@ function procesarHojaExcel(
   const datos: number[][] = [];
   const totales: number[] = [];
   const departamentos: string[] = [];
+  const operadores: string[] = [];
 
   for (let i = 1; i < json.length; i++) {
     const row = json[i];
@@ -84,6 +86,7 @@ function procesarHojaExcel(
 
     proyectos.push(nombre);
     departamentos.push(row[1] ? String(row[1]) : "");
+    operadores.push(row[3] ? String(row[3]).trim() : "");
     totales.push(total);
     datos.push(
       fechaIndices.map((idx) => {
@@ -94,7 +97,7 @@ function procesarHojaExcel(
     );
   }
 
-  return { proyectos, fechas, datos, totales, departamentos };
+  return { proyectos, fechas, datos, totales, departamentos, operadores };
 }
 
 function forwardFillPct(values: number[], total: number): number[] {
@@ -165,6 +168,7 @@ function buildCategoriaExcel(
     return {
       nombre,
       departamento: projData.departamentos[i] || "",
+      operadorDeRed: projData.operadores[i] || "",
       programado,
     };
   });

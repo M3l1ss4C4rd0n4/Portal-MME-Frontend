@@ -126,6 +126,7 @@ interface FenogeMapa {
 interface SegRow {
   region: string;
   contrato: string;
+  comunidad: string;
   fecha: string;
   realAcum: number | null;
   programadoAcum: number | null;
@@ -133,8 +134,12 @@ interface SegRow {
 interface SegData {
   regiones: string[];
   contratos: string[];
+  comunidades: string[];
   data: SegRow[];
 }
+
+/** Último mes visible en la curva S (debe coincidir con backend) */
+const SEGUIMIENTO_FECHA_CORTE = "2026-08-01";
 
 const DEFAULT_MAPA: FenogeMapa = {
   totalCes: 61, totalKwp: 20645, avgKwp: null,
@@ -142,7 +147,7 @@ const DEFAULT_MAPA: FenogeMapa = {
   totalInversion: 126271165180, avgInversion: null,
   porDepartamento: [], detalleFase: [], puntos: [], porMunicipio: {}, deptAvgs: {},
 };
-const DEFAULT_SEG: SegData = { regiones: [], contratos: [], data: [] };
+const DEFAULT_SEG: SegData = { regiones: [], contratos: [], comunidades: [], data: [] };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function FenogePage() {
@@ -157,6 +162,7 @@ export default function FenogePage() {
   const [selectedFase, setSelectedFase]   = useState<FaseFilter>("TODOS");
   const [segRegion, setSegRegion]         = useState<string>("TODOS");
   const [segContrato, setSegContrato]     = useState<string>("TODOS");
+  const [segComunidad, setSegComunidad]   = useState<string>("TODOS");
 
   useEffect(() => {
     fetch("/departamentos_colombia.geojson").then(r => r.json()).then(setGeoData).catch(() => {});
@@ -225,9 +231,17 @@ export default function FenogePage() {
       .then((raw) => {
         if (raw.error) return;
         setSeg({
-          regiones:  raw.regiones  ?? [],
-          contratos: raw.contratos ?? [],
-          data:      raw.data      ?? [],
+          regiones:    raw.regiones    ?? [],
+          contratos:   raw.contratos   ?? [],
+          comunidades: raw.comunidades ?? [],
+          data: (raw.data ?? []).map((d: Record<string, unknown>) => ({
+            region:         String(d.region ?? ""),
+            contrato:       String(d.contrato ?? ""),
+            comunidad:      String(d.comunidad ?? ""),
+            fecha:          String(d.fecha ?? ""),
+            realAcum:       d.realAcum != null ? Number(d.realAcum) : null,
+            programadoAcum: d.programadoAcum != null ? Number(d.programadoAcum) : null,
+          })),
         });
       })
       .catch(() => {});
@@ -329,10 +343,29 @@ export default function FenogePage() {
     return seg.contratos.filter(c => enRegion.has(c));
   }, [seg, segRegion]);
 
+  const comunidadesEnContrato = useMemo(() => {
+    let rows = seg.data;
+    if (segRegion !== "TODOS") rows = rows.filter(d => d.region === segRegion);
+    if (segContrato !== "TODOS") rows = rows.filter(d => d.contrato === segContrato);
+    const set = new Set<string>();
+    for (const r of rows) {
+      if (r.comunidad) set.add(r.comunidad);
+    }
+    return [...set].sort();
+  }, [seg, segRegion, segContrato]);
+
+  useEffect(() => {
+    if (segComunidad === "TODOS") return;
+    if (!comunidadesEnContrato.includes(segComunidad)) {
+      setSegComunidad("TODOS");
+    }
+  }, [segComunidad, comunidadesEnContrato]);
+
   const seguimientoSeries = useMemo(() => {
-    let filtered = seg.data;
-    if (segRegion   !== "TODOS") filtered = filtered.filter(d => d.region   === segRegion);
-    if (segContrato !== "TODOS") filtered = filtered.filter(d => d.contrato === segContrato);
+    let filtered = seg.data.filter(d => !d.fecha || d.fecha <= SEGUIMIENTO_FECHA_CORTE);
+    if (segRegion     !== "TODOS") filtered = filtered.filter(d => d.region     === segRegion);
+    if (segContrato   !== "TODOS") filtered = filtered.filter(d => d.contrato   === segContrato);
+    if (segComunidad  !== "TODOS") filtered = filtered.filter(d => d.comunidad  === segComunidad);
 
     const byFecha = new Map<string, { realVals: number[]; progVals: number[] }>();
     for (const row of filtered) {
@@ -363,7 +396,7 @@ export default function FenogePage() {
       { id: "Avance Programado Acumulado", color: "#06B6D4", data: progData },
       { id: "Avance Real Acumulado",       color: "#F59E0B", data: realData },
     ];
-  }, [seg, segRegion, segContrato]);
+  }, [seg, segRegion, segContrato, segComunidad]);
 
   // ─── Render ───────────────────────────────────────────────────────────────────
   return (
@@ -711,9 +744,25 @@ export default function FenogePage() {
               AVANCE DE OBRA — SEGUIMIENTO ACUMULADO
             </span>
             <span className="text-[10px] text-theme-muted mt-0.5">
-              Avance de obra real vs programado acumulado (%)
-              {segContrato !== "TODOS" ? ` · Contrato: ${segContrato}` : segRegion !== "TODOS" ? ` · Región: ${segRegion}` : " · Todos los contratos (promedio)"}
+              Avance de obra real vs programado acumulado (%) · Datos hasta agosto 2026
+              {segComunidad !== "TODOS"
+                ? ` · ${segComunidad}`
+                : segContrato !== "TODOS"
+                  ? ` · Contrato: ${segContrato}`
+                  : segRegion !== "TODOS"
+                    ? ` · Región: ${segRegion}`
+                    : " · Todos los contratos (promedio)"}
             </span>
+            <div className="flex items-center gap-4 mt-2 text-[10px] text-theme-muted">
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-2.5 h-2.5 rounded-full bg-cyan-400 shrink-0" />
+                Programado
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0" />
+                Real
+              </span>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             {/* Filtro región */}
@@ -721,7 +770,7 @@ export default function FenogePage() {
               <span className="text-[10px] text-theme-muted">Región:</span>
               <select
                 value={segRegion}
-                onChange={e => { setSegRegion(e.target.value); setSegContrato("TODOS"); }}
+                onChange={e => { setSegRegion(e.target.value); setSegContrato("TODOS"); setSegComunidad("TODOS"); }}
                 className="text-[10px] bg-dash-chip border border-theme-card text-theme-primary rounded-lg px-2 py-1 cursor-pointer hover:border-amber-500/40 transition-colors"
               >
                 <option value="TODOS">Todas</option>
@@ -733,15 +782,28 @@ export default function FenogePage() {
               <span className="text-[10px] text-theme-muted">Contrato:</span>
               <select
                 value={segContrato}
-                onChange={e => setSegContrato(e.target.value)}
+                onChange={e => { setSegContrato(e.target.value); setSegComunidad("TODOS"); }}
                 className="text-[10px] bg-dash-chip border border-theme-card text-theme-primary rounded-lg px-2 py-1 cursor-pointer hover:border-amber-500/40 transition-colors max-w-[200px]"
               >
                 <option value="TODOS">Todos</option>
                 {contratosEnRegion.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
-            {(segRegion !== "TODOS" || segContrato !== "TODOS") && (
-              <button onClick={() => { setSegRegion("TODOS"); setSegContrato("TODOS"); }}
+            {/* Filtro comunidad */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-theme-muted">Comunidad:</span>
+              <select
+                value={segComunidad}
+                onChange={e => setSegComunidad(e.target.value)}
+                className="text-[10px] bg-dash-chip border border-theme-card text-theme-primary rounded-lg px-2 py-1 cursor-pointer hover:border-amber-500/40 transition-colors max-w-[220px]"
+                disabled={comunidadesEnContrato.length === 0}
+              >
+                <option value="TODOS">Todas</option>
+                {comunidadesEnContrato.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            {(segRegion !== "TODOS" || segContrato !== "TODOS" || segComunidad !== "TODOS") && (
+              <button onClick={() => { setSegRegion("TODOS"); setSegContrato("TODOS"); setSegComunidad("TODOS"); }}
                 className="text-[10px] text-theme-muted hover:text-red-400 transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10">
                 ✕ Limpiar
               </button>
@@ -754,7 +816,7 @@ export default function FenogePage() {
             <ResponsiveLine
               data={seguimientoSeries}
               theme={T}
-              margin={{ top: 12, right: 20, bottom: 60, left: 52 }}
+              margin={{ top: 12, right: 20, bottom: 44, left: 52 }}
               xScale={{ type: "point" }}
               yScale={{ type: "linear", min: 0, max: "auto" }}
               curve="monotoneX"
@@ -803,20 +865,6 @@ export default function FenogePage() {
                   </div>
                 );
               }}
-              legends={[{
-                anchor: "bottom" as const,
-                direction: "row" as const,
-                justify: false,
-                translateX: 0,
-                translateY: 56,
-                itemsSpacing: 24,
-                itemWidth: 220,
-                itemHeight: 14,
-                itemTextColor: "#94A3B8",
-                itemDirection: "left-to-right" as const,
-                symbolSize: 10,
-                symbolShape: "circle" as const,
-              }]}
             />
           ) : (
             <div className="h-full flex items-center justify-center">
@@ -830,7 +878,7 @@ export default function FenogePage() {
           <span className="text-[10px] text-theme-muted self-center">Acceso rápido por región:</span>
           {["TODOS", ...seg.regiones].map(r => (
             <button key={r}
-              onClick={() => { setSegRegion(r); setSegContrato("TODOS"); }}
+              onClick={() => { setSegRegion(r); setSegContrato("TODOS"); setSegComunidad("TODOS"); }}
               className={`text-[10px] px-2.5 py-1 rounded-lg border transition-all ${
                 segRegion === r
                   ? "bg-amber-500/15 border-amber-500/40 text-amber-400"

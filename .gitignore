@@ -70,4 +70,9 @@ logs/
 # Exceptuar logos SVG (manuales)
 !public/images/logos/
 !public/images/logos/*.svg
+# Carpeta local de informes PDF — no debe incluir venv Python dentro del repo Next
 informes del mes/venv/
+informes del mes/**/venv/
+venv/
+venv_*/
+.venv/

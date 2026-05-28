@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { ResponsiveBar } from "@nivo/bar";
 import { ResponsiveLine } from "@nivo/line";
@@ -77,6 +77,7 @@ interface CurvaSPoint {
 interface CurvaSProyecto {
   nombre: string;
   departamento: string;
+  operadorDeRed: string;
   programado: CurvaSPoint[];
   realFuente?: "reportado" | "reportado_usuarios" | "sin_datos";
 }
@@ -92,6 +93,31 @@ interface CurvaSData {
 }
 
 type NivoTheme = ReturnType<typeof getNivoTheme>;
+
+const MESES_CORTO = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+function formatFechaEje(iso: string): string {
+  const [y, m, d] = String(iso).split("-").map(Number);
+  if (!y || !m || !d) return String(iso);
+  return `${d} ${MESES_CORTO[m - 1] ?? m}`;
+}
+
+function formatFechaTooltip(iso: string): string {
+  const [y, m, d] = String(iso).split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  if (isNaN(date.getTime())) return String(iso);
+  return date.toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });
+}
+
+function pickTickValues(fechas: string[], maxTicks = 14): string[] {
+  if (fechas.length <= maxTicks) return fechas;
+  const indices = new Set<number>();
+  for (let i = 0; i < maxTicks; i++) {
+    const idx = Math.round((i * (fechas.length - 1)) / (maxTicks - 1));
+    indices.add(idx);
+  }
+  return [...indices].sort((a, b) => a - b).map((i) => fechas[i]);
+}
 
 function CurvaSChart({
   title,
@@ -120,6 +146,22 @@ function CurvaSChart({
     );
   }
 
+  const fechas = puntos.map((d) => d.fecha);
+  const tickValues = pickTickValues(fechas, 14);
+  const chartTheme: NivoTheme = {
+    ...theme,
+    axis: {
+      ...theme.axis,
+      ticks: {
+        ...theme.axis?.ticks,
+        text: {
+          ...(theme.axis?.ticks?.text ?? {}),
+          fontSize: 8,
+        },
+      },
+    },
+  };
+
   return (
     <div className="flex flex-col h-full min-h-[220px]">
       <div className="mb-2">
@@ -134,27 +176,33 @@ function CurvaSChart({
             {
               id: "Programado",
               color: "#06B6D4",
-              data: puntos.map((d) => ({ x: d.fecha, y: Number(d.programado.toFixed(2)) })),
+              data: puntos.map((d) => ({
+                x: d.fecha,
+                y: Number((Number(d.programado) || 0).toFixed(2)),
+              })),
             },
             {
               id: "Real",
               color: "#F59E0B",
-              data: puntos.map((d) => ({ x: d.fecha, y: Number(d.real.toFixed(2)) })),
+              data: puntos.map((d) => ({
+                x: d.fecha,
+                y: Number((Number(d.real) || 0).toFixed(2)),
+              })),
             },
           ]}
-          theme={theme}
-          margin={{ top: 8, right: 16, bottom: 32, left: 44 }}
+          theme={chartTheme}
+          margin={{ top: 8, right: 16, bottom: 48, left: 44 }}
           xScale={{ type: "point" }}
           yScale={{ type: "linear", min: 0, max: 100, stacked: false }}
           curve="monotoneX"
           axisTop={null}
           axisRight={null}
           axisBottom={{
-            tickSize: 4,
-            tickPadding: 4,
-            tickRotation: -35,
-            legendOffset: 36,
-            legendPosition: "middle",
+            tickSize: 0,
+            tickPadding: 6,
+            tickRotation: -40,
+            tickValues,
+            format: (v) => formatFechaEje(String(v)),
           }}
           axisLeft={{
             tickSize: 4,
@@ -177,7 +225,7 @@ function CurvaSChart({
           enableGridX={false}
           tooltip={({ point }) => (
             <div className="px-3 py-2 rounded-lg border border-theme-card bg-[#1E293B] text-[11px] text-theme-primary">
-              <div className="font-semibold mb-1">{point.data.x as string}</div>
+              <div className="font-semibold mb-1">{formatFechaTooltip(String(point.data.x))}</div>
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full inline-block" style={{ background: point.seriesColor }} />
                 <span>
@@ -198,7 +246,23 @@ export default function ContratosORPage() {
   const T = getNivoTheme(resolvedTheme === "dark");
   const [data, setData] = useState<ContratosData>(DEFAULT);
   const [curvaS, setCurvaS] = useState<CurvaSData | null>(null);
+  const [operadorSeleccionado, setOperadorSeleccionado] = useState<string>("");
   const [proyectoSeleccionado, setProyectoSeleccionado] = useState<string>("");
+
+  const todosProyectosCurva = curvaS?.categorias[0]?.proyectos ?? [];
+
+  const operadoresRed = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of todosProyectosCurva) {
+      if (p.operadorDeRed) set.add(p.operadorDeRed);
+    }
+    return [...set].sort();
+  }, [todosProyectosCurva]);
+
+  const proyectosCurvaFiltrados = useMemo(() => {
+    if (!operadorSeleccionado) return todosProyectosCurva;
+    return todosProyectosCurva.filter((p) => p.operadorDeRed === operadorSeleccionado);
+  }, [todosProyectosCurva, operadorSeleccionado]);
 
   useEffect(() => {
     fetch("/api/contratos-or")
@@ -245,6 +309,14 @@ export default function ContratosORPage() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (proyectosCurvaFiltrados.length === 0) return;
+    const valido = proyectosCurvaFiltrados.some((p) => p.nombre === proyectoSeleccionado);
+    if (!valido) {
+      setProyectoSeleccionado(proyectosCurvaFiltrados[0].nombre);
+    }
+  }, [operadorSeleccionado, proyectosCurvaFiltrados, proyectoSeleccionado]);
 
   const avanceBarData = data.proyectos.map((p) => ({
     nombre: p.nombre.length > 28 ? p.nombre.slice(0, 28) + "…" : p.nombre,
@@ -542,27 +614,53 @@ export default function ContratosORPage() {
                 </span>
               </div>
             </div>
-            <div className="relative">
-              <select
-                value={proyectoSeleccionado}
-                onChange={(e) => setProyectoSeleccionado(e.target.value)}
-                className="appearance-none bg-[#0B1120] text-white border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-[11px] focus:outline-none focus:border-amber-500/40 cursor-pointer"
-                style={{ backgroundColor: "#0B1120", color: "#ffffff" }}
-              >
-                {(curvaS.categorias[0]?.proyectos ?? []).map((p) => (
-                  <option
-                    key={p.nombre}
-                    value={p.nombre}
-                    style={{ backgroundColor: "#0B1120", color: "#ffffff" }}
-                  >
-                    {p.nombre}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative">
+                <select
+                  value={operadorSeleccionado}
+                  onChange={(e) => setOperadorSeleccionado(e.target.value)}
+                  className="appearance-none bg-[#0B1120] text-white border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-[11px] focus:outline-none focus:border-amber-500/40 cursor-pointer min-w-[160px]"
+                  style={{ backgroundColor: "#0B1120", color: "#ffffff" }}
+                  aria-label="Operador de red"
+                >
+                  <option value="" style={{ backgroundColor: "#0B1120", color: "#ffffff" }}>
+                    Todos los operadores
                   </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white">
-                <svg className="h-3 w-3 fill-current" viewBox="0 0 20 20">
-                  <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-                </svg>
+                  {operadoresRed.map((or) => (
+                    <option key={or} value={or} style={{ backgroundColor: "#0B1120", color: "#ffffff" }}>
+                      {or}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white">
+                  <svg className="h-3 w-3 fill-current" viewBox="0 0 20 20">
+                    <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="relative">
+                <select
+                  value={proyectoSeleccionado}
+                  onChange={(e) => setProyectoSeleccionado(e.target.value)}
+                  className="appearance-none bg-[#0B1120] text-white border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-[11px] focus:outline-none focus:border-amber-500/40 cursor-pointer min-w-[160px]"
+                  style={{ backgroundColor: "#0B1120", color: "#ffffff" }}
+                  aria-label="Proyecto"
+                >
+                  {proyectosCurvaFiltrados.map((p) => (
+                    <option
+                      key={p.nombre}
+                      value={p.nombre}
+                      style={{ backgroundColor: "#0B1120", color: "#ffffff" }}
+                    >
+                      {p.nombre}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white">
+                  <svg className="h-3 w-3 fill-current" viewBox="0 0 20 20">
+                    <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>

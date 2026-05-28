@@ -8,6 +8,18 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
   trailingSlash: true,
+
+  // Excluir carpetas locales con symlinks/binarios ajenos al portal (p. ej. venv Python)
+  outputFileTracingExcludes: {
+    '*': [
+      './informes del mes/**',
+      './graphify-out/**',
+      './.next.bak*/**',
+      './venv/**',
+      './venv_*/**',
+      './.venv/**',
+    ],
+  },
   
   // Redirecciones para compatibilidad con rutas antiguas
   async redirects() {
