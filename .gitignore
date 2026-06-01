@@ -2,6 +2,9 @@
 
 # Graphify cache (regenerado automaticamente con `graphify update .`)
 graphify-out/cache/
+graphify-out/*.bak
+graphify-out/*.bak.*
+graphify-out/*.pre-*
 # Claude Code session data
 .claude/
 
@@ -20,6 +23,7 @@ graphify-out/cache/
 
 # next.js
 /.next/
+/.next.bak*/
 /out/
 
 # production
