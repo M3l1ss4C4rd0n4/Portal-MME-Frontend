@@ -40,8 +40,9 @@ export default function PanoramaInformeFab({ onPointerDown }: PanoramaInformeFab
     setError(null);
 
     try {
-      const res = await fetch(`/api/informe-diario?_=${Date.now()}`, {
+      const res = await fetch(`/api/informe-diario/?_=${Date.now()}`, {
         cache: 'no-store',
+        signal: AbortSignal.timeout(180_000),
       });
       if (!res.ok) {
         throw new Error('No se pudo descargar el informe');
@@ -61,8 +62,8 @@ export default function PanoramaInformeFab({ onPointerDown }: PanoramaInformeFab
       anchor.remove();
       URL.revokeObjectURL(url);
     } catch {
-      setError('Error al descargar');
-      setTimeout(() => setError(null), 4000);
+      setError('Error al descargar (SharePoint lento)');
+      setTimeout(() => setError(null), 5000);
     } finally {
       setDownloading(false);
     }
@@ -75,7 +76,10 @@ export default function PanoramaInformeFab({ onPointerDown }: PanoramaInformeFab
         e.stopPropagation();
         onPointerDown?.(e);
       }}
-      onClick={handleDownload}
+      onClick={(e) => {
+        e.stopPropagation();
+        handleDownload();
+      }}
       disabled={downloading}
       className={[
         'w-14 h-14 rounded-full shadow-xl flex items-center justify-center',
@@ -84,6 +88,7 @@ export default function PanoramaInformeFab({ onPointerDown }: PanoramaInformeFab
         'bg-[#F5C518] hover:bg-[#FFCF2A]',
         'border border-[#E0AD00]/60',
         'relative pointer-events-auto',
+        error ? 'ring-2 ring-red-500/80' : '',
       ].join(' ')}
       style={{
         boxShadow: '0 4px 20px rgba(245, 197, 24, 0.35), 0 2px 8px rgba(0,0,0,0.3)',

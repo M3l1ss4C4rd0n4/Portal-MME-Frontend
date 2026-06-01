@@ -18,6 +18,14 @@ interface InformeCatalogo {
 interface CatalogoResponse {
   informes: InformeCatalogo[];
   total: number;
+  resumen?: {
+    fechaConsulta: string;
+    completosDelDia: number;
+    totalTipos: number;
+    pendientes: string[];
+    completo: boolean;
+    actualizadoEn?: string;
+  };
 }
 
 export async function GET() {

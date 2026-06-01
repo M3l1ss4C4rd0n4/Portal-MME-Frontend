@@ -1,6 +1,7 @@
 'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import PanoramaInformeFab from './PanoramaInformeFab';
+import ResumenEjecutivoFab from './ResumenEjecutivoFab';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface BotBtn {
@@ -718,6 +719,7 @@ export default function ChatbotWidget() {
         }}
         className="flex flex-col items-center gap-2.5"
       >
+        <ResumenEjecutivoFab />
         <PanoramaInformeFab />
 
         <button

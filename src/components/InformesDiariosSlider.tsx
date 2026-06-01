@@ -13,7 +13,17 @@ interface InformeItem {
   filename: string;
 }
 
+interface CatalogoResumen {
+  fechaConsulta: string;
+  completosDelDia: number;
+  totalTipos: number;
+  pendientes: string[];
+  completo: boolean;
+  actualizadoEn?: string;
+}
+
 const ROTATE_MS = 6000;
+const REFRESH_MS = 2 * 60 * 1000;
 
 function LightningIcon({ className }: { className?: string }) {
   return (
@@ -37,6 +47,7 @@ function ChevronIcon({ dir }: { dir: 'left' | 'right' }) {
 
 export default function InformesDiariosSlider() {
   const [informes, setInformes] = useState<InformeItem[]>([]);
+  const [resumen, setResumen] = useState<CatalogoResumen | null>(null);
   const [current, setCurrent] = useState(0);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
@@ -45,15 +56,20 @@ export default function InformesDiariosSlider() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+
+    const loadCatalog = async () => {
       try {
         const res = await fetch(`/api/informes-diarios/catalogo?_=${Date.now()}`, {
           cache: 'no-store',
         });
         if (!res.ok) throw new Error('Error al cargar');
-        const data = await res.json() as { informes: InformeItem[] };
+        const data = await res.json() as {
+          informes: InformeItem[];
+          resumen?: CatalogoResumen;
+        };
         if (!cancelled) {
           setInformes(data.informes ?? []);
+          setResumen(data.resumen ?? null);
           setError(null);
         }
       } catch {
@@ -61,8 +77,22 @@ export default function InformesDiariosSlider() {
       } finally {
         if (!cancelled) setLoading(false);
       }
-    })();
-    return () => { cancelled = true; };
+    };
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        loadCatalog();
+      }
+    };
+
+    loadCatalog();
+    const refresh = setInterval(loadCatalog, REFRESH_MS);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      clearInterval(refresh);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, []);
 
   useEffect(() => {
@@ -89,7 +119,7 @@ export default function InformesDiariosSlider() {
     try {
       const res = await fetch(
         `/api/informes-diarios/descargar?tipo=${encodeURIComponent(item.tipo)}&_=${Date.now()}`,
-        { cache: 'no-store' },
+        { cache: 'no-store', signal: AbortSignal.timeout(180_000) },
       );
       if (!res.ok) throw new Error('Error al descargar');
 
@@ -194,14 +224,23 @@ export default function InformesDiariosSlider() {
           <p className="text-[11px] font-bold text-[#2A2826] leading-tight line-clamp-2">
             {item.label}
             {!item.esDelDia && (
-              <span className="font-medium text-[#2A2826]/55"> · ant.</span>
+              <span className="font-medium text-[#8B4513]/80"> · {item.fecha}</span>
             )}
           </p>
           <p className="text-[9px] font-semibold text-[#2A2826]/60 mt-0.5">
-            {item.fecha}
+            {item.esDelDia ? item.fecha : 'Último disponible en SharePoint'}
             {downloading && <span className="ml-1">…</span>}
           </p>
         </button>
+
+        {resumen && !resumen.completo && resumen.pendientes.length > 0 && (
+          <p
+            className="mt-1 text-[8px] leading-tight text-[#8B4513]/90 font-medium"
+            title={`Faltan: ${resumen.pendientes.join(', ')}`}
+          >
+            Pendiente hoy: {resumen.pendientes.join(', ')}
+          </p>
+        )}
       </div>
 
       {/* Puntos — navegación manual */}
