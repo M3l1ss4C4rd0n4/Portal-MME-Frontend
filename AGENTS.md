@@ -22,10 +22,11 @@ grep -r "NombreComponente" src/ --include="*.tsx" --include="*.ts"
 
 ### 3. NUNCA asumir que "esto no se usa"
 
-### 4. SIEMPRE ejecutar build antes de commit:
+### 4. SIEMPRE ejecutar build antes de commit (solo en desarrollo):
 ```bash
-npm run build
+npm run build   # validación local pre-commit
 ```
+En el servidor de producción usar `./scripts/deploy.sh` — nunca `npm run build` aislado (ver **portal-deploy-guard**).
 
 ---
 
@@ -437,13 +438,23 @@ npm run build --verbose
 
 | Tarea | Skills a cargar |
 |---|---|
-| Emergencia (portal caído) | Skill 17 — NADA MÁS |
+| Emergencia (portal caído / pantalla blanca) | **portal-deploy-guard** + Skill 17 |
+| Build, deploy, PM2, hotfix producción | **portal-deploy-guard** (obligatorio) |
 | Refactorización | Skill 1.3 (Ciclos) + Skill 2 |
 | Toca datos DB | Skill 9 (Método A/B/C/D) |
 | Investigación | Skill 1 |
 | Múltiples tareas | META-SKILL -1 (Triage) |
 | Crear tests | Skill 15 |
 | Conflicto entre skills | META-SKILL -2 |
+
+### Skills Obligatorios del Proyecto (`.claude/skills/`)
+
+| Skill | Cuándo cargar |
+|---|---|
+| **portal-deploy-guard** | Cualquier build, deploy, restart, incidente de portal, pantalla blanca |
+| **ui-ux-pro-max** | Componentes visuales, dashboards, UI/UX |
+
+**Comando slash:** `/deploy` → `.cursor/commands/deploy.md` · `.claude/commands/deploy.md` · `.github/prompts/deploy.prompt.md`
 
 ### Skills de Producción (`/skills/`)
 48 skills disponibles en el directorio `/skills/` del proyecto. Cada uno tiene su propio `SKILL.md`.

@@ -16,6 +16,7 @@
 | UI/UX, componente visual | Activar skill **ui-ux-pro-max** |
 | Escritura de código nuevo | Usar agente **tdd-guide** |
 | Código recién escrito/modificado | Usar agente **code-reviewer** |
+| **Build, deploy, PM2, portal caído, pantalla blanca** | Activar skill **portal-deploy-guard** — usar `./scripts/deploy.sh`, NUNCA `npm run build` solo |
 | Automatización, workflow, integración | Usar MCP **n8n-mcp** |
 
 ### PASO 2 — Buscar en memoria Claude Mem
@@ -84,7 +85,7 @@ Next.js 15 · TypeScript · Tailwind · Nivo · PostgreSQL · FastAPI (Python) �
 
 ### Everything Claude Code (ECC)
 - Agentes en `~/.claude/agents/` — usar para code-review, arquitectura, seguridad.
-- Comandos slash disponibles: `/plan`, `/code-review`, `/security-scan`, `/smart-explore`.
+- Comandos slash disponibles: `/plan`, `/code-review`, `/security-scan`, `/smart-explore`, **`/deploy`** (deploy seguro producción).
 - Reglas TypeScript y Python aplicadas automáticamente desde `~/.claude/rules/`.
 
 ---

@@ -5,8 +5,13 @@ graphify-out/cache/
 graphify-out/*.bak
 graphify-out/*.bak.*
 graphify-out/*.pre-*
-# Claude Code session data
-.claude/
+# Claude Code session data (except skills/commands requeridos por agentes)
+.claude/*
+!.claude/skills/
+!.claude/skills/portal-deploy-guard/
+!.claude/skills/portal-deploy-guard/**
+!.claude/commands/
+!.claude/commands/deploy.md
 
 # dependencies
 /node_modules

@@ -10,12 +10,13 @@
 
 1. **NUNCA** modificar `src/components/HomeSlider.tsx` (1.663 líneas, god component) sin plan escrito
 2. **NUNCA** exponer secrets en `NEXT_PUBLIC_*`
-3. **SIEMPRE** ejecutar `npm run build` antes de commit
+3. **SIEMPRE** ejecutar `npm run build` antes de commit **en desarrollo** (validación local). En el servidor de producción, usar solo `./scripts/deploy.sh` (regla 9)
 4. **SIEMPRE** verificar `grep -r "NombreComponente" src/` antes de eliminar
 5. **NUNCA** asumir que código no se usa sin verificar
 6. **PROHIBIDO** crear archivos `.md` sin pasar el test de necesidad (ver SKILL_PACK_V5.0.md §11)
 7. **PROHIBIDO** calcular multiplicadores de riesgo en la cabeza — usar `echo "..." | bc -l`
 8. **PROHIBIDO** cargar SKILL_PACK_V5.0.md completo — usar selección dinámica
+9. **PROHIBIDO** `npm run build` en producción sin `pm2 restart` — usar `./scripts/deploy.sh` (skill **portal-deploy-guard**)
 
 ---
 
@@ -193,7 +194,8 @@ const uniqueId = useId();
 
 | Tarea | Skills a cargar del SKILL_PACK |
 |---|---|
-| Emergencia (portal caído) | Skill 17 (Emergencia) — NADA MÁS |
+| Emergencia (portal caído / pantalla blanca) | **portal-deploy-guard** + Skill 17 (Emergencia) |
+| Build, deploy, PM2, hotfix | **portal-deploy-guard** (obligatorio — `./scripts/deploy.sh`) |
 | Refactorización | Skill 1.3 (Ciclos) + Skill 2 (Refactor) |
 | Toca datos DB | Skill 9 (Data Verification) |
 | Investigación | Skill 1 (Investigación) |
@@ -222,22 +224,19 @@ Regla: PESO ≥ 0.7 → EJECUTAR | 0.5-0.69 → EJECUTAR + verify extra | <0.5 �
 
 ## 🚀 Despliegue
 
+> **Skill obligatorio:** `.claude/skills/portal-deploy-guard/SKILL.md` — leer ANTES de cualquier deploy.
+> **Comando slash:** `/deploy` (Cursor, Claude Code, Copilot)
+
 ```bash
-# Build
-rm -rf .next/ && npm run build
+# ✅ ÚNICO camino en producción (build + restart atómico + smoke tests)
+./scripts/deploy.sh
 
-# Restart
-pm2 restart portal-mme --update-env
-
-# Health check
-curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/
-
-# Verificar APIs
-for api in sector subsidios comunidades presupuesto contratos-or supervision fenoge; do
-  curl -s http://localhost:3000/api/$api/ | head -c 50
-  echo "..."
-done
+# Verificación post-deploy
+curl -s http://localhost:3001/api/health | jq .
+curl -s -o /dev/null -w "home: %{http_code}\n" https://portalviceministerioenergia.minenergia.gov.co/
 ```
+
+**PROHIBIDO:** `npm run build` sin `pm2 restart portal-mme` inmediato — causa pantalla blanca masiva (incidente 2026-06-02).
 
 ---
 

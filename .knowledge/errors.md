@@ -27,8 +27,17 @@
 - Contexto: Deploy de hotfix en producción
 - Síntoma: Portal mostraba página en blanco después de deploy
 - Causa raíz: `npm run build` ejecutado pero `pm2 restart portal-mme` omitido. El HTML viejo referenciaba chunks sobrescritos.
-- Prevención: Build + PM2 restart = operación atómica. NUNCA separar.
+- Prevención: Build + PM2 restart = operación atómica. NUNCA separar. Usar `./scripts/deploy.sh`. Skill: `portal-deploy-guard`.
 - Ajuste en Jerarquía de Verdad: Ninguno — ya estaba en Skill 8 regla #5
+- DT-XXX relacionado: —
+
+### Error: Asset mismatch recurrente (incidente masivo)
+- Fecha: 2026-06-02
+- Contexto: Build ejecutado ~12:06 del 1 jun; PM2 no reiniciado hasta intervención manual
+- Síntoma: Pantalla blanca para TODOS los usuarios ~24h; servidor respondía HTTP 200
+- Causa raíz: Mismo patrón — `npm run build` sin `pm2 restart`. BUILD_ID más nuevo que `created at` de PM2.
+- Prevención: Skill obligatorio `portal-deploy-guard` en CLAUDE.md y copilot-instructions.md
+- Ajuste en Jerarquía de Verdad: Ninguno
 - DT-XXX relacionado: —
 
 ### Error: Baseline perdido por /tmp/ limpiado

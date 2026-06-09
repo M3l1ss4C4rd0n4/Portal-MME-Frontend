@@ -1,6 +1,6 @@
 # Prompt: Protocolo de Emergencia
 
-> **Skill Pack:** Cargar SOLO Skill 17 (Emergencia) del SKILL_PACK_V5.0.md
+> **Skill Pack:** Cargar **portal-deploy-guard** (`.claude/skills/portal-deploy-guard/SKILL.md`) + Skill 17 (Emergencia) del SKILL_PACK_V5.0.md
 > **Regla:** Restaurar servicio PRIMERO, investigar DESPUÉS
 
 ## Clasificación
@@ -17,17 +17,17 @@
 ```bash
 # MINUTO 0-5: Diagnóstico rápido
 pm2 status | grep portal
-curl -sI https://portaldireccionee.minenergia.gov.co | head -1
+curl -sI https://portalviceministerioenergia.minenergia.gov.co | head -1
 pm2 logs portal-mme --lines 50 --nostream
 
 # MINUTO 5-10: Rollback si es cambio reciente
 git log --oneline -5
 # Si último commit es de hoy <2h → git revert
 git revert HEAD
-npm run build && pm2 restart portal-mme
+./scripts/deploy.sh   # NUNCA npm run build sin pm2 restart
 
 # MINUTO 10-15: Verificar y escalar si persiste
-curl -s http://localhost:3000/ | head -1
+curl -s http://localhost:3001/api/health | head -c 300
 ```
 
 ## Comunicación de Emergencia
