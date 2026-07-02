@@ -85,3 +85,6 @@ informes del mes/**/venv/
 venv/
 venv_*/
 .venv/
+
+# Caché de PDFs generados on-demand por los botones de descarga (se regenera)
+public/generated-pdfs/*
