@@ -19,6 +19,7 @@ export interface UseHomeSliderReturn {
   current: number;
   direction: number;
   news: NewsItem[];
+  hydroNews: NewsItem[];
   fetchedAt: string | null;
   paused: boolean;
   totalSlides: number;
@@ -40,6 +41,7 @@ export function useHomeSlider(extraSlidesCount: number = 0): UseHomeSliderReturn
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState(1);
   const [news, setNews] = useState<NewsItem[]>([]);
+  const [hydroNews, setHydroNews] = useState<NewsItem[]>([]);
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
   const [paused, setPaused] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -47,7 +49,8 @@ export function useHomeSlider(extraSlidesCount: number = 0): UseHomeSliderReturn
   // Fetch news — refresca 3 veces al día (cada 8 h) para coincidir con
   // los ciclos de noticias de mañana / tarde / noche
   useEffect(() => {
-    const fetchNews = () =>
+    const fetchNews = () => {
+      // Noticias del sector energético
       fetch("/api/noticias")
         .then((r) => r.json())
         .then((data) => {
@@ -57,13 +60,23 @@ export function useHomeSlider(extraSlidesCount: number = 0): UseHomeSliderReturn
         })
         .catch(() => undefined);
 
+      // Noticias de hidrocarburos (paralelo)
+      fetch("/api/noticias/hidrocarburos")
+        .then((r) => r.json())
+        .then((data) => {
+          if (Array.isArray(data.noticias) && data.noticias.length > 0)
+            setHydroNews(data.noticias.slice(0, 3));
+        })
+        .catch(() => undefined);
+    };
+
     fetchNews();
     const timer = setInterval(fetchNews, 8 * 60 * 60 * 1000); // 8 h
     return () => clearInterval(timer);
   }, []);
 
-  // Total slides: 7 KPI + news + extra sections (e.g. redes sociales)
-  const totalSlides = 7 + news.length + extraSlidesCount;
+  // Total slides: 7 KPI + news + hydrocarbon news + extra sections
+  const totalSlides = 7 + news.length + hydroNews.length + extraSlidesCount;
 
   const goTo = useCallback(
     (idx: number, dir: number) => {
@@ -113,6 +126,7 @@ export function useHomeSlider(extraSlidesCount: number = 0): UseHomeSliderReturn
     current,
     direction,
     news,
+    hydroNews,
     fetchedAt,
     paused,
     totalSlides,

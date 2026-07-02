@@ -271,7 +271,7 @@ export default function CapacidadEmbalseChart({ data, height = 340 }: Props) {
         <div className="rounded-lg border px-3 py-2 text-xs shadow-xl min-w-[230px]"
           style={{ background: bg, borderColor: border, color: clr }}>
 
-          <div className="font-semibold mb-2 text-amber-400">{label}</div>
+          <div className="font-semibold mb-2 text-gold">{label}</div>
 
           {/* % SIN */}
           <div className="flex items-center gap-1.5 pb-1.5 mb-1.5" style={{ borderBottom: div }}>
@@ -312,7 +312,7 @@ export default function CapacidadEmbalseChart({ data, height = 340 }: Props) {
           {/* Total */}
           <div className="flex items-center gap-1 pt-1.5 mt-1.5" style={{ borderTop: div }}>
             <span style={{ color: muted }}>Total SIN:</span>
-            <span className="font-bold text-amber-400 ml-auto">{fmt(totalGwh)} GWh</span>
+            <span className="font-bold text-gold ml-auto">{fmt(totalGwh)} GWh</span>
             <span style={{ color: muted }}>
               · {capacidadTotal > 0 ? ((totalGwh / capacidadTotal) * 100).toFixed(2) : "—"}%
             </span>

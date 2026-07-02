@@ -20,20 +20,29 @@ type HojaParsed = {
   totales: number[];
   departamentos: string[];
   operadores: string[];
+  usuarios: number[];
+  potencia: number[];
 };
 
 function resolveExcelPath(): string {
-  const candidates = [
-    process.env.COLOMBIA_SOLAR_XLSX,
-    path.resolve(process.cwd(), "../server/data/onedrive/Colombia_Solar_OR.xlsx"),
-    "/home/admonctrlxm/server/data/onedrive/Colombia_Solar_OR.xlsx",
-    path.resolve(process.cwd(), "data", "Colombia_Solar_OR.xlsx"),
-  ].filter(Boolean) as string[];
+  // 1. Archivo actualizado por el sync automático del servidor (FUENTE PRINCIPAL)
+  const serverSyncPath = "/home/admonctrlxm/server/data/onedrive/Colombia_Solar_OR.xlsx";
+  if (fs.existsSync(serverSyncPath)) return serverSyncPath;
 
-  for (const filePath of candidates) {
-    if (fs.existsSync(filePath)) return filePath;
+  // 2. Variable de entorno (para override manual)
+  if (process.env.COLOMBIA_SOLAR_XLSX && fs.existsSync(process.env.COLOMBIA_SOLAR_XLSX)) {
+    return process.env.COLOMBIA_SOLAR_XLSX;
   }
-  throw new Error("Colombia_Solar_OR.xlsx no encontrado");
+
+  // 3. Fallback relativo al servidor (mismo directorio)
+  const relativeServerPath = path.resolve(process.cwd(), "../server/data/onedrive/Colombia_Solar_OR.xlsx");
+  if (fs.existsSync(relativeServerPath)) return relativeServerPath;
+
+  // 4. Último recurso: copia local del frontend (puede estar desactualizada)
+  const localPath = path.resolve(process.cwd(), "data", "Colombia_Solar_OR.xlsx");
+  if (fs.existsSync(localPath)) return localPath;
+
+  throw new Error("Colombia_Solar_OR.xlsx no encontrado en ninguna ubicación");
 }
 
 function parseFecha(fechaStr: string): string {
@@ -50,7 +59,7 @@ function procesarHojaExcel(
 ): HojaParsed {
   const ws = workbook.Sheets[sheetName];
   if (!ws) {
-    return { proyectos: [], fechas: [], datos: [], totales: [], departamentos: [], operadores: [] };
+    return { proyectos: [], fechas: [], datos: [], totales: [], departamentos: [], operadores: [], usuarios: [], potencia: [] };
   }
 
   const json = XLSX.utils.sheet_to_json<(string | number | null)[]>(ws, {
@@ -58,7 +67,7 @@ function procesarHojaExcel(
     defval: null,
   });
   if (json.length < 2) {
-    return { proyectos: [], fechas: [], datos: [], totales: [], departamentos: [], operadores: [] };
+    return { proyectos: [], fechas: [], datos: [], totales: [], departamentos: [], operadores: [], usuarios: [], potencia: [] };
   }
 
   const header = json[0] as (string | number | null)[];
@@ -74,6 +83,8 @@ function procesarHojaExcel(
   const totales: number[] = [];
   const departamentos: string[] = [];
   const operadores: string[] = [];
+  const usuarios: number[] = [];
+  const potencia: number[] = [];
 
   for (let i = 1; i < json.length; i++) {
     const row = json[i];
@@ -82,12 +93,14 @@ function procesarHojaExcel(
     if (!nombre || nombre.toUpperCase() === "TOTALES") continue;
 
     const total =
-      denom === "potencia" ? Number(row[5]) || 1 : Number(row[6]) || 1;
+      denom === "potencia" ? Number(row[5]) || 0 : Number(row[6]) || 0;
 
     proyectos.push(nombre);
     departamentos.push(row[1] ? String(row[1]) : "");
     operadores.push(row[3] ? String(row[3]).trim() : "");
     totales.push(total);
+    usuarios.push(Number(row[6]) || 0);
+    potencia.push(Number(row[5]) || 0);
     datos.push(
       fechaIndices.map((idx) => {
         const raw = row[idx];
@@ -97,15 +110,32 @@ function procesarHojaExcel(
     );
   }
 
-  return { proyectos, fechas, datos, totales, departamentos, operadores };
+  return { proyectos, fechas, datos, totales, departamentos, operadores, usuarios, potencia };
 }
 
 function forwardFillPct(values: number[], total: number): number[] {
   let last = 0;
   return values.map((val) => {
-    if (!Number.isNaN(val) && val > 0) last = val;
-    return (last / total) * 100;
+    if (!Number.isNaN(val) && val > 0) last = Math.max(last, val);
+    return Math.min((last / total) * 100, 100);
   });
+}
+
+function forwardFillPctReal(values: number[], total: number): (number | null)[] {
+  // NaN intermedios (desfase de fechas entre hojas) → forward-fill.
+  // NaN al final (contratista dejó de reportar) → cortar.
+  let cumSum = 0;
+  let hasStarted = false;
+  const result: (number | null)[] = values.map((val) => {
+    if (Number.isNaN(val)) return hasStarted ? Math.min((cumSum / total) * 100, 100) : null;
+    cumSum += val;
+    hasStarted = true;
+    return Math.min((cumSum / total) * 100, 100);
+  });
+  let lastNonNaN = values.length - 1;
+  while (lastNonNaN >= 0 && Number.isNaN(values[lastNonNaN])) lastNonNaN--;
+  for (let i = lastNonNaN + 1; i < result.length; i++) result[i] = null;
+  return result;
 }
 
 function buildCategoriaExcel(
@@ -130,7 +160,7 @@ function buildCategoriaExcel(
 
   const repByName = new Map<string, { datos: number[]; total: number }>();
   repData.proyectos.forEach((nombre, i) => {
-    repByName.set(nombre, { datos: repData.datos[i], total: repData.totales[i] || 1 });
+    repByName.set(nombre, { datos: repData.datos[i], total: repData.totales[i] });
   });
 
   const allFechas = [...new Set([...projData.fechas, ...repData.fechas].map(parseFecha))].sort();
@@ -138,8 +168,10 @@ function buildCategoriaExcel(
     [...projData.fechas, ...repData.fechas].map((f) => [parseFecha(f), f])
   );
 
+  const maxPositiveExcel = (values: number[]) =>
+    values.reduce((m, v) => (!Number.isNaN(v) && v > 0 ? Math.max(m, v) : m), 0);
+
   const proyectos: ProyectoCurva[] = projData.proyectos.map((nombre, i) => {
-    const totalProg = projData.totales[i] || 1;
     const repEntry = repByName.get(nombre);
 
     const progSeries = allFechas.map((iso) => {
@@ -155,9 +187,21 @@ function buildCategoriaExcel(
       return repIdx >= 0 ? repEntry.datos[repIdx] : NaN;
     });
 
-    const totalRep = repEntry?.total ?? totalProg;
+    // Si total=0 en Excel (celda vacía), derivar del máximo acumulado de la serie
+    const rawTotalProg = projData.totales[i];
+    const totalProg = rawTotalProg > 1 ? rawTotalProg : (maxPositiveExcel(progSeries) || 1);
+    const rawTotalRep = repEntry?.total ?? rawTotalProg;
+    const totalRep = rawTotalRep > 1 ? rawTotalRep : (maxPositiveExcel(realSeries) || totalProg);
+
     const progPct = forwardFillPct(progSeries, totalProg);
-    const realPct = forwardFillPct(realSeries, totalRep);
+    const realPct = forwardFillPctReal(realSeries, totalRep);
+
+    const hasPositiveReal = repEntry?.datos.some((v) => !Number.isNaN(v) && v > 0) ?? false;
+    const realFuente: ProyectoCurva["realFuente"] = !repEntry
+      ? "sin_datos"
+      : hasPositiveReal
+      ? "reportado"
+      : "sin_avance";
 
     const programado: CurvaSPoint[] = allFechas.map((fecha, j) => ({
       fecha,
@@ -169,6 +213,9 @@ function buildCategoriaExcel(
       nombre,
       departamento: projData.departamentos[i] || "",
       operadorDeRed: projData.operadores[i] || "",
+      realFuente,
+      usuarios: projData.usuarios[i] || 0,
+      potencia: projData.potencia[i] || 0,
       programado,
     };
   });
@@ -185,13 +232,16 @@ async function loadCurvaSFromExcel(): Promise<CurvaSCategoria[]> {
   );
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const programa = searchParams.get("programa") || undefined;
+
     let categorias: CurvaSCategoria[] = [];
     let source = "postgresql";
 
     try {
-      categorias = await loadCurvaSFromDb(getPool());
+      categorias = await loadCurvaSFromDb(getPool(), programa);
     } catch (dbErr) {
       console.warn("[api/colombia-solar/curva-s] BD no disponible, fallback Excel:", dbErr);
     }

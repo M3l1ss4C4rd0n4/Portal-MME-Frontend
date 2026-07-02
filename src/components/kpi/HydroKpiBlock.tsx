@@ -3,6 +3,7 @@
 import { TrendBadge, TrendArrow, getTrendColor } from "@/components/ui/TrendBadge";
 import type { MetricaTendencia } from "@/components/ui/TrendBadge";
 import { StatusChip } from "./StatusChip";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 
 interface HydroKpiBlockProps {
   label: string;
@@ -18,21 +19,24 @@ interface HydroKpiBlockProps {
   chipColor?: string;
   tendencia?: MetricaTendencia | null;
   metrica?: "precio" | "generacion" | "embalses" | "aportes" | "valor";
+  /** Contenido del tooltip informativo (ReactNode para formato rico) */
+  tooltip?: React.ReactNode;
 }
 
 export function HydroKpiBlock({
   label, pct, pctColor,
   gwh, gwhRef, gwhRefLabel,
   dailyGwh, dailyHistGwh,
-  date, chipLabel, chipColor, tendencia, metrica,
+  date, chipLabel, chipColor, tendencia, metrica, tooltip,
 }: HydroKpiBlockProps) {
   const fmt = (v: number) => v.toLocaleString("es-CO", { maximumFractionDigits: 1 });
   const fontClass = "text-4xl xl:text-5xl 2xl:text-6xl";
 
   return (
     <div className="flex flex-col items-center justify-center text-center gap-0.5 px-3">
-      <p className="text-slate-400 text-base xl:text-lg 2xl:text-xl uppercase tracking-[0.18em] font-medium">
+      <p className="text-slate-400 text-base xl:text-lg 2xl:text-xl uppercase tracking-[0.18em] font-medium inline-flex items-center gap-0.5">
         {label}
+        {tooltip && <InfoTooltip content={tooltip} />}
       </p>
       <div
         className={`inline-flex items-center gap-2 ${fontClass} font-black leading-none ${pctColor}`}

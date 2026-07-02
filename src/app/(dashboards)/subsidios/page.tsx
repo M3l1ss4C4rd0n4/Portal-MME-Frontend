@@ -49,7 +49,7 @@ function ChartLegend({ items, hidden, onToggle }: {
           ) : (
             <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
           )}
-          <span className="text-[10px] text-[#94A3B8]">{key}</span>
+          <span className="text-[10px] text-theme-muted">{key}</span>
         </button>
       ))}
     </div>
@@ -62,8 +62,8 @@ const fmtNum = (v: number) =>
   v.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const TOOLTIP_STYLE = {
-  padding: "8px 12px", background: "#1E293B", border: "1px solid #334155",
-  borderRadius: 8, color: "#E2E8F0", fontSize: 12,
+  padding: "8px 12px", background: "var(--bg-tertiary)", border: "1px solid var(--border-primary)",
+  borderRadius: 8, color: "var(--text-primary)", fontSize: 12,
 };
 
 // ─── Tipo de dato ─────────────────────────────────────────────────────────────
@@ -150,11 +150,13 @@ export default function SubsidiosPage() {
   const [c1Hidden, setC1Hidden] = useState<Set<string>>(new Set());
   const [c2Hidden, setC2Hidden] = useState<Set<string>>(new Set());
   const [c3Hidden, setC3Hidden] = useState<Set<string>>(new Set());
+  const [ultimaActualizacion, setUltimaActualizacion] = useState<string>("");
 
   useEffect(() => {
     fetch("/api/subsidios/deficit-historico")
       .then(r => r.json())
       .then(raw => {
+        if (raw.ultima_actualizacion) setUltimaActualizacion(raw.ultima_actualizacion);
         if (Array.isArray(raw.data)) {
           setRows(raw.data.map((h: any) => ({
             anio: Number(h.anio),
@@ -170,10 +172,17 @@ export default function SubsidiosPage() {
       .catch(() => {});
   }, []);
 
+  // Leer parámetros de URL (para capturas Playwright con filtros)
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.has("anio")) setSelectedYear(sp.get("anio")!);
+  }, []);
+
   // ── Early return (después de todos los hooks) ──
   if (rows.length === 0) {
     return (
-      <DashboardLayout title="Histórico Déficit de Subsidios - FSSRI" subtitle="">
+      <DashboardLayout title="Histórico Déficit de Subsidios - FSSRI"
+      downloadTablero="subsidios" subtitle="">
         <div className="flex items-center justify-center h-64 text-theme-muted">Cargando datos…</div>
       </DashboardLayout>
     );
@@ -202,8 +211,11 @@ export default function SubsidiosPage() {
     ? rows
     : rows.filter(d => String(d.anio) === selectedYear);
 
-  // ── KPIs ──
-  const kpis = chartRows.reduce(
+  // ── KPIs: vista predeterminada solo 2025; al seleccionar año filtra todo ──
+  const kpiYear = selectedYear === "Todas" ? "2025" : selectedYear;
+  const kpiRows = rows.filter(d => String(d.anio) === kpiYear);
+
+  const kpis = kpiRows.reduce(
     (acc, d) => ({
       necesidad: acc.necesidad + d.deficit_anual,
       apropiacion: acc.apropiacion + d.apropiacion_pgn,
@@ -240,7 +252,7 @@ export default function SubsidiosPage() {
   // ────────────────────────────────────────────────────────────────────────────
   const C2_SERIES = [
     { key: "Suma de Deficit acumulado", color: "#F59E0B", isLine: false },
-    { key: "Suma de Déficit Año",       color: "#F5F0DC", isLine: true  },
+    { key: "Suma de Déficit Año",       color: resolvedTheme === "light" ? "#475569" : "#F5F0DC", isLine: true  },
     { key: "Suma de Apropiación PGN",   color: "#B8860B", isLine: true  },
   ];
 
@@ -265,7 +277,7 @@ export default function SubsidiosPage() {
 
   // Líneas: buildLineLayer recibe getValue que devuelve valor ya en millones
   const deficitAnualLayer = buildLineLayer(
-    chartRows, d => d.deficit_anual / 1e6, "#F5F0DC", 2.5
+    chartRows, d => d.deficit_anual / 1e6, resolvedTheme === "light" ? "#475569" : "#F5F0DC", 2.5
   );
   const pgnLayer = buildLineLayer(
     chartRows, d => d.apropiacion_pgn / 1e6, "#B8860B", 2.5
@@ -303,24 +315,36 @@ export default function SubsidiosPage() {
     <DashboardLayout
       title="Histórico Déficit de Subsidios de Energía Eléctrica - FSSRI"
       subtitle=""
+      downloadTablero="subsidios"
+      downloadParams={{ anio: selectedYear }}
     >
+      {ultimaActualizacion && (
+        <p className="text-[10px] text-gold/60 mb-3">
+          <svg className="w-3 h-3 inline-block mr-1 -mt-0.5 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          {ultimaActualizacion}
+        </p>
+      )}
+
       {/* ── BARRA KPI ─────────────────────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="grid grid-cols-6 bg-[#2D1A00] border border-amber-700/40 rounded-xl mb-4 overflow-hidden"
+        className="grid grid-cols-6 bg-theme-secondary border border-amber-500/40 rounded-xl mb-4 overflow-hidden"
       >
         <div className="flex flex-col justify-center p-3 border-r border-amber-700/30">
-          <div className="text-[10px] text-amber-400/80 font-semibold uppercase tracking-wide">Año</div>
+          <div className="text-[10px] text-gold/80 font-semibold uppercase tracking-wide">Año</div>
           <select
             value={selectedYear}
             onChange={e => setSelectedYear(e.target.value)}
-            className="mt-1.5 bg-[#3D2500] text-amber-300 text-sm font-bold border border-amber-600/50
+            className="mt-1.5 bg-theme-tertiary text-amber-600 text-sm font-bold border border-amber-500/50
               rounded px-2 py-1 focus:outline-none focus:border-amber-400 cursor-pointer"
           >
             <option value="Todas">Todas</option>
             {years.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
+          {/* Nota de año removida de aquí — ahora en cada KPI */}
         </div>
 
         {[
@@ -333,12 +357,15 @@ export default function SubsidiosPage() {
           <div key={label}
             className={`p-3 text-center ${i < 4 ? "border-r border-amber-700/30" : ""}`}
           >
-            <div className="text-sm font-extrabold text-white leading-none tabular-nums">
+            <div className="text-sm font-extrabold text-theme-primary leading-none tabular-nums">
               {label === "Déficit acumulado" && kpis.deficit_acumulado === 0
                 ? "(En blanco)"
                 : fmtNum(value)}
             </div>
-            <div className="text-[10px] text-amber-400 mt-1.5 leading-tight">{label}</div>
+            <div className="text-[10px] text-gold mt-1.5 leading-tight">{label}</div>
+            <div className="text-[9px] text-gold/50 mt-0.5 leading-tight">
+              año {kpiYear}
+            </div>
           </div>
         ))}
       </motion.div>
@@ -347,12 +374,12 @@ export default function SubsidiosPage() {
       <div className="flex items-center gap-2 mb-4 min-h-[20px]">
         {selectedYear !== "Todas" ? (
           <>
-            <span className="text-xs text-amber-400">
+            <span className="text-xs text-gold">
               Filtrando: <strong>{selectedYear}</strong>
             </span>
             <button
               onClick={() => setSelectedYear("Todas")}
-              className="text-[10px] text-amber-400/60 hover:text-amber-400 border
+              className="text-[10px] text-gold/60 hover:text-gold border
                 border-amber-700/40 rounded px-2 py-0.5 transition-colors"
             >
               × limpiar
@@ -371,7 +398,7 @@ export default function SubsidiosPage() {
         {/* Columna izquierda */}
         <div className="flex flex-col gap-4">
           <Card delay={0.1}>
-            <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
+            <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
               Suma de Subsidios (SIN+ZNI) y Suma de Contribuciones por Año
             </span>
             <ChartLegend items={C1_SERIES} hidden={c1Hidden} onToggle={toggleC1} />
@@ -415,16 +442,16 @@ export default function SubsidiosPage() {
               Los subsidios de energía eléctrica se pagan principalmente con las contribuciones de los
               usuarios de los estratos 5 y 6, usuarios comerciales e industriales. Desde 2002, los subsidios
               han sido superiores a las contribuciones, constituyendo así la{" "}
-              <strong className="text-white">Necesidad presupuestal de la vigencia</strong>{" "}
+              <strong className="text-theme-primary">Necesidad presupuestal de la vigencia</strong>{" "}
               para cada año.{" "}
-              (<strong className="text-white">Necesidad de la vigencia</strong> = Subsidios − Contribuciones).
+              (<strong className="text-theme-primary">Necesidad de la vigencia</strong> = Subsidios − Contribuciones).
             </p>
           </Card>
         </div>
 
         {/* Columna derecha: combo */}
         <Card delay={0.14}>
-          <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
+          <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
             Suma de Déficit acumulado, Suma de Apropiación PGN y Suma de Déficit Año por Año
           </span>
           <ChartLegend items={C2_SERIES} hidden={c2Hidden} onToggle={toggleC2} />
@@ -472,7 +499,7 @@ export default function SubsidiosPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
 
         <Card delay={0.16}>
-          <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
+          <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
             Suma de Apropiación PGN y Suma de A-1 por Año
           </span>
           <ChartLegend items={C3_SERIES} hidden={c3Hidden} onToggle={toggleC3} />
@@ -519,13 +546,13 @@ export default function SubsidiosPage() {
             <p>
               La necesidad de la vigencia usualmente es cubierta con recursos del Presupuesto General de la Nación.
               Lo que no es cubierto por estos, deriva en el{" "}
-              <strong className="text-white">Déficit de la Vigencia</strong>.{" "}
+              <strong className="text-theme-primary">Déficit de la Vigencia</strong>.{" "}
               (Déficit de la vigencia = Recursos PGN − Déficit de la vigencia)
             </p>
             <p>
               Desde el 2014 se ha venido presentando déficit en las vigencias, por lo que los saldos pendientes se
               trasladan al año siguiente para su pago. Este evento repetitivo se conoce como el{" "}
-              <strong className="text-amber-400">déficit acumulado</strong>.{" "}
+              <strong className="text-gold">déficit acumulado</strong>.{" "}
               (Déficit acumulado<sub>a</sub> = Déficit de la vigencia<sub>a</sub> + Déficit de la vigencia<sub>a-1</sub>)
             </p>
             <p>

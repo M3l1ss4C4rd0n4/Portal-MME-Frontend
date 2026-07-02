@@ -36,6 +36,27 @@ export function fmtCOPShort(v: number): string {
   return fmtCOP(v);
 }
 
+export function formatCOP(v: number): string {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(v);
+}
+
+export function formatNumber(v: number): string {
+  return new Intl.NumberFormat("es-CO").format(v);
+}
+
+export function formatPct(v: number, decimals = 2): string {
+  return `${v.toFixed(decimals)}%`;
+}
+
+export function formatKWp(v: number): string {
+  return `${formatNumber(Math.round(v * 100) / 100)} kWp`;
+}
+
 const MESES = ["enero","febrero","marzo","abril","mayo","junio",
                "julio","agosto","septiembre","octubre","noviembre","diciembre"];
 
@@ -49,4 +70,23 @@ export function fmtCortePresupuesto(fechaBackend: string | null | undefined): st
   const [, mm, yyyy] = datePart.trim().split("/");
   const nombreMes = MESES[parseInt(mm, 10) - 1] ?? "";
   return `1 de ${nombreMes} de ${yyyy}`;
+}
+
+// ─── Month ordering helpers (used by Colombia Solar dashboard) ────────────
+
+export const MES_ORDER: Record<string, number> = {
+  Enero: 1, Febrero: 2, Marzo: 3, Abril: 4, Mayo: 5, Junio: 6,
+  Julio: 7, Agosto: 8, Septiembre: 9, Octubre: 10, Noviembre: 11, Diciembre: 12,
+};
+
+export function sortMeses(meses: string[]): string[] {
+  return [...meses].sort((a, b) => (MES_ORDER[a] ?? 99) - (MES_ORDER[b] ?? 99));
+}
+
+/** Expresión SQL CASE para ordenar meses cronológicamente (Enero → Diciembre). */
+export function mesOrderCaseSql(column = "mes"): string {
+  const cases = Object.entries(MES_ORDER)
+    .map(([name, n]) => `WHEN '${name}' THEN ${n}`)
+    .join(" ");
+  return `CASE ${column} ${cases} ELSE 99 END`;
 }

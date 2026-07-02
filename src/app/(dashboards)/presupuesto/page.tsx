@@ -26,8 +26,8 @@ function Card({ children, className = "", delay = 0 }: { children: React.ReactNo
 function KpiChip({ label, value, accent = false, subvalue }: { label: string; value: string | number; accent?: boolean; subvalue?: string }) {
   return (
     <div className="bg-dash-chip rounded-xl px-3 py-2.5">
-      <div className={`text-base font-bold leading-none ${accent ? "text-amber-400" : "text-theme-primary"}`}>{value}</div>
-      {subvalue && <div className={`text-[9px] mt-0.5 ${accent ? "text-amber-400/70" : "text-theme-muted"}`}>{subvalue}</div>}
+      <div className={`text-base font-bold leading-none ${accent ? "text-gold" : "text-theme-primary"}`}>{value}</div>
+      {subvalue && <div className={`text-[9px] mt-0.5 ${accent ? "text-gold/70" : "text-theme-muted"}`}>{subvalue}</div>}
       <div className="text-[10px] text-theme-muted mt-1 leading-tight">{label}</div>
     </div>
   );
@@ -171,19 +171,20 @@ export default function PresupuestoPage() {
   const fechaCorte = `corte ${fmtCortePresupuesto(data.ultimaActualizacion)}`;
 
   return (
-    <DashboardLayout title="Ejecución Presupuestal 2026" subtitle={`Apropiación, compromisos y obligaciones — ${fechaCorte}`}>
+    <DashboardLayout title="Ejecución Presupuestal 2026"
+      downloadTablero="presupuesto" subtitle={`Apropiación, compromisos y obligaciones — ${fechaCorte}`}>
 
       {/* ── Row 1: KPI Cards ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
         <Card delay={0.05} className="!p-4">
           <div className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Apropiación Total</div>
-          <div className="text-xl font-bold text-amber-400 truncate">{fmtCOP(data.totales.apropiacion)}</div>
+          <div className="text-xl font-bold text-gold truncate">{fmtCOP(data.totales.apropiacion)}</div>
           <div className="text-[10px] text-theme-muted mt-1">Dirección de EE</div>
         </Card>
         <Card delay={0.08} className="!p-4">
           <div className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Comprometido</div>
-          <div className="text-xl font-bold text-amber-400 truncate">{fmtCOP(data.totales.comprometido)}</div>
-          <div className="text-[10px] text-amber-400/70 mt-1">{data.totales.pct_comprometido.toFixed(2)}% del total</div>
+          <div className="text-xl font-bold text-gold truncate">{fmtCOP(data.totales.comprometido)}</div>
+          <div className="text-[10px] text-gold/70 mt-1">{data.totales.pct_comprometido.toFixed(2)}% del total</div>
         </Card>
         <Card delay={0.11} className="!p-4">
           <div className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Obligado</div>
@@ -201,12 +202,12 @@ export default function PresupuestoPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
         {/* Col 1: Resumen Ejecución Presupuestal - Aprovechando todo el espacio */}
         <Card delay={0.1} className="flex flex-col">
-          <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px] mb-3">Resumen Ejecución Presupuestal</span>
+          <span className="text-gold font-bold uppercase tracking-widest text-[11px] mb-3">Resumen Ejecución Presupuestal</span>
           
           {/* Card de Apropiación Total */}
           <div className="bg-gradient-to-r from-amber-500/10 to-amber-600/5 border border-amber-500/20 rounded-xl p-4 mb-4">
-            <div className="text-[10px] text-amber-400/70 uppercase tracking-wider mb-1">Apropiación Total 2026</div>
-            <div className="text-2xl font-bold text-amber-400">{fmtCOP(data.totales.apropiacion)}</div>
+            <div className="text-[10px] text-gold/70 uppercase tracking-wider mb-1">Apropiación Total 2026</div>
+            <div className="text-2xl font-bold text-gold">{fmtCOP(data.totales.apropiacion)}</div>
             <div className="text-[10px] text-theme-muted mt-1">Dirección de Energía Eléctrica</div>
           </div>
 
@@ -214,7 +215,7 @@ export default function PresupuestoPage() {
           <div className="grid grid-cols-3 gap-3 mt-4">
             {/* Comprometido - Semi Pie */}
             <div className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-3 text-center">
-              <div className="text-[9px] text-amber-400/70 uppercase tracking-wider mb-1">Comprometido</div>
+              <div className="text-[9px] text-gold/70 uppercase tracking-wider mb-1">Comprometido</div>
               <div className="h-[80px] relative">
                 <SemiPieChart 
                   value={data.totales.pct_comprometido} 
@@ -222,8 +223,8 @@ export default function PresupuestoPage() {
                   delay={0.2}
                 />
               </div>
-              <div className="text-xl font-bold text-amber-400">{data.totales.pct_comprometido.toFixed(2)}%</div>
-              <div className="text-[10px] text-amber-400/70">{fmtCOP(data.totales.comprometido)}</div>
+              <div className="text-xl font-bold text-gold">{data.totales.pct_comprometido.toFixed(2)}%</div>
+              <div className="text-[10px] text-gold/70">{fmtCOP(data.totales.comprometido)}</div>
               <div className="text-[8px] text-theme-muted mt-1">Recursos con destino definido</div>
             </div>
 
@@ -243,8 +244,8 @@ export default function PresupuestoPage() {
             </div>
 
             {/* Disponible - Semi Pie */}
-            <div className="bg-slate-500/5 border border-slate-500/10 rounded-xl p-3 text-center">
-              <div className="text-[9px] text-slate-400/70 uppercase tracking-wider mb-1">Disponible</div>
+            <div className="bg-theme-tertiary border border-theme-secondary rounded-xl p-3 text-center">
+              <div className="text-[9px] text-theme-muted uppercase tracking-wider mb-1">Disponible</div>
               <div className="h-[80px] relative">
                 <SemiPieChart 
                   value={dispTotal} 
@@ -262,7 +263,7 @@ export default function PresupuestoPage() {
           <div className="mt-4 bg-gradient-to-r from-amber-500/5 via-orange-500/5 to-red-500/5 border border-amber-500/10 rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <span className="text-[10px] text-amber-400 uppercase tracking-wider font-semibold">Ejecución sobre Comprometido</span>
+                <span className="text-[10px] text-gold uppercase tracking-wider font-semibold">Ejecución sobre Comprometido</span>
                 <div className="text-[9px] text-theme-muted mt-0.5">
                   De ${fmtCOP(data.totales.comprometido)} comprometidos
                 </div>
@@ -279,7 +280,7 @@ export default function PresupuestoPage() {
             
             {/* Barra apilada: Obligado | Comp. restante | Disponible */}
             <div className="relative">
-              <div className="h-4 bg-slate-700/30 rounded-full overflow-hidden flex">
+              <div className="h-4 bg-theme-tertiary rounded-full overflow-hidden flex">
                 {/* Obligado — subconjunto del comprometido */}
                 <motion.div
                   className="h-full bg-gradient-to-r from-red-700 to-red-500 relative group cursor-pointer shrink-0"
@@ -326,7 +327,7 @@ export default function PresupuestoPage() {
         {/* Col 2-3: Comparativo por Proyecto (66%) - Más espacio para ver % Obligado */}
         <Card delay={0.15} className="lg:col-span-2">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">Comparativo por Proyecto (%)</span>
+            <span className="text-gold font-bold uppercase tracking-widest text-[11px]">Comparativo por Proyecto (%)</span>
             <span className="text-[10px] text-theme-muted">Distribución de ejecución</span>
           </div>
           
@@ -413,7 +414,7 @@ export default function PresupuestoPage() {
           <div className="flex gap-5 mt-4 justify-center">
             {[
               { label: "Obligado", c: "#DC2626", desc: "Ya legalizado (dentro del comprometido)" },
-              { label: "Comprometido restante", c: "#FBBF24", desc: "Label = total comprometido. Comprometido aún no obligado" },
+              { label: "Comprometido restante", c: "var(--color-gold)", desc: "Label = total comprometido. Comprometido aún no obligado" },
               { label: "Disponible", c: "#334155", desc: "Sin compromiso asignado" },
             ].map(({ label, c, desc }) => (
               <div key={label} className="flex items-center gap-2" title={desc}>
@@ -434,7 +435,7 @@ export default function PresupuestoPage() {
               className="mt-5 pt-5 border-t border-theme-card"
             >
               <div className="flex items-center justify-between mb-4">
-                <span className="text-amber-400 font-bold uppercase tracking-widest text-[12px]">
+                <span className="text-gold font-bold uppercase tracking-widest text-[12px]">
                   Detalle del Proyecto: {proyectoSeleccionado.proyecto}
                 </span>
                 <button 
@@ -449,14 +450,14 @@ export default function PresupuestoPage() {
                 {/* Apropiación */}
                 <div className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-4 text-center">
                   <div className="text-[10px] text-theme-muted uppercase tracking-wider mb-2">Apropiación</div>
-                  <div className="text-xl font-bold text-amber-400">{fmtCOP(proyectoSeleccionado.apropiacion)}</div>
-                  <div className="text-[9px] text-amber-400/60 mt-1">100% del proyecto</div>
+                  <div className="text-xl font-bold text-gold">{fmtCOP(proyectoSeleccionado.apropiacion)}</div>
+                  <div className="text-[9px] text-gold/60 mt-1">100% del proyecto</div>
                 </div>
                 
                 {/* Comprometido - % con barra + valor */}
                 <div className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-4">
-                  <div className="text-[10px] text-amber-400/70 uppercase tracking-wider mb-2 text-center">Comprometido</div>
-                  <div className="h-3 bg-slate-700/30 rounded-full overflow-hidden">
+                  <div className="text-[10px] text-gold/70 uppercase tracking-wider mb-2 text-center">Comprometido</div>
+                  <div className="h-3 bg-theme-tertiary rounded-full overflow-hidden">
                     <motion.div 
                       className="h-full bg-gradient-to-r from-amber-600 to-amber-400 rounded-full"
                       initial={{ width: 0 }}
@@ -464,14 +465,14 @@ export default function PresupuestoPage() {
                       transition={{ duration: 0.5 }}
                     />
                   </div>
-                  <div className="text-center text-lg font-bold text-amber-400 mt-2">{proyectoSeleccionado.pct_comprometido.toFixed(2)}%</div>
-                  <div className="text-center text-[10px] text-amber-400/70">{fmtCOP(proyectoSeleccionado.comprometido)}</div>
+                  <div className="text-center text-lg font-bold text-gold mt-2">{proyectoSeleccionado.pct_comprometido.toFixed(2)}%</div>
+                  <div className="text-center text-[10px] text-gold/70">{fmtCOP(proyectoSeleccionado.comprometido)}</div>
                 </div>
                 
                 {/* Obligado - % con barra + valor */}
                 <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-4">
                   <div className="text-[10px] text-red-400/70 uppercase tracking-wider mb-2 text-center">Obligado</div>
-                  <div className="h-3 bg-slate-700/30 rounded-full overflow-hidden">
+                  <div className="h-3 bg-theme-tertiary rounded-full overflow-hidden">
                     <motion.div 
                       className="h-full bg-gradient-to-r from-red-600 to-red-400 rounded-full"
                       initial={{ width: 0 }}
@@ -484,9 +485,9 @@ export default function PresupuestoPage() {
                 </div>
                 
                 {/* Disponible - % con barra + valor (= 100% - comprometido, obligado está dentro del comprometido) */}
-                <div className="bg-slate-500/5 border border-slate-500/10 rounded-xl p-4">
+                <div className="bg-theme-tertiary border border-theme-secondary rounded-xl p-4">
                   <div className="text-[10px] text-slate-400/70 uppercase tracking-wider mb-2 text-center">Disponible</div>
-                  <div className="h-3 bg-slate-700/30 rounded-full overflow-hidden">
+                  <div className="h-3 bg-theme-tertiary rounded-full overflow-hidden">
                     <motion.div 
                       className="h-full bg-gradient-to-r from-slate-600 to-slate-400 rounded-full"
                       initial={{ width: 0 }}
@@ -509,7 +510,7 @@ export default function PresupuestoPage() {
       <Card delay={0.25}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">Detalle por Proyecto</span>
+            <span className="text-gold font-bold uppercase tracking-widest text-[11px]">Detalle por Proyecto</span>
             <span className="text-[10px] text-theme-muted">{data.proyectos.length} proyectos activos</span>
           </div>
           {/* Botón Exportar a Excel */}
@@ -572,9 +573,9 @@ export default function PresupuestoPage() {
                   className="text-theme-secondary hover:bg-dash-chip/50 transition-colors group">
                   <td className="py-3 pr-3 font-medium text-theme-primary">{p.proyecto}</td>
                   <td className="py-3 pr-3 text-right">{fmtCOP(p.apropiacion)}</td>
-                  <td className="py-3 pr-3 text-right text-amber-400 font-semibold">{fmtCOP(p.comprometido)}</td>
+                  <td className="py-3 pr-3 text-right text-gold font-semibold">{fmtCOP(p.comprometido)}</td>
                   <td className="py-3 pr-2 w-24">
-                    <div className="h-2 bg-slate-700/30 rounded-full overflow-hidden">
+                    <div className="h-2 bg-theme-tertiary rounded-full overflow-hidden">
                       <motion.div 
                         style={{ width: `${Math.min(p.pct_comprometido, 100)}%` }} 
                         className="h-full bg-gradient-to-r from-amber-600 to-amber-400 rounded-full"
@@ -585,11 +586,11 @@ export default function PresupuestoPage() {
                     </div>
                   </td>
                   <td className="py-3 pr-3 text-right">
-                    <span className="text-amber-400 font-semibold tabular-nums">{p.pct_comprometido.toFixed(2)}%</span>
+                    <span className="text-gold font-semibold tabular-nums">{p.pct_comprometido.toFixed(2)}%</span>
                   </td>
                   <td className="py-3 pr-3 text-right text-red-400">{fmtCOP(p.obligados)}</td>
                   <td className="py-3 pr-2 w-24">
-                    <div className="h-2 bg-slate-700/30 rounded-full overflow-hidden">
+                    <div className="h-2 bg-theme-tertiary rounded-full overflow-hidden">
                       <motion.div 
                         style={{ width: `${Math.min(p.pct_obligado, 100)}%` }} 
                         className="h-full bg-gradient-to-r from-red-600 to-red-400 rounded-full"
@@ -610,16 +611,16 @@ export default function PresupuestoPage() {
                 <tr className="font-bold text-theme-primary border-t-2 border-amber-500/30 bg-amber-500/5">
                   <td className="py-3 pr-3">TOTAL</td>
                   <td className="py-3 pr-3 text-right">{fmtCOP(data.totales.apropiacion)}</td>
-                  <td className="py-3 pr-3 text-right text-amber-400">{fmtCOP(data.totales.comprometido)}</td>
+                  <td className="py-3 pr-3 text-right text-gold">{fmtCOP(data.totales.comprometido)}</td>
                   <td className="py-3 pr-2 w-24">
-                    <div className="h-2 bg-slate-700/30 rounded-full overflow-hidden">
+                    <div className="h-2 bg-theme-tertiary rounded-full overflow-hidden">
                       <div style={{ width: `${Math.min(data.totales.pct_comprometido, 100)}%` }} className="h-full bg-amber-400 rounded-full" />
                     </div>
                   </td>
-                  <td className="py-3 pr-3 text-right text-amber-400">{data.totales.pct_comprometido.toFixed(2)}%</td>
+                  <td className="py-3 pr-3 text-right text-gold">{data.totales.pct_comprometido.toFixed(2)}%</td>
                   <td className="py-3 pr-3 text-right text-red-400">{fmtCOP(data.totales.obligados)}</td>
                   <td className="py-3 pr-2 w-24">
-                    <div className="h-2 bg-slate-700/30 rounded-full overflow-hidden">
+                    <div className="h-2 bg-theme-tertiary rounded-full overflow-hidden">
                       <div style={{ width: `${Math.min(data.totales.pct_obligado, 100)}%` }} className="h-full bg-red-400 rounded-full" />
                     </div>
                   </td>

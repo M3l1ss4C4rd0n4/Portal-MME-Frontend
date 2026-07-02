@@ -11,7 +11,7 @@
 export interface CurvaSPoint {
   fecha: string;
   programado: number;
-  real: number;
+  real: number | null;
 }
 
 export interface ProyectoCurva {
@@ -20,7 +20,11 @@ export interface ProyectoCurva {
   operadorDeRed: string;
   programado: CurvaSPoint[];
   /** Origen de la serie Real para transparencia en UI */
-  realFuente?: "reportado" | "reportado_usuarios" | "sin_datos";
+  realFuente?: "reportado" | "reportado_usuarios" | "sin_avance" | "sin_datos";
+  /** Número total de usuarios del proyecto */
+  usuarios?: number;
+  /** Potencia total instalada en MWp del proyecto */
+  potencia?: number;
 }
 
 export interface CurvaSCategoria {
@@ -92,13 +96,34 @@ function parseNum(val: string | number | null | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** Curva acumulada: null y 0 explícitos no reinician el avance */
+/** Curva acumulada programado: siempre rellena desde 0 */
 function forwardFillPct(values: (number | null)[], total: number): number[] {
   let last = 0;
   return values.map((val) => {
-    if (val !== null && val > 0) last = val;
-    return total > 0 ? (last / total) * 100 : 0;
+    if (val !== null && val > 0) last = Math.max(last, val);
+    return total > 0 ? Math.min((last / total) * 100, 100) : 0;
   });
+}
+
+/**
+ * Curva real: valores INCREMENTALES → acumular con cumSum.
+ * NULLs intermedios (desfase de fechas entre hojas) → forward-fill.
+ * NULLs al final (contratista dejó de reportar) → cortar la línea.
+ */
+function forwardFillPctReal(values: (number | null)[], total: number): (number | null)[] {
+  let cumSum = 0;
+  let hasStarted = false;
+  const result: (number | null)[] = values.map((val) => {
+    if (val === null) return hasStarted ? Math.min((cumSum / total) * 100, 100) : null;
+    cumSum += val;
+    hasStarted = true;
+    return total > 0 ? Math.min((cumSum / total) * 100, 100) : 0;
+  });
+  // Recortar trailing forward-fills: si el original era null, volver a null
+  let lastNonNull = values.length - 1;
+  while (lastNonNull >= 0 && values[lastNonNull] === null) lastNonNull--;
+  for (let i = lastNonNull + 1; i < result.length; i++) result[i] = null;
+  return result;
 }
 
 function extractSeries(row: DbRow, dateCols: string[]): (number | null)[] {
@@ -154,12 +179,14 @@ function buildRowMap(rows: DbRow[]): Map<string, DbRow> {
   return map;
 }
 
-export async function loadCurvaSFromDb(pool: DbPool): Promise<CurvaSCategoria[]> {
+export async function loadCurvaSFromDb(pool: DbPool, programa?: string): Promise<CurvaSCategoria[]> {
   const categorias: CurvaSCategoria[] = [];
 
   let usuariosRepMap = new Map<string, DbRow>();
   if (await tableExists(pool, "reportado_usuarios")) {
-    const uRes = await pool.query(`SELECT * FROM colombia_solar."reportado_usuarios"`);
+    const uRes = programa
+      ? await pool.query(`SELECT * FROM colombia_solar."reportado_usuarios" WHERE programa = $1`, [programa])
+      : await pool.query(`SELECT * FROM colombia_solar."reportado_usuarios"`);
     usuariosRepMap = buildRowMap(uRes.rows);
   }
 
@@ -168,9 +195,13 @@ export async function loadCurvaSFromDb(pool: DbPool): Promise<CurvaSCategoria[]>
     const hasRep = await tableExists(pool, cfg.tablaReportado);
     if (!hasProj) continue;
 
-    const projRes = await pool.query(`SELECT * FROM colombia_solar."${cfg.tablaProyectado}"`);
+    const projRes = programa
+      ? await pool.query(`SELECT * FROM colombia_solar."${cfg.tablaProyectado}" WHERE programa = $1`, [programa])
+      : await pool.query(`SELECT * FROM colombia_solar."${cfg.tablaProyectado}"`);
     const repRes = hasRep
-      ? await pool.query(`SELECT * FROM colombia_solar."${cfg.tablaReportado}"`)
+      ? (programa
+        ? await pool.query(`SELECT * FROM colombia_solar."${cfg.tablaReportado}" WHERE programa = $1`, [programa])
+        : await pool.query(`SELECT * FROM colombia_solar."${cfg.tablaReportado}"`))
       : { rows: [] as DbRow[] };
 
     if (projRes.rows.length === 0) continue;
@@ -189,6 +220,7 @@ export async function loadCurvaSFromDb(pool: DbPool): Promise<CurvaSCategoria[]>
       if (!isValidProyecto(nombre)) continue;
 
       let repRow = repByName.get(nombre);
+      const repRowExiste = repRow !== undefined;
       let realFuente: ProyectoCurva["realFuente"] = "sin_datos";
 
       if (repRow) {
@@ -200,30 +232,45 @@ export async function loadCurvaSFromDb(pool: DbPool): Promise<CurvaSCategoria[]>
           if (uMax > 0) {
             repRow = usuariosRepMap.get(nombre);
             realFuente = "reportado_usuarios";
+          } else {
+            realFuente = "sin_avance";
           }
+        } else {
+          realFuente = "sin_avance";
         }
       } else if (cfg.fallbackUsuarios && usuariosRepMap.has(nombre)) {
         const uMax = maxPositive(extractSeries(usuariosRepMap.get(nombre)!, dateCols));
         if (uMax > 0) {
           repRow = usuariosRepMap.get(nombre);
           realFuente = "reportado_usuarios";
+        } else {
+          realFuente = repRowExiste ? "sin_avance" : "sin_datos";
         }
       }
-
-      const totalProg = rowTotal(row, cfg.denomProyectado);
-      const totalRep = repRow ? rowTotal(repRow, cfg.denomReportado) : totalProg;
 
       const progSeries = extractSeries(row, dateCols);
       const realSeries = repRow ? extractSeries(repRow, dateCols) : dateCols.map(() => null);
 
+      // Si total=0 en Excel (celda vacía), derivar del máximo acumulado de la serie
+      const rawTotalProg = rowTotal(row, cfg.denomProyectado);
+      const totalProg = rawTotalProg > 1 ? rawTotalProg : (maxPositive(progSeries) || 1);
+      const rawTotalRep = repRow ? rowTotal(repRow, cfg.denomReportado) : rawTotalProg;
+      const totalRep = rawTotalRep > 1 ? rawTotalRep : (maxPositive(realSeries) || totalProg);
+
       const progPct = forwardFillPct(progSeries, totalProg);
-      const realPct = forwardFillPct(realSeries, totalRep);
+      const realPct = forwardFillPctReal(realSeries, totalRep);
+
+      // Extraer usuarios y potencia del proyecto (para KPIs dinámicos)
+      const usuariosVal = parseNum(row.usuarios_totales) ?? 0;
+      const potenciaVal = parseNum(row.potencia_a_instalar_mwp) ?? 0;
 
       proyectos.push({
         nombre,
         departamento: row.departamento ? String(row.departamento) : "",
         operadorDeRed: row.operador_de_red ? String(row.operador_de_red).trim() : "",
         realFuente,
+        usuarios: usuariosVal,
+        potencia: potenciaVal,
         programado: fechasIso.map((fecha, j) => ({
           fecha,
           programado: progPct[j],

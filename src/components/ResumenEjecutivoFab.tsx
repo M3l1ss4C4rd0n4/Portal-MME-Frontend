@@ -49,10 +49,6 @@ export default function ResumenEjecutivoFab({ onPointerDown }: ResumenEjecutivoF
   return (
     <button
       type="button"
-      onPointerDown={(e) => {
-        e.stopPropagation();
-        onPointerDown?.(e);
-      }}
       onClick={(e) => {
         e.stopPropagation();
         handleDownload();
@@ -84,10 +80,10 @@ export default function ResumenEjecutivoFab({ onPointerDown }: ResumenEjecutivoF
         </svg>
       ) : (
         <>
-          <span className="text-[7px] font-bold uppercase leading-none text-white/90 tracking-wide">
+          <span className="text-[7px] font-bold uppercase leading-none tracking-wide" style={{ color: '#ffffff' }}>
             Resumen
           </span>
-          <span className="text-[7px] font-bold uppercase leading-none text-white tracking-wide">
+          <span className="text-[7px] font-bold uppercase leading-none tracking-wide" style={{ color: '#ffffff' }}>
             Ejecutivo
           </span>
         </>

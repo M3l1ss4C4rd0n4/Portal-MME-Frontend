@@ -136,7 +136,7 @@ function CardHeader({
     <div className="flex items-start justify-between mb-4">
       <div>
         <div className="flex items-center gap-2">
-          <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
+          <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
             {title}
           </span>
           {warning && (
@@ -149,7 +149,7 @@ function CardHeader({
       </div>
       <Link
         href={link}
-        className="text-amber-400/30 hover:text-amber-400 transition-colors mt-0.5"
+        className="text-gold/30 hover:text-gold transition-colors mt-0.5"
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
@@ -173,8 +173,8 @@ function KpiChip({
   small?: boolean;
 }) {
   return (
-    <div className="bg-[#1E293B]/80 border border-white/10 rounded-xl px-3 py-2.5">
-      <div className={`font-bold leading-none ${small ? "text-[11px]" : "text-base"} ${accent ? "text-amber-400" : "text-theme-primary"}`}>
+    <div className="bg-theme-secondary border border-theme-primary rounded-xl px-3 py-2.5">
+      <div className={`font-bold leading-none ${small ? "text-[11px]" : "text-base"} ${accent ? "text-gold" : "text-theme-primary"}`}>
         {value}
       </div>
       <div className="text-[10px] text-theme-muted mt-1 leading-tight">{label}</div>
@@ -188,7 +188,7 @@ function StateRow({ dot, label, count, total }: { dot: string; label: string; co
     cyan: '#06B6D4', teal: '#14B8A6', amber: '#F59E0B', emerald: '#10B981', rose: '#F43F5E',
   };
   return (
-    <div className="flex items-center justify-between bg-[#1E293B]/60 rounded-lg px-2 py-1.5">
+    <div className="flex items-center justify-between bg-theme-secondary rounded-lg px-2 py-1.5">
       <div className="flex items-center gap-1.5 min-w-0">
         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: dotColors[dot] ?? '#888' }} />
         <span className="text-[10px] text-theme-secondary leading-tight truncate">{label}</span>
@@ -224,6 +224,7 @@ const _CE_GEO_TO_MAP: Record<string, string> = {
   "MAGDALENA": "Magdalena",
   "META": "Meta",
   "NARINO": "Nariño",
+  "NARIÑO": "Nariño",
   "NORTE DE SANTANDER": "Norte de Santander",
   "PUTUMAYO": "Putumayo",
   "QUINDIO": "Quindío",
@@ -238,7 +239,9 @@ const _CE_GEO_TO_MAP: Record<string, string> = {
   "VICHADA": "Vichada",
 };
 function _ceToReactMapName(geo: string): string {
-  return _CE_GEO_TO_MAP[geo] ?? geo;
+  // Normalize to NFC to handle Unicode mismatches (ej: Ñ vs N+tilde)
+  const key = geo?.normalize?.("NFC") ?? geo;
+  return _CE_GEO_TO_MAP[key] ?? geo;
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────
@@ -300,6 +303,9 @@ export default function Home() {
     fechaPrecio: null as string | null,
     fechaEmbalse: null as string | null,
     fechaAportes: null as string | null,
+    oniActual: null as number | null,
+    oniClasificacion: null as string | null,
+    oniProyeccionInicio: null as string | null,
   });
   
   // Datos detallados del sector energético (generación por fuente, precios históricos, embalses)
@@ -347,7 +353,7 @@ export default function Home() {
   const [supData, setSupData] = useState({
     nContratos: 0, nProyectos: 0,
     enEjecucion: 0, enAOM: 0, enLiquidacion: 0, liquidados: 0, perdidaCompetencia: 0,
-    avanceFisico: 0, avanceFinanciero: 0,
+    avanceFisico: 0, avanceFinanciero: 0, avanceContrato: 0,
     avanceFisicoActivos: 0, avanceFinancieroActivos: 0,
     financiero: { valorProyecto: 0, valorDesembolsado: 0, valorPorDesembolsar: 0, pctDesembolsado: 0 },
     usuarios: { contratados: 0, finales: 0 },
@@ -394,7 +400,7 @@ export default function Home() {
       fetch('/api/presupuesto').then(r => r.json()).catch(() => null),
       fetch('/api/comunidades').then(r => r.json()).catch(() => null),
       fetch('/api/contratos-or').then(r => r.json()).catch(() => null),
-      fetch('/api/supervision').then(r => r.json()).catch(() => null),
+      fetch('/api/supervision?anoMin=2015').then(r => r.json()).catch(() => null),
       fetch('/api/subsidios').then(r => r.json()).catch(() => null),
       fetch('/api/subsidios/deficit-historico').then(r => r.json()).catch(() => null),
       fetch('/api/cu').then(r => r.json()).catch(() => null),
@@ -428,6 +434,9 @@ export default function Home() {
         fechaPrecio: s.fechaPrecio ?? null,
         fechaEmbalse: s.fechaEmbalse ?? null,
         fechaAportes: s.fechaAportes ?? null,
+        oniActual: s.oniActual != null ? Number(s.oniActual) : null,
+        oniClasificacion: s.oniClasificacion ?? null,
+        oniProyeccionInicio: s.oniProyeccionInicio ?? null,
       });
       
       // Procesar datos detallados del sector (generación por fuente, precios, embalses)
@@ -534,6 +543,7 @@ export default function Home() {
         perdidaCompetencia:      Number(sp.perdidaCompetencia      ?? 0),
         avanceFisico:            Number(sp.avanceFisico            ?? 0),
         avanceFinanciero:        Number(sp.avanceFinanciero        ?? 0),
+        avanceContrato:          Number(sp.avanceContrato          ?? 0),
         avanceFisicoActivos:     Number(sp.avanceFisicoActivos     ?? 0),
         avanceFinancieroActivos: Number(sp.avanceFinancieroActivos ?? 0),
         financiero: {
@@ -757,7 +767,7 @@ export default function Home() {
           <Card delay={0.05}>
             {/* Título grupal */}
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-amber-400 font-bold uppercase tracking-widest text-xs">SECTOR ENERGÉTICO (SIN)</span>
+              <span className="text-gold font-bold uppercase tracking-widest text-xs">SECTOR ENERGÉTICO (SIN)</span>
               <span className="text-[10px] text-theme-muted">{sectorData.ultimaEjecucionETL ?? sectorData.ultimaActualizacion ?? gestionSector.updateTime}</span>
             </div>
 
@@ -772,7 +782,7 @@ export default function Home() {
               <div>
                 <p className="text-[11px] text-theme-secondary mb-1">Precio de Bolsa</p>
                 <div className="flex items-baseline gap-1 mb-0.5">
-                  <span className="text-2xl font-bold text-amber-400">${sectorData.precioBolsa.toFixed(2)}</span>
+                  <span className="text-2xl font-bold text-gold">${sectorData.precioBolsa.toFixed(2)}</span>
                   <span className="text-[10px] text-theme-muted">COP/kWh</span>
                 </div>
                 {sectorData.fechaPrecio && <p className="text-[9px] text-theme-muted mb-1.5">Dato: {sectorData.fechaPrecio}</p>}
@@ -816,7 +826,7 @@ export default function Home() {
                       return (
                         <div className="nt">
                           {fecha}:&nbsp;
-                          <strong className="text-amber-400">${Number(point.data.y).toFixed(2)}</strong>
+                          <strong className="text-gold">${Number(point.data.y).toFixed(2)}</strong>
                         </div>
                       );
                     }}
@@ -972,7 +982,7 @@ export default function Home() {
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">Portal Energético</span>
+                      <span className="text-gold font-bold uppercase tracking-widest text-[11px]">Portal Energético</span>
                     </div>
                     {cuEvolucionData?.latest?.fecha && (
                       <p className="text-[10px] text-theme-muted mt-0.5">Actualizado: {cuEvolucionData.latest.fecha}</p>
@@ -982,7 +992,7 @@ export default function Home() {
                     href="https://portalenergetico.minenergia.gov.co/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-amber-400/30 hover:text-amber-400 transition-colors mt-0.5"
+                    className="text-gold/30 hover:text-gold transition-colors mt-0.5"
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
@@ -995,12 +1005,12 @@ export default function Home() {
                 {/* KPIs CU */}
                 <div className="grid grid-cols-2 gap-2 mb-3">
                   <div className="bg-amber-500/[0.08] border border-amber-500/20 rounded-lg px-3 py-2">
-                    <p className="text-[8.5px] font-bold tracking-widest text-amber-400/70 uppercase leading-none mb-1">CU Mayorista LAC</p>
+                    <p className="text-[8.5px] font-bold tracking-widest text-gold/70 uppercase leading-none mb-1">CU Mayorista LAC</p>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-lg font-bold text-amber-300 leading-none">
+                      <span className="text-lg font-bold text-gold leading-none">
                         {(cuEvolucionData?.latest?.cu_total ?? cuData.cuMayoristaLac).toFixed(1)}
                       </span>
-                      <span className="text-[8px] text-amber-400/50">COP/kWh</span>
+                      <span className="text-[8px] text-gold/50">COP/kWh</span>
                     </div>
                   </div>
                   <div className="bg-blue-500/[0.08] border border-blue-500/20 rounded-lg px-3 py-2">
@@ -1070,7 +1080,7 @@ export default function Home() {
                                 <div className="text-theme-muted mb-0.5">
                                   {new Date(String(point.data.x)).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}
                                 </div>
-                                <div className="text-amber-400 font-bold">{point.seriesId}: {Number(point.data.y).toFixed(2)} COP/kWh</div>
+                                <div className="text-gold font-bold">{point.seriesId}: {Number(point.data.y).toFixed(2)} COP/kWh</div>
                               </div>
                             )}
                             legends={[]}
@@ -1113,7 +1123,7 @@ export default function Home() {
           <Card delay={0.15}>
             {/* Título grupal */}
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-amber-400 font-bold uppercase tracking-widest text-xs">COMUNIDADES ENERGÉTICAS</span>
+              <span className="text-gold font-bold uppercase tracking-widest text-xs">COMUNIDADES ENERGÉTICAS</span>
               <span className="text-[10px] text-theme-muted">{cemData.ultimaActualizacion || comunidades.updateTime}</span>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
@@ -1157,12 +1167,12 @@ export default function Home() {
               <div className="mt-2 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-xs text-theme-primary truncate font-semibold">{ceDepto.name}</span>
-                  <span className="text-sm font-bold text-amber-400 ml-2 shrink-0">{ceDepto.count} CEs</span>
+                  <span className="text-sm font-bold text-gold ml-2 shrink-0">{ceDepto.count} CEs</span>
                 </div>
                 {cemMunicipios[ceDepto.name] && (
                   <div className="flex flex-wrap gap-1">
                     {cemMunicipios[ceDepto.name].map(m => (
-                      <span key={m.municipio} className="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded-full">
+                      <span key={m.municipio} className="text-[9px] bg-amber-500/20 text-gold px-1.5 py-0.5 rounded-full">
                         {m.municipio} {m.count}
                       </span>
                     ))}
@@ -1225,7 +1235,7 @@ export default function Home() {
                   axisBottom={{ tickSize: 0, tickPadding: 8 }}
                   tooltip={({ indexValue, value }) => (
                     <div className="nt">
-                      {indexValue}: <strong className="text-amber-400">{value}%</strong>
+                      {indexValue}: <strong className="text-gold">{value}%</strong>
                     </div>
                   )}
                 />
@@ -1280,12 +1290,12 @@ export default function Home() {
                   <div className="mt-2 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-xs text-theme-primary truncate font-semibold">{fenDepto.name}</span>
-                      <span className="text-sm font-bold text-amber-400 ml-2 shrink-0">{fenDepto.count} CEs</span>
+                      <span className="text-sm font-bold text-gold ml-2 shrink-0">{fenDepto.count} CEs</span>
                     </div>
                     {fenMunicipios[fenDepto.name] && (
                       <div className="flex flex-wrap gap-1">
                         {fenMunicipios[fenDepto.name].map(m => (
-                          <span key={m.municipio} className="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded-full">
+                          <span key={m.municipio} className="text-[9px] bg-amber-500/20 text-gold px-1.5 py-0.5 rounded-full">
                             {m.municipio} {m.count}
                           </span>
                         ))}
@@ -1320,7 +1330,7 @@ export default function Home() {
           <Card delay={0.3}>
             {/* Título grupal */}
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-amber-400 font-bold uppercase tracking-widest text-xs">SUBSIDIOS</span>
+              <span className="text-gold font-bold uppercase tracking-widest text-xs">SUBSIDIOS</span>
               <span className="text-[10px] text-theme-muted">{subData.ultimaActualizacion || subsidios.updateTime}</span>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
@@ -1382,23 +1392,23 @@ export default function Home() {
             <CardHeader title="Detalle de Pagos" link="/pagos" time={subData.ultimaActualizacion || subsidios.updateTime} />
             {/* Resoluciones 2026 */}
             <div className="text-center mb-4">
-              <div className="text-5xl font-bold text-amber-400 leading-none">{subData.anio2026.resoluciones}</div>
+              <div className="text-5xl font-bold text-gold leading-none">{subData.anio2026.resoluciones}</div>
               <div className="text-sm text-theme-secondary mt-1">resoluciones expedidas</div>
             </div>
             {/* Filas Asignado / Pendiente / Pagado */}
             <div className="space-y-2 mb-4">
-              <div className="flex justify-between items-center bg-[#0F172A]/60 rounded-lg px-3 py-2.5">
+              <div className="flex justify-between items-center bg-theme-tertiary rounded-lg px-3 py-2.5">
                 <span className="text-xs text-theme-muted uppercase tracking-wider">Comprometido en Resoluciones</span>
                 <span className="text-sm font-bold text-purple-400">{fmtFull(subData.anio2026.valorAsignado)}</span>
               </div>
-              <div className="flex justify-between items-center bg-[#0F172A]/60 rounded-lg px-3 py-2.5 relative group">
+              <div className="flex justify-between items-center bg-theme-tertiary rounded-lg px-3 py-2.5 relative group">
                 <span className="text-xs text-theme-muted uppercase tracking-wider">Pendiente</span>
                 <span className="text-sm font-bold text-red-400">{fmtFull(subData.anio2026.pendiente)} *</span>
-                <div className="absolute bottom-full right-0 mb-1 hidden group-hover:block bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-[9px] text-slate-200 whitespace-nowrap z-10 shadow-lg">
+                <div className="absolute bottom-full right-0 mb-1 hidden group-hover:block bg-theme-secondary border border-theme-primary rounded-lg px-2 py-1 text-[9px] text-theme-primary whitespace-nowrap z-10 shadow-lg">
                   Pendiente de desembolso por parte del Ministerio de Hacienda y Crédito Público
                 </div>
               </div>
-              <div className="flex justify-between items-center bg-[#0F172A]/60 rounded-lg px-3 py-2.5">
+              <div className="flex justify-between items-center bg-theme-tertiary rounded-lg px-3 py-2.5">
                 <span className="text-xs text-theme-muted uppercase tracking-wider">Pagado</span>
                 <span className="text-sm font-bold text-emerald-400">{fmtFull(subData.anio2026.pagado)}</span>
               </div>
@@ -1413,7 +1423,7 @@ export default function Home() {
               const pctPend = asig > 0 ? (pend / asig) * 100 : 0;
               return (
                 <>
-                  <div className="h-3 bg-slate-700/30 rounded-full overflow-hidden flex mb-1.5">
+                  <div className="h-3 bg-theme-tertiary rounded-full overflow-hidden flex mb-1.5">
                     <motion.div className="h-full bg-gradient-to-r from-emerald-700 to-emerald-500" initial={{ width: 0 }} animate={{ width: `${pctPag}%` }} transition={{ duration: 0.8, delay: 0.2 }} />
                     <motion.div className="h-full bg-gradient-to-r from-red-700 to-red-500" initial={{ width: 0 }} animate={{ width: `${pctPend}%` }} transition={{ duration: 0.8, delay: 0.3 }} />
                   </div>
@@ -1433,7 +1443,7 @@ export default function Home() {
             {valData ? (() => {
               // Función para crear datos de gráfico sin "Otros" y con etiquetas correctas
               const createPieData = (fondoData: { vf: number; vp: number; vi: number; viSp: number }) => [
-                { id: "VF — Validación Final",                   label: "VF",    value: fondoData.vf,   color: "#FDE68A" },
+                { id: "VF — Validación Final",                   label: "VF",    value: fondoData.vf,   color: "var(--color-gold)" },
                 { id: "VP — Validación Pendiente",               label: "VP",    value: fondoData.vp,   color: "#F59E0B" },
                 { id: "VI SP — Validación Inicial Saldos Pendientes", label: "VI SP", value: fondoData.viSp, color: "#78350F" },
                 { id: "VI — Validación Inicial",                 label: "VI",    value: fondoData.vi,   color: "#B45309" },
@@ -1461,14 +1471,14 @@ export default function Home() {
                           tooltip={({ datum }) => {
                             const pct = total > 0 ? ((datum.value / total) * 100).toFixed(1) : "0.0";
                             return (
-                              <div className="bg-[#1E293B] border border-[#334155] rounded-lg px-2 py-1 text-xs text-[#E2E8F0] shadow-lg">
+                              <div className="bg-theme-secondary border border-theme-primary rounded-lg px-2 py-1 text-xs text-theme-primary shadow-lg">
                                 <div className="flex items-center gap-1.5 mb-0.5">
                                   <span className="w-2 h-2 rounded-full shrink-0" style={{ background: datum.color }} />
                                   <span className="font-semibold">{datum.label}</span>
                                 </div>
                                 <div className="pl-3.5">
-                                  <span className="text-amber-400 font-bold">{datum.value.toLocaleString("es-CO")}</span>
-                                  <span className="text-[#94A3B8] ml-1">({pct}%)</span>
+                                  <span className="text-gold font-bold">{datum.value.toLocaleString("es-CO")}</span>
+                                  <span className="text-theme-secondary ml-1">({pct}%)</span>
                                 </div>
                               </div>
                             );
@@ -1512,7 +1522,7 @@ export default function Home() {
                   </div>
                   {/* KPIs */}
                   <div className="grid grid-cols-5 gap-1.5">
-                    <KpiItem label="VF" value={totalVF.toLocaleString("es-CO")} color="#FDE68A" />
+                    <KpiItem label="VF" value={totalVF.toLocaleString("es-CO")} color="var(--color-gold)" />
                     <KpiItem label="VP" value={totalVP.toLocaleString("es-CO")} color="#F59E0B" />
                     <KpiItem label="VI" value={totalVI.toLocaleString("es-CO")} color="#B45309" />
                     <KpiItem label="VI SP" value={totalViSp.toLocaleString("es-CO")} color="#78350F" />
@@ -1540,7 +1550,7 @@ export default function Home() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[10px] text-theme-muted uppercase tracking-wider">Apropiación Pptal DEE</p>
-                  <p className="text-lg font-bold text-amber-400 mt-0.5 leading-tight">{fmtFull(presuData.totales.apropiacion)}</p>
+                  <p className="text-lg font-bold text-gold mt-0.5 leading-tight">{fmtFull(presuData.totales.apropiacion)}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] text-theme-muted uppercase tracking-wider">Ejecución</p>
@@ -1561,7 +1571,7 @@ export default function Home() {
                 const pctDisp = Math.max(0, 100 - pctComp);
                 return (
                   <>
-                    <div className="h-4 bg-slate-700/30 rounded-full overflow-hidden flex">
+                    <div className="h-4 bg-theme-tertiary rounded-full overflow-hidden flex">
                       {/* Obligado primero (rojo) */}
                       <motion.div
                         className="h-full bg-gradient-to-r from-red-700 to-red-500"
@@ -1585,7 +1595,7 @@ export default function Home() {
                       />
                     </div>
                     <div className="flex justify-between text-[10px] mt-1.5">
-                      <span className="text-amber-400 font-semibold">
+                      <span className="text-gold font-semibold">
                         {pctComp.toFixed(2)}% Comp. ({pctObl.toFixed(2)}% obl.)
                       </span>
                       <span className="text-slate-400">
@@ -1605,8 +1615,8 @@ export default function Home() {
             
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-amber-500/10 rounded-lg p-2">
-                <p className="text-[9px] text-amber-400/70 uppercase">Comprometido</p>
-                <p className="text-xs font-bold text-amber-400 mt-0.5">{fmtFull(presuData.totales.comprometido)}</p>
+                <p className="text-[9px] text-gold/70 uppercase">Comprometido</p>
+                <p className="text-xs font-bold text-gold mt-0.5">{fmtFull(presuData.totales.comprometido)}</p>
               </div>
               <div className="bg-red-500/10 rounded-lg p-2">
                 <p className="text-[9px] text-red-400/70 uppercase">Obligado</p>

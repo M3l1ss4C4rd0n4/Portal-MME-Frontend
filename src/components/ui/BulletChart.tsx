@@ -39,7 +39,7 @@ export default function BulletChart({
   return (
     <div className="w-full">
       <div 
-        className="relative w-full bg-slate-700/30 rounded-full overflow-hidden flex"
+        className="relative w-full bg-theme-tertiary rounded-full overflow-hidden flex"
         style={{ height: barHeight }}
       >
         {/* Obligado - Rojo */}
@@ -52,7 +52,7 @@ export default function BulletChart({
           <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
           {/* Tooltip */}
           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-            <div className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-[10px] whitespace-nowrap">
+            <div className="bg-theme-secondary border border-theme-primary rounded px-2 py-1 text-[10px] whitespace-nowrap">
               <span className="text-red-400 font-semibold">Obligado (legalizado):</span> {obligado.toFixed(2)}%
             </div>
           </div>
@@ -68,8 +68,8 @@ export default function BulletChart({
           <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
           {/* Tooltip */}
           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-            <div className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-[10px] whitespace-nowrap">
-              <span className="text-amber-400 font-semibold">Comprometido restante:</span> {comprometido.toFixed(2)}%
+            <div className="bg-theme-secondary border border-theme-primary rounded px-2 py-1 text-[10px] whitespace-nowrap">
+              <span className="text-gold font-semibold">Comprometido restante:</span> {comprometido.toFixed(2)}%
             </div>
           </div>
         </motion.div>
@@ -84,7 +84,7 @@ export default function BulletChart({
           <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
           {/* Tooltip */}
           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-            <div className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-[10px] whitespace-nowrap">
+            <div className="bg-theme-secondary border border-theme-primary rounded px-2 py-1 text-[10px] whitespace-nowrap">
               <span className="text-slate-400 font-semibold">Disponible (sin compromiso):</span> {disp.toFixed(2)}%
             </div>
           </div>
@@ -101,7 +101,7 @@ export default function BulletChart({
           </span>
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-amber-400" />
-            <span className="text-amber-400 font-semibold">{comprometido.toFixed(2)}%</span>
+            <span className="text-gold font-semibold">{comprometido.toFixed(2)}%</span>
             <span className="text-slate-500">Comp.</span>
           </span>
         </div>

@@ -34,15 +34,49 @@ function KpiChip({ label, value, avg, avgLabel, accent = false }: { label: strin
   const fontClass = strLen <= 8 ? "text-xl" : strLen <= 13 ? "text-base" : "text-sm";
   return (
     <div className="bg-dash-chip rounded-xl px-4 py-3">
-      <div className={`${fontClass} font-bold leading-tight break-all ${accent ? "text-amber-400" : "text-theme-primary"}`}>{value}</div>
+      <div className={`${fontClass} font-bold leading-tight break-all ${accent ? "text-gold" : "text-theme-primary"}`}>{value}</div>
       <div className="text-[11px] text-theme-muted mt-1.5 leading-tight">{label}</div>
       {avg && (
         <div className="mt-2 pt-2 border-t border-white/[0.07] flex items-baseline gap-1">
-          <span className="text-[10px] font-bold text-amber-400/90 leading-none">{avg}</span>
+          <span className="text-[10px] font-bold text-gold/90 leading-none">{avg}</span>
           <span className="text-[9px] text-theme-muted leading-none">{avgLabel ?? "/ CE"}</span>
         </div>
       )}
     </div>
+  );
+}
+
+// ─── AccordionSection (collapsible filter panel) ─────────────────────────
+function AccordionSection({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mb-2.5 border-b border-white/[0.06] pb-2.5 last:border-0 last:pb-0 last:mb-0">
+      <button onClick={() => setOpen(!open)}
+        className="flex items-center justify-between w-full text-left py-1.5 text-[11px] font-semibold text-theme-primary hover:text-gold transition-colors">
+        <span>{title}</span>
+        <span className="flex items-center gap-2">
+          <span className="text-[10px] text-theme-muted font-normal">{count}</span>
+          <svg className={`w-2.5 h-2.5 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </span>
+      </button>
+      {open && <div className="pt-1">{children}</div>}
+    </div>
+  );
+}
+
+function FilterItem({ label, count, active, onClick }: { label: string; count: number; active: boolean; onClick: () => void }) {
+  return (
+    <button onClick={onClick}
+      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] transition-all ${
+        active
+          ? "bg-amber-500/15 text-gold border border-amber-500/30"
+          : "text-theme-secondary hover:bg-dash-chip hover:text-theme-primary border border-transparent"
+      }`}>
+      <span className="truncate mr-2">{label}</span>
+      <span className={`shrink-0 text-[10px] ${active ? 'text-gold' : 'text-theme-muted'}`}>{count}</span>
+    </button>
   );
 }
 
@@ -120,6 +154,37 @@ interface DptoRow {
   capacidad: number;
   inversion: number;
 }
+interface EstadoRow {
+  estado: string;
+  count: number;
+  capacidad: number;
+  inversion: number;
+}
+interface TipoCERow {
+  tipo: string;
+  count: number;
+  capacidad: number;
+  inversion: number;
+}
+interface FuenteRow {
+  fuente: string;
+  count: number;
+  capacidad: number;
+  inversion: number;
+}
+interface FinanciaRow {
+  fuente: string;
+  count: number;
+  inversion: number;
+}
+interface StatsFechas {
+  min_registro: string | null;
+  max_registro: string | null;
+  min_operacion: string | null;
+  max_operacion: string | null;
+  con_registro: number;
+  con_operacion: number;
+}
 interface ComunidadesData {
   implementadas: number;
   inversionEstimada: number;
@@ -130,38 +195,43 @@ interface ComunidadesData {
   avgUsuarios: number | null;
   avgBeneficiarios: number | null;
   avgInversion: number | null;
+  inversionFinal: number;
+  conInversionFinal: number;
+  conFechaOperacion: number;
   porDepartamento: DptoRow[];
   detalleZona: DetalleZona[];
+  porEstado: EstadoRow[];
+  porTipoCE: TipoCERow[];
+  porFuenteEnergia: FuenteRow[];
+  porFuenteFinanciacion: FinanciaRow[];
+  statsFechas: StatsFechas;
   puntos: CePunto[];
   porMunicipio: Record<string, MuniRow[]>;
   deptAvgs: Record<string, DeptAvg>;
 }
 const DEFAULT: ComunidadesData = {
   implementadas: 469,
-  inversionEstimada: 290379880159.74,
-  capacidadKwp: 12837.12,
-  usuariosEquiv: 16358,
-  beneficiariosEquiv: 97112,
-  avgCapacidad: 33.6,
-  avgUsuarios: 35.8,
-  avgBeneficiarios: 212.5,
-  avgInversion: 772300000,
+  inversionEstimada: 196125460067.64,
+  capacidadKwp: 11164.465,
+  usuariosEquiv: 20789,
+  beneficiariosEquiv: 128254.125,
+  avgCapacidad: 30.26,
+  avgUsuarios: 44.33,
+  avgBeneficiarios: 273.46,
+  avgInversion: 537330027.58,
+  inversionFinal: 64333029737.85,
+  conInversionFinal: 175,
+  conFechaOperacion: 19,
   porDepartamento: [],
   detalleZona: [],
+  porEstado: [],
+  porTipoCE: [],
+  porFuenteEnergia: [],
+  porFuenteFinanciacion: [],
+  statsFechas: { min_registro: null, max_registro: null, min_operacion: null, max_operacion: null, con_registro: 0, con_operacion: 0 },
   puntos: [],
   porMunicipio: {},
   deptAvgs: {},
-};
-
-type ZonaFilter = "TODOS" | "SIN" | "MIXTO" | "ZNI";
-const ZONA_COLORS: Record<string, string> = {
-  SIN: "#F59E0B",
-  MIXTO: "#06B6D4",
-  ZNI: "#8B5CF6",
-  "Sin clasificar": "#475569",
-};
-const ZONA_LABELS: Record<string, string> = {
-  TODOS: "Todos", SIN: "SIN", MIXTO: "MIXTO", ZNI: "ZNI",
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────
@@ -171,9 +241,8 @@ export default function ComunidadesPage() {
   const T = getNivoTheme(isDark);
 
   const [data, setData] = useState<ComunidadesData>(DEFAULT);
-  const [selectedDept, setSelectedDept] = useState<string | null>(null); // NOMBRE_DPT del GeoJSON
-  const [selectedZona, setSelectedZona] = useState<ZonaFilter>("TODOS");
   const [geoData, setGeoData] = useState<object | null>(null);
+  const [ultimaActualizacion, setUltimaActualizacion] = useState<string>("");
 
   // Cargar GeoJSON departamentos
   useEffect(() => {
@@ -195,6 +264,9 @@ export default function ComunidadesPage() {
           avgUsuarios: raw.avgUsuarios != null ? Number(raw.avgUsuarios) : DEFAULT.avgUsuarios,
           avgBeneficiarios: raw.avgBeneficiarios != null ? Number(raw.avgBeneficiarios) : DEFAULT.avgBeneficiarios,
           avgInversion: raw.avgInversion != null ? Number(raw.avgInversion) : DEFAULT.avgInversion,
+          inversionFinal: Number(raw.inversionFinal) || DEFAULT.inversionFinal,
+          conInversionFinal: Number(raw.conInversionFinal) || DEFAULT.conInversionFinal,
+          conFechaOperacion: Number(raw.conFechaOperacion) || DEFAULT.conFechaOperacion,
           porDepartamento: (raw.porDepartamento || []).map((d: any) => ({
             departamento: String(d.departamento),
             departamentoGeo: String(d.departamentoGeo),
@@ -218,6 +290,11 @@ export default function ComunidadesPage() {
             lat: Number(p.lat),
             lng: Number(p.lng),
             capacidad: p.capacidad != null ? Number(p.capacidad) : null,
+            estado_actual: String(p.estado_actual || ""),
+            tipo_ce: String(p.tipo_ce || ""),
+            fuentes_energia: String(p.fuentes_energia || ""),
+            inversion_estimada: p.inversion_estimada != null ? Number(p.inversion_estimada) : null,
+            inversion_final: p.inversion_final != null ? Number(p.inversion_final) : null,
           })),
           porMunicipio: Object.fromEntries(
             Object.entries(raw.porMunicipio || {}).map(([dept, munis]: [string, any]) => [
@@ -232,7 +309,7 @@ export default function ComunidadesPage() {
           ),
           deptAvgs: Object.fromEntries(
             Object.entries(raw.deptAvgs || {}).map(([dept, v]: [string, any]) => [
-              dept,
+              normDeptKey(dept),
               {
                 avgCap:   v.avgCap   != null ? Number(v.avgCap)   : null,
                 avgUsu:   v.avgUsu   != null ? Number(v.avgUsu)   : null,
@@ -243,179 +320,314 @@ export default function ComunidadesPage() {
               },
             ])
           ),
+          porEstado: (raw.porEstado || []).map((e: any) => ({
+            estado: String(e.estado || ""),
+            count: Number(e.count) || 0,
+            capacidad: Number(e.capacidad) || 0,
+            inversion: Number(e.inversion) || 0,
+          })),
+          porTipoCE: (raw.porTipoCE || []).map((e: any) => ({
+            tipo: String(e.tipo || ""),
+            count: Number(e.count) || 0,
+            capacidad: Number(e.capacidad) || 0,
+            inversion: Number(e.inversion) || 0,
+          })),
+          porFuenteEnergia: (raw.porFuenteEnergia || []).map((e: any) => ({
+            fuente: String(e.fuente || ""),
+            count: Number(e.count) || 0,
+            capacidad: Number(e.capacidad) || 0,
+            inversion: Number(e.inversion) || 0,
+          })),
+          porFuenteFinanciacion: (raw.porFuenteFinanciacion || []).map((e: any) => ({
+            fuente: String(e.fuente || ""),
+            count: Number(e.count) || 0,
+            inversion: Number(e.inversion) || 0,
+          })),
+          statsFechas: {
+            min_registro: raw.statsFechas?.min_registro ?? null,
+            max_registro: raw.statsFechas?.max_registro ?? null,
+            min_operacion: raw.statsFechas?.min_operacion ?? null,
+            max_operacion: raw.statsFechas?.max_operacion ?? null,
+            con_registro: Number(raw.statsFechas?.con_registro) || 0,
+            con_operacion: Number(raw.statsFechas?.con_operacion) || 0,
+          },
         });
+      if (raw.ultima_actualizacion) setUltimaActualizacion(String(raw.ultima_actualizacion ?? ""));
       })
       .catch(() => {});
   }, []);
 
-  // ─── Datos filtrados (zona + dept) ───────────────────────────────────────
-  const filteredDetalle = useMemo(() => {
-    let d = data.detalleZona;
-    if (selectedZona !== "TODOS") d = d.filter((r) => r.zona === selectedZona);
-    if (selectedDept) d = d.filter((r) => r.departamentoGeo === selectedDept);
-    return d;
-  }, [data.detalleZona, selectedDept, selectedZona]);
+  // ─── Filtros activos ─────────────────────────────────────────────────────
+  const [selectedEstado, setSelectedEstado] = useState<string | null>(null);
+  const [selectedTipoCE, setSelectedTipoCE] = useState<string | null>(null);
+  const [selectedFuente, setSelectedFuente] = useState<string | null>(null);
+  const [selectedFinancia, setSelectedFinancia] = useState<string | null>(null);
+  const [selectedDept, setSelectedDept] = useState<string | null>(null);
 
-  // KPIs filtrados
-  const kpiFiltered = useMemo(() => {
-    if (selectedDept === null && selectedZona === "TODOS") return null; // usar globales
-    return {
-      implementadas: filteredDetalle.reduce((s, r) => s + r.count, 0),
-      capacidadKwp: filteredDetalle.reduce((s, r) => s + r.capacidad, 0),
-      inversionEstimada: filteredDetalle.reduce((s, r) => s + r.inversion, 0),
-    };
-  }, [filteredDetalle, selectedDept, selectedZona]);
+  // Leer parámetros de URL (para capturas Playwright con filtros)
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.has("estado"))       setSelectedEstado(sp.get("estado")!);
+    if (sp.has("tipo"))         setSelectedTipoCE(sp.get("tipo")!);
+    if (sp.has("fuente"))       setSelectedFuente(sp.get("fuente")!);
+    if (sp.has("financia"))     setSelectedFinancia(sp.get("financia")!);
+    if (sp.has("departamento")) setSelectedDept(sp.get("departamento")!);
+  }, []);
 
-  // porDepartamento filtrado por zona (para barras y tabla)
-  const filteredByDept = useMemo(() => {
-    let src = data.detalleZona;
-    if (selectedZona !== "TODOS") src = src.filter((r) => r.zona === selectedZona);
-    // Agrupar por dpto
-    const m = new Map<string, DptoRow>();
-    for (const r of src) {
-      const prev = m.get(r.departamentoGeo);
-      if (prev) { prev.count += r.count; prev.capacidad += r.capacidad; prev.inversion += r.inversion; }
-      else m.set(r.departamentoGeo, { departamento: r.departamento, departamentoGeo: r.departamentoGeo, count: r.count, capacidad: r.capacidad, inversion: r.inversion });
-    }
-    return [...m.values()].sort((a, b) => b.count - a.count);
-  }, [data.detalleZona, selectedZona]);
-
-  // Puntos filtrados para el mapa Leaflet
-  const puntosFiltered = useMemo(() => {
+  // ─── Datos filtrados (multi-filtro: estado, tipo, fuente, depto) ─────────
+  const filteredPuntos = useMemo(() => {
     let p = data.puntos;
-    if (selectedZona !== "TODOS") p = p.filter((r) => r.zona === selectedZona);
-    if (selectedDept) p = p.filter((r) => r.departamentoGeo === selectedDept);
+    if (selectedEstado) p = p.filter(r => r.estado_actual === selectedEstado);
+    if (selectedTipoCE) p = p.filter(r => r.tipo_ce === selectedTipoCE);
+    if (selectedFuente) p = p.filter(r => r.fuentes_energia === selectedFuente);
+    if (selectedDept) p = p.filter(r => r.departamentoGeo === selectedDept);
     return p;
-  }, [data.puntos, selectedZona, selectedDept]);
+  }, [data.puntos, selectedEstado, selectedTipoCE, selectedFuente, selectedDept]);
 
-  // Colores de departamento para el GeoJSON (mismo esquema que el mapa anterior)
+  // KPIs desde puntos filtrados
+  const kpiFiltrados = useMemo(() => {
+    const len = filteredPuntos.length;
+    const totalCap = filteredPuntos.reduce((s, r) => s + (r.capacidad ?? 0), 0);
+    const totalInvEst = filteredPuntos.reduce((s, r) => s + (r.inversion_estimada ?? 0), 0);
+    const totalInvFin = filteredPuntos.reduce((s, r) => s + (r.inversion_final ?? 0), 0);
+    return { implementadas: len, capacidadKwp: totalCap, inversionEstimada: totalInvEst, inversionFinal: totalInvFin };
+  }, [filteredPuntos]);
+
+  const hayFiltros = selectedEstado !== null || selectedTipoCE !== null || selectedFuente !== null || selectedDept !== null;
+
+  // KPIs a mostrar
+  const displayKpi = useMemo(() => {
+    if (!hayFiltros) return {
+      implementadas: data.implementadas,
+      inversionEstimada: data.inversionEstimada,
+      capacidadKwp: data.capacidadKwp,
+      usuariosEquiv: data.usuariosEquiv,
+      beneficiariosEquiv: data.beneficiariosEquiv,
+      inversionFinal: data.inversionFinal,
+      avgInversion: data.avgInversion,
+      avgCapacidad: data.avgCapacidad,
+      avgUsuarios: data.avgUsuarios,
+      avgBeneficiarios: data.avgBeneficiarios,
+    };
+    return {
+      implementadas: kpiFiltrados.implementadas,
+      inversionEstimada: kpiFiltrados.inversionEstimada,
+      capacidadKwp: kpiFiltrados.capacidadKwp,
+      usuariosEquiv: data.usuariosEquiv,
+      beneficiariosEquiv: data.beneficiariosEquiv,
+      inversionFinal: kpiFiltrados.inversionFinal,
+      avgInversion: data.avgInversion,
+      avgCapacidad: data.avgCapacidad,
+      avgUsuarios: data.avgUsuarios,
+      avgBeneficiarios: data.avgBeneficiarios,
+    };
+  }, [data, kpiFiltrados, hayFiltros]);
+
+  // Agregaciones para charts (desde puntos filtrados)
+  const chartPorEstado = useMemo(() => {
+    const map = new Map<string, { estado: string; count: number; capacidad: number; inversion: number }>();
+    for (const p of filteredPuntos) {
+      const key = p.estado_actual || "Sin estado";
+      const prev = map.get(key);
+      if (prev) { prev.count++; prev.capacidad += p.capacidad ?? 0; prev.inversion += p.inversion_estimada ?? 0; }
+      else map.set(key, { estado: key, count: 1, capacidad: p.capacidad ?? 0, inversion: p.inversion_estimada ?? 0 });
+    }
+    return [...map.values()].sort((a, b) => b.count - a.count);
+  }, [filteredPuntos]);
+
+  const chartPorTipoCE = useMemo(() => {
+    const map = new Map<string, { tipo: string; count: number; capacidad: number; inversion: number }>();
+    for (const p of filteredPuntos) {
+      const key = p.tipo_ce || "Sin tipo";
+      const prev = map.get(key);
+      if (prev) { prev.count++; prev.capacidad += p.capacidad ?? 0; prev.inversion += p.inversion_estimada ?? 0; }
+      else map.set(key, { tipo: key, count: 1, capacidad: p.capacidad ?? 0, inversion: p.inversion_estimada ?? 0 });
+    }
+    return [...map.values()].sort((a, b) => b.count - a.count);
+  }, [filteredPuntos]);
+
+  const chartPorFuente = useMemo(() => {
+    const map = new Map<string, { fuente: string; count: number; capacidad: number; inversion: number }>();
+    for (const p of filteredPuntos) {
+      const key = p.fuentes_energia || "Sin fuente";
+      const prev = map.get(key);
+      if (prev) { prev.count++; prev.capacidad += p.capacidad ?? 0; prev.inversion += p.inversion_estimada ?? 0; }
+      else map.set(key, { fuente: key, count: 1, capacidad: p.capacidad ?? 0, inversion: p.inversion_estimada ?? 0 });
+    }
+    return [...map.values()].sort((a, b) => b.count - a.count);
+  }, [filteredPuntos]);
+
+  // Departamentos desde puntos filtrados; si no hay puntos con coords, usa porDepartamento del API
+  const deptDesdePuntos = useMemo(() => {
+    if (filteredPuntos.length > 0) {
+      const map = new Map<string, DptoRow>();
+      for (const p of filteredPuntos) {
+        const gk = p.departamentoGeo;
+        const prev = map.get(gk);
+        if (prev) { prev.count++; prev.capacidad += p.capacidad ?? 0; prev.inversion += p.inversion_estimada ?? 0; }
+        else map.set(gk, { departamento: gk, departamentoGeo: gk, count: 1, capacidad: p.capacidad ?? 0, inversion: p.inversion_estimada ?? 0 });
+      }
+      return [...map.values()].sort((a, b) => b.count - a.count);
+    }
+    return data.porDepartamento;
+  }, [filteredPuntos, data.porDepartamento]);
+
+  // Normalizar nombres de departamento: quitar acentos y mayusculizar
+  // (el backend devuelve "ATLÁNTICO" pero el GeoJSON usa "ATLANTICO")
+  function normDeptKey(name: string): string {
+    return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+  }
+
+  // Colores de departamento para el GeoJSON
   const deptColors = useMemo(() => {
     const result: Record<string, string> = {};
-    for (const d of filteredByDept) {
-      result[d.departamentoGeo] = d.count >= 60 ? "#F59E0B" : d.count >= 20 ? "#D97706" : "#7C3A0A";
+    for (const d of deptDesdePuntos) {
+      result[normDeptKey(d.departamentoGeo)] = d.count >= 60 ? "#F59E0B" : d.count >= 20 ? "#D97706" : "#7C3A0A";
     }
     return result;
-  }, [filteredByDept]);
+  }, [deptDesdePuntos]);
 
-  // Top 12 para barras
-  const top12 = selectedDept
-    ? filteredByDept.filter((d) => d.departamentoGeo === selectedDept)
-    : filteredByDept.slice(0, 12);
+  // Top N para charts — usa puntos filtrados si existen, si no cae en datos pre-agregados del API
+  // Remapeo a tipo anónimo para compatibilidad con BarDatum de Nivo (evita restricción de index signature)
+  const TOP_N_EST = 6;
+  const chartEstadoTop = useMemo(() => {
+    const base = chartPorEstado.length > 0
+      ? chartPorEstado
+      : data.porEstado.map(({ estado, count, capacidad, inversion }) => ({ estado, count, capacidad, inversion }));
+    if (base.length <= TOP_N_EST + 1) return base;
+    const top = base.slice(0, TOP_N_EST);
+    const otros = base.slice(TOP_N_EST);
+    const sum = otros.reduce((s, r) => ({ estado: "Otros", count: s.count + r.count, capacidad: s.capacidad + r.capacidad, inversion: s.inversion + r.inversion }), { estado: "Otros", count: 0, capacidad: 0, inversion: 0 });
+    return [...top, sum];
+  }, [chartPorEstado, data.porEstado]);
 
-  const barDataCE = top12
-    .slice()
-    .sort((a, b) => b.count - a.count)
-    .map((d) => ({
-      dept: d.departamentoGeo.length > 18 ? d.departamentoGeo.slice(0, 18) + "…" : d.departamentoGeo,
-      "CEs": d.count,
-      "kWp (÷10)": +(d.capacidad / 10).toFixed(0),
-    }))
-    .reverse(); // Nivo horizontal dibuja de abajo hacia arriba; reverse para mayor arriba
+  const TOP_N_TIPO = 8;
+  const chartTipoTop = useMemo(() => {
+    const base = chartPorTipoCE.length > 0
+      ? chartPorTipoCE
+      : data.porTipoCE.map(({ tipo, count, capacidad, inversion }) => ({ tipo, count, capacidad, inversion }));
+    if (base.length <= TOP_N_TIPO + 1) return base;
+    const top = base.slice(0, TOP_N_TIPO);
+    const otros = base.slice(TOP_N_TIPO);
+    const sum = otros.reduce((s, r) => ({ tipo: "Otros", count: s.count + r.count, capacidad: s.capacidad + r.capacidad, inversion: s.inversion + r.inversion }), { tipo: "Otros", count: 0, capacidad: 0, inversion: 0 });
+    return [...top, sum];
+  }, [chartPorTipoCE, data.porTipoCE]);
 
-  const top12inv = selectedDept
-    ? filteredByDept.filter((d) => d.departamentoGeo === selectedDept)
-    : [...filteredByDept].sort((a, b) => b.inversion - a.inversion).slice(0, 12);
+  const TOP_N_FUENTE = 8;
+  const chartFuenteTop = useMemo(() => {
+    const base = chartPorFuente.length > 0
+      ? chartPorFuente
+      : data.porFuenteEnergia.map(({ fuente, count, capacidad, inversion }) => ({ fuente, count, capacidad, inversion }));
+    if (base.length <= TOP_N_FUENTE + 1) return base;
+    const top = base.slice(0, TOP_N_FUENTE);
+    const otros = base.slice(TOP_N_FUENTE);
+    const sum = otros.reduce((s, r) => ({ fuente: "Otros", count: s.count + r.count, capacidad: s.capacidad + r.capacidad, inversion: s.inversion + r.inversion }), { fuente: "Otros", count: 0, capacidad: 0, inversion: 0 });
+    return [...top, sum];
+  }, [chartPorFuente, data.porFuenteEnergia]);
 
-  const barDataInv = top12inv
-    .slice()
-    .sort((a, b) => b.inversion - a.inversion)
-    .map((d) => ({
-      dept: d.departamentoGeo.length > 18 ? d.departamentoGeo.slice(0, 18) + "…" : d.departamentoGeo,
-      "Inversión B$": +(d.inversion / 1e9).toFixed(1),
-    }))
-    .reverse();
-
-  const muniTableData: MuniRow[] | null = selectedDept
-    ? (data.porMunicipio[selectedDept] ?? [])
-    : null;
-  const tableData = selectedDept
-    ? filteredByDept.filter((d) => d.departamentoGeo === selectedDept)
-    : filteredByDept;
-
-  // Conteo de zonas para badges del filtro
-  const zonaCounts = useMemo(() => {
-    const base = selectedDept
-      ? data.detalleZona.filter((d) => d.departamentoGeo === selectedDept)
-      : data.detalleZona;
-    return { SIN: 0, MIXTO: 0, ZNI: 0, ...Object.fromEntries(["SIN","MIXTO","ZNI"].map(z => [z, base.filter(d => d.zona === z).reduce((s,r) => s+r.count, 0)])) };
-  }, [data.detalleZona, selectedDept]);
-
-  const displayKpi = {
-    implementadas: kpiFiltered?.implementadas ?? data.implementadas,
-    inversionEstimada: kpiFiltered?.inversionEstimada ?? data.inversionEstimada,
-    capacidadKwp: kpiFiltered?.capacidadKwp ?? data.capacidadKwp,
-    usuariosEquiv: selectedDept
-      ? (data.deptAvgs[selectedDept]?.sumUsu ?? data.usuariosEquiv)
-      : data.usuariosEquiv,
-    beneficiariosEquiv: selectedDept
-      ? (data.deptAvgs[selectedDept]?.sumBenef ?? data.beneficiariosEquiv)
-      : data.beneficiariosEquiv,
-  };
-
-  // Promedios activos según filtro de departamento
-  const activeAvgInv   = selectedDept ? (data.deptAvgs[selectedDept]?.avgInv   ?? data.avgInversion)     : data.avgInversion;
-  const activeAvgCap   = selectedDept ? (data.deptAvgs[selectedDept]?.avgCap   ?? data.avgCapacidad)     : data.avgCapacidad;
-  const activeAvgUsu   = selectedDept ? (data.deptAvgs[selectedDept]?.avgUsu   ?? data.avgUsuarios)      : data.avgUsuarios;
-  const activeAvgBenef = selectedDept ? (data.deptAvgs[selectedDept]?.avgBenef ?? data.avgBeneficiarios) : data.avgBeneficiarios;
+  // Tabla a nivel municipio (cuando se selecciona un dpto)
+  const muniTableData = useMemo(() => {
+    if (!selectedDept || !data.puntos) return null;
+    const rows: Record<string, { count: number; capacidad: number; inversionEst: number; inversionFin: number }> = {};
+    for (const p of data.puntos) {
+      if (p.departamentoGeo !== selectedDept) continue;
+      const mun = (p.municipio || "S/I").split(" ").map(w => w[0]+w.slice(1).toLowerCase()).join(" ");
+      if (!rows[mun]) rows[mun] = { count: 0, capacidad: 0, inversionEst: 0, inversionFin: 0 };
+      rows[mun].count += 1;
+      rows[mun].capacidad += p.capacidad ?? 0;
+      const invNum = typeof p.inversion_final === "number" ? p.inversion_final
+        : typeof p.inversion_estimada === "number" ? p.inversion_estimada : 0;
+      rows[mun].inversionEst += invNum;
+      rows[mun].inversionFin += typeof p.inversion_final === "number" ? p.inversion_final : 0;
+    }
+    return Object.entries(rows).map(([municipio, v]) => ({ municipio, ...v })).sort((a, b) => b.count - a.count);
+  }, [selectedDept, data.puntos]);
 
   const selectedDeptLabel = selectedDept
     ? selectedDept.split(" ").map(w => w[0]+w.slice(1).toLowerCase()).join(" ")
     : null;
 
   return (
-    <DashboardLayout title="Comunidades Energéticas" subtitle="Soluciones energéticas implementadas en zonas no interconectadas">
+    <DashboardLayout title="Comunidades Energéticas"
+      downloadTablero="comunidades" subtitle={`Soluciones energéticas implementadas en zonas no interconectadas${ultimaActualizacion ? "  ·  Última actualización: " + ultimaActualizacion : ""}`}
+      downloadParams={{ estado: selectedEstado || '', tipo: selectedTipoCE || '', fuente: selectedFuente || '', financia: selectedFinancia || '', departamento: selectedDept || '' }}>
 
       {/* ── Row 1: KPIs ── */}
       <Card delay={0.05} className="mb-5">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">INDICADORES GENERALES</span>
-          <div className="flex items-center gap-2">
+          <span className="text-gold font-bold uppercase tracking-widest text-[11px]">INDICADORES GENERALES</span>
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {selectedEstado && (
+              <span className="text-[10px] bg-sky-500/15 text-sky-400 px-2.5 py-1 rounded-full border border-sky-500/30">
+                Estado: {selectedEstado}
+              </span>
+            )}
+            {selectedTipoCE && (
+              <span className="text-[10px] bg-violet-500/15 text-violet-400 px-2.5 py-1 rounded-full border border-violet-500/30">
+                Tipo: {selectedTipoCE}
+              </span>
+            )}
+            {selectedFuente && (
+              <span className="text-[10px] bg-emerald-500/15 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/30">
+                Fuente: {selectedFuente.length > 20 ? selectedFuente.slice(0, 20) + '…' : selectedFuente}
+              </span>
+            )}
             {selectedDept && (
-              <span className="flex items-center gap-1.5 text-[10px] bg-amber-500/15 text-amber-400 px-2.5 py-1 rounded-full border border-amber-500/30">
+              <span className="flex items-center gap-1.5 text-[10px] bg-amber-500/15 text-gold px-2.5 py-1 rounded-full border border-amber-500/30">
                 <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"/></svg>
                 {selectedDeptLabel}
               </span>
             )}
-            {selectedZona !== "TODOS" && (
-              <span className="text-[10px] px-2.5 py-1 rounded-full border" style={{ background: ZONA_COLORS[selectedZona]+"22", color: ZONA_COLORS[selectedZona], borderColor: ZONA_COLORS[selectedZona]+"55" }}>
-                Zona {selectedZona}
-              </span>
-            )}
-            {(selectedDept || selectedZona !== "TODOS") && (
-              <button onClick={() => { setSelectedDept(null); setSelectedZona("TODOS"); }}
+            {hayFiltros && (
+              <button onClick={() => { setSelectedEstado(null); setSelectedTipoCE(null); setSelectedFuente(null); setSelectedFinancia(null); setSelectedDept(null); }}
                 className="text-[10px] text-theme-muted hover:text-red-400 transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10">
                 ✕ Limpiar filtros
               </button>
             )}
           </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
           <KpiChip label="CEs Implementadas" value={displayKpi.implementadas.toLocaleString("es-CO")} accent />
           <KpiChip label="Inversión Estimada" value={fmtCOP(displayKpi.inversionEstimada)} accent
-            avg={activeAvgInv != null ? fmtCOP(activeAvgInv) : undefined}
+            avg={displayKpi.avgInversion != null ? fmtCOP(displayKpi.avgInversion) : undefined}
             avgLabel="promedio / CE" />
+          <KpiChip label="Inversión Final" value={fmtCOP(displayKpi.inversionFinal)} accent />
           <KpiChip label="Capacidad Instalada" value={`${Math.round(displayKpi.capacidadKwp).toLocaleString("es-CO")} kWp`}
-            avg={activeAvgCap != null ? `${activeAvgCap.toFixed(1)} kWp` : undefined}
-            avgLabel="promedio / CE (no nulos)" />
-          <KpiChip label="Usuarios Equiv." value={`${displayKpi.usuariosEquiv.toLocaleString("es-CO")} mil`}
-            avg={activeAvgUsu != null ? `${activeAvgUsu.toFixed(1)} mil` : undefined}
-            avgLabel="promedio / CE (no nulos)" />
-          <KpiChip label="Beneficiarios" value={`${displayKpi.beneficiariosEquiv.toLocaleString("es-CO")} mil`}
-            avg={activeAvgBenef != null ? `${activeAvgBenef.toFixed(1)} mil` : undefined}
-            avgLabel="promedio / CE (no nulos)" />
+            avg={displayKpi.avgCapacidad != null ? `${Math.round(displayKpi.avgCapacidad)} kWp` : undefined}
+            avgLabel="promedio / CE" />
+          <KpiChip label="Usuarios Equiv." value={`${Math.round(displayKpi.usuariosEquiv).toLocaleString("es-CO")} mil`}
+            avg={displayKpi.avgUsuarios != null ? `${Math.round(displayKpi.avgUsuarios)} mil` : undefined}
+            avgLabel="promedio / CE" />
+          <KpiChip label="Beneficiarios" value={`${Math.round(displayKpi.beneficiariosEquiv).toLocaleString("es-CO")} mil`}
+            avg={displayKpi.avgBeneficiarios != null ? `${Math.round(displayKpi.avgBeneficiarios)} mil` : undefined}
+            avgLabel="promedio / CE" />
         </div>
+        {data.conInversionFinal > 0 && (
+          <div className="flex gap-3 mt-3 flex-wrap">
+            <span className="text-[10px] text-theme-muted">
+              {data.conInversionFinal} CEs con inversión final reportada
+            </span>
+            <span className="text-[10px] text-theme-muted">
+              {data.conFechaOperacion} CEs con fecha de operación
+            </span>
+            <span className="text-[10px] text-theme-muted">
+              {data.statsFechas.con_registro} CEs con fecha de registro
+            </span>
+          </div>
+        )}
+
       </Card>
 
-      {/* ── Row 2: Mapa + filtro zona ── */}
+      {/* ── Row 2: Mapa + acordeón filtros ── */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 mb-5">
 
         {/* Mapa Colombia */}
         <Card delay={0.1} className="lg:col-span-3">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">CES — MAPA DE UBICACIÓN</span>
+            <span className="text-gold font-bold uppercase tracking-widest text-[11px]">CES — MAPA DE UBICACIÓN</span>
             {selectedDept && (
               <button onClick={() => setSelectedDept(null)}
-                className="text-[10px] text-theme-muted hover:text-amber-400 transition-colors">
+                className="text-[10px] text-theme-muted hover:text-gold transition-colors">
                 ← Ver todos
               </button>
             )}
@@ -423,109 +635,127 @@ export default function ComunidadesPage() {
           <div className="h-[380px]">
             <ComunidadesMap
               geoData={geoData}
-              puntos={puntosFiltered}
+              puntos={filteredPuntos}
               selectedDept={selectedDept}
               isDark={isDark}
               deptColors={deptColors}
               onSelectDept={setSelectedDept}
+              porDepartamento={data.porDepartamento}
+              deptAvgs={data.deptAvgs}
             />
           </div>
           <div className="flex items-center justify-between mt-2">
-            <div className="flex gap-3">
-              {[{ label: "SIN", c: "#F59E0B" }, { label: "MIXTO", c: "#06B6D4" }, { label: "ZNI", c: "#8B5CF6" }].map(({ label, c }) => (
-                <div key={label} className="flex items-center gap-1">
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: c }} />
-                  <span className="text-[9px] text-theme-muted">{label}</span>
-                </div>
-              ))}
-            </div>
-            <span className="text-[9px] text-theme-muted italic">Click en dpto. para filtrar</span>
+            <span className="text-[9px] text-theme-muted italic">
+              Click en dpto. para filtrar · {filteredPuntos.length} CEs mostrados
+            </span>
           </div>
         </Card>
 
-        {/* Panel zona + desglose */}
+        {/* ── Acordeón de filtros ── */}
         <Card delay={0.12} className="lg:col-span-2">
-          <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px] block mb-3">FILTRO POR ZONA</span>
+          <span className="text-gold font-bold uppercase tracking-widest text-[11px] block mb-3">FILTROS</span>
 
-          {/* Botones zona */}
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            {(["TODOS", "SIN", "MIXTO", "ZNI"] as ZonaFilter[]).map((z) => (
-              <button key={z}
-                onClick={() => setSelectedZona(z)}
-                className={`rounded-xl px-3 py-2.5 text-left transition-all border ${
-                  selectedZona === z
-                    ? "border-amber-500/60 bg-amber-500/15"
-                    : "border-theme-card bg-dash-chip hover:border-amber-500/30"
-                }`}>
-                <div className={`text-xs font-bold ${selectedZona === z ? "text-amber-400" : "text-theme-primary"}`}>
-                  {ZONA_LABELS[z]}
-                </div>
-                {z !== "TODOS" && (
-                  <div className="text-[10px] text-theme-muted mt-0.5">
-                    {zonaCounts[z as keyof typeof zonaCounts] ?? 0} CEs
-                  </div>
-                )}
-                {z === "TODOS" && (
-                  <div className="text-[10px] text-theme-muted mt-0.5">
-                    {displayKpi.implementadas} CEs
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
+          {/* Estado Actual */}
+          <AccordionSection title="Estado Actual" count={data.porEstado.length}>
+            <div className="space-y-1 max-h-[200px] overflow-y-auto">
+              {data.porEstado.map(e => (
+                <FilterItem
+                  key={e.estado}
+                  label={e.estado}
+                  count={e.count}
+                  active={selectedEstado === e.estado}
+                  onClick={() => setSelectedEstado(selectedEstado === e.estado ? null : e.estado)}
+                />
+              ))}
+            </div>
+          </AccordionSection>
 
-          {/* Mini tabla zonas para el dpto seleccionado (o global) */}
-          <div className="space-y-2">
-            {["SIN", "MIXTO", "ZNI"].map((z) => {
-              const rows = data.detalleZona.filter(d =>
-                d.zona === z && (!selectedDept || d.departamentoGeo === selectedDept)
-              );
-              const tot = rows.reduce((s, r) => s + r.count, 0);
-              const kwp = rows.reduce((s, r) => s + r.capacidad, 0);
-              const inv = rows.reduce((s, r) => s + r.inversion, 0);
-              const pct = (tot / (displayKpi.implementadas || 1)) * 100;
-              return (
-                <div key={z} className="bg-dash-chip rounded-xl p-3">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[11px] font-semibold" style={{ color: ZONA_COLORS[z] }}>{z}</span>
-                    <span className="text-[11px] font-bold text-theme-primary">{tot} <span className="text-theme-muted font-normal">CEs</span></span>
-                  </div>
-                  <div className="h-1.5 bg-theme-secondary rounded-full overflow-hidden mb-1.5">
-                    <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: ZONA_COLORS[z] }} />
-                  </div>
-                  <div className="flex justify-between text-[9px] text-theme-muted">
-                    <span>{Math.round(kwp).toLocaleString("es-CO")} kWp</span>
-                    <span>{fmtCOP(inv)}</span>
-                    <span>{pct.toFixed(1)}%</span>
-                  </div>
+          {/* Tipo CE */}
+          <AccordionSection title="Tipo de CE" count={data.porTipoCE.length}>
+            <div className="space-y-1 max-h-[200px] overflow-y-auto">
+              {data.porTipoCE.map(e => (
+                <FilterItem
+                  key={e.tipo}
+                  label={e.tipo}
+                  count={e.count}
+                  active={selectedTipoCE === e.tipo}
+                  onClick={() => setSelectedTipoCE(selectedTipoCE === e.tipo ? null : e.tipo)}
+                />
+              ))}
+            </div>
+          </AccordionSection>
+
+          {/* Fuente Energía */}
+          <AccordionSection title="Fuente de Energía" count={data.porFuenteEnergia.length}>
+            <div className="space-y-1 max-h-[200px] overflow-y-auto">
+              {data.porFuenteEnergia.slice(0, 15).map(e => (
+                <FilterItem
+                  key={e.fuente}
+                  label={e.fuente.length > 35 ? e.fuente.slice(0, 35) + '…' : e.fuente}
+                  count={e.count}
+                  active={selectedFuente === e.fuente}
+                  onClick={() => setSelectedFuente(selectedFuente === e.fuente ? null : e.fuente)}
+                />
+              ))}
+              {data.porFuenteEnergia.length > 15 && (
+                <div className="text-[9px] text-theme-muted text-center pt-1">
+                  +{data.porFuenteEnergia.length - 15} más (selecciona en mapa)
                 </div>
-              );
-            })}
-          </div>
+              )}
+            </div>
+          </AccordionSection>
+
+          {/* Fuente Financiación */}
+          <AccordionSection title="Fuente de Financiación" count={data.porFuenteFinanciacion.length}>
+            <div className="space-y-1 max-h-[200px] overflow-y-auto">
+              {data.porFuenteFinanciacion.map(e => (
+                <FilterItem
+                  key={e.fuente}
+                  label={e.fuente}
+                  count={e.count}
+                  active={selectedFinancia === e.fuente}
+                  onClick={() => setSelectedFinancia(selectedFinancia === e.fuente ? null : e.fuente)}
+                />
+              ))}
+            </div>
+          </AccordionSection>
+
+          {/* Departamento */}
+          <AccordionSection title="Departamento" count={deptDesdePuntos.length}>
+            <div className="space-y-1 max-h-[200px] overflow-y-auto">
+              {deptDesdePuntos.map(d => (
+                <FilterItem
+                  key={d.departamentoGeo}
+                  label={d.departamentoGeo.split(" ").map(w => w[0]+w.slice(1).toLowerCase()).join(" ")}
+                  count={d.count}
+                  active={selectedDept != null && normDeptKey(selectedDept) === normDeptKey(d.departamentoGeo)}
+                  onClick={() => setSelectedDept(selectedDept != null && normDeptKey(selectedDept) === normDeptKey(d.departamentoGeo) ? null : d.departamentoGeo)}
+                />
+              ))}
+            </div>
+          </AccordionSection>
         </Card>
       </div>
 
-      {/* ── Row 3: Bar charts ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+      {/* ── Row 3: Bar charts — Estado / Tipo CE / Fuente ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-5">
+        {/* Chart 1: Estado */}
         <Card delay={0.15}>
-          <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
-            {selectedDept ? `CEs — ${selectedDeptLabel}` : "CEs POR DEPARTAMENTO (TOP 12)"}
-          </span>
-          <div className="h-[300px] mt-3">
-            {barDataCE.length > 0 ? (
+          <span className="text-gold font-bold uppercase tracking-widest text-[11px]">CES POR ESTADO</span>
+          <div className="h-[280px] mt-3">
+            {chartEstadoTop.length > 0 ? (
               <ResponsiveBar
-                data={barDataCE}
-                keys={["CEs", "kWp (÷10)"]}
-                indexBy="dept"
+                data={chartEstadoTop}
+                keys={["count"]}
+                indexBy="estado"
                 theme={T}
-                groupMode="grouped"
-                margin={{ top: 8, right: 20, bottom: 20, left: 130 }}
+                margin={{ top: 8, right: 50, bottom: 20, left: 100 }}
                 layout="horizontal"
                 valueScale={{ type: "linear" }}
                 indexScale={{ type: "band", round: true }}
-                colors={["#F59E0B", "#06B6D4"]}
+                colors={["#F59E0B"]}
                 borderRadius={3}
-                padding={0.25}
+                padding={0.3}
                 enableLabel={false}
                 enableGridX
                 enableGridY={false}
@@ -533,9 +763,18 @@ export default function ComunidadesPage() {
                 axisRight={null}
                 axisLeft={{ tickSize: 0, tickPadding: 6 }}
                 axisBottom={{ tickSize: 0, tickPadding: 5 }}
-                tooltip={({ id, value, indexValue }) => (
-                  <div style={{ padding: "8px 12px", background: "#1E293B", border: "1px solid #334155", borderRadius: 8, color: "#E2E8F0", fontSize: 12 }}>
-                    <strong>{indexValue}</strong> — {id}: <strong style={{ color: "#F59E0B" }}>{value}</strong>
+                layers={["grid", "axes", "bars", "markers", "legends", "annotations", (props: any) => (
+                  <g>{props.bars.map((bar: any) => (
+                    <text key={bar.key} x={bar.x + bar.width + 5} y={bar.y + bar.height / 2}
+                      textAnchor="start" dominantBaseline="central"
+                      style={{ fill: isDark ? "#CBD5E1" : "#334155", fontSize: 10 }}>
+                      {bar.data.value}
+                    </text>
+                  ))}</g>
+                )]}
+                tooltip={({ value, indexValue }) => (
+                  <div style={{ padding: "8px 12px", background: isDark ? "#1E293B" : "#FFFFFF", border: isDark ? "1px solid #334155" : "1px solid #CBD5E1", borderRadius: 8, color: isDark ? "#E2E8F0" : "#0F172A", fontSize: 12 }}>
+                    <strong>{indexValue}</strong>: <strong style={{ color: "#F59E0B" }}>{value} CEs</strong>
                   </div>
                 )}
               />
@@ -543,47 +782,89 @@ export default function ComunidadesPage() {
               <div className="h-full flex items-center justify-center"><span className="text-theme-muted text-sm">Sin datos</span></div>
             )}
           </div>
-          <div className="flex gap-4 mt-2">
-            {[{ label: "N° CEs", c: "#F59E0B" }, { label: "kWp instalados ÷10", c: "#06B6D4" }].map(({ label, c }) => (
-              <div key={label} className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-sm" style={{ background: c }} />
-                <span className="text-[10px] text-theme-muted">{label}</span>
-              </div>
-            ))}
+        </Card>
+
+        {/* Chart 2: Tipo CE */}
+        <Card delay={0.18}>
+          <span className="text-gold font-bold uppercase tracking-widest text-[11px]">CES POR TIPO</span>
+          <div className="h-[280px] mt-3">
+            {chartTipoTop.length > 0 ? (
+              <ResponsiveBar
+                data={chartTipoTop}
+                keys={["count"]}
+                indexBy="tipo"
+                theme={T}
+                margin={{ top: 8, right: 50, bottom: 20, left: 100 }}
+                layout="horizontal"
+                valueScale={{ type: "linear" }}
+                indexScale={{ type: "band", round: true }}
+                colors={["#06B6D4"]}
+                borderRadius={3}
+                padding={0.3}
+                enableLabel={false}
+                enableGridX
+                enableGridY={false}
+                axisTop={null}
+                axisRight={null}
+                axisLeft={{ tickSize: 0, tickPadding: 6 }}
+                axisBottom={{ tickSize: 0, tickPadding: 5 }}
+                layers={["grid", "axes", "bars", "markers", "legends", "annotations", (props: any) => (
+                  <g>{props.bars.map((bar: any) => (
+                    <text key={bar.key} x={bar.x + bar.width + 5} y={bar.y + bar.height / 2}
+                      textAnchor="start" dominantBaseline="central"
+                      style={{ fill: isDark ? "#CBD5E1" : "#334155", fontSize: 10 }}>
+                      {bar.data.value}
+                    </text>
+                  ))}</g>
+                )]}
+                tooltip={({ value, indexValue }) => (
+                  <div style={{ padding: "8px 12px", background: isDark ? "#1E293B" : "#FFFFFF", border: isDark ? "1px solid #334155" : "1px solid #CBD5E1", borderRadius: 8, color: isDark ? "#E2E8F0" : "#0F172A", fontSize: 12 }}>
+                    <strong>{indexValue}</strong>: <strong style={{ color: "#06B6D4" }}>{value} CEs</strong>
+                  </div>
+                )}
+              />
+            ) : (
+              <div className="h-full flex items-center justify-center"><span className="text-theme-muted text-sm">Sin datos</span></div>
+            )}
           </div>
         </Card>
 
-        <Card delay={0.18}>
-          <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
-            {selectedDept ? `INVERSIÓN — ${selectedDeptLabel}` : "INVERSIÓN POR DEPARTAMENTO (TOP 12)"}
-          </span>
-          <div className="h-[300px] mt-3">
-            {barDataInv.length > 0 ? (
+        {/* Chart 3: Fuente */}
+        <Card delay={0.21}>
+          <span className="text-gold font-bold uppercase tracking-widest text-[11px]">CES POR FUENTE</span>
+          <div className="h-[280px] mt-3">
+            {chartFuenteTop.length > 0 ? (
               <ResponsiveBar
-                data={barDataInv}
-                keys={["Inversión B$"]}
-                indexBy="dept"
+                data={chartFuenteTop}
+                keys={["count"]}
+                indexBy="fuente"
                 theme={T}
-                margin={{ top: 8, right: 20, bottom: 20, left: 130 }}
+                margin={{ top: 8, right: 50, bottom: 20, left: 100 }}
                 layout="horizontal"
                 valueScale={{ type: "linear" }}
                 indexScale={{ type: "band", round: true }}
                 colors={["#8B5CF6"]}
                 borderRadius={3}
                 padding={0.3}
-                enableLabel
-                label={(d) => `$${d.value}B`}
-                labelSkipWidth={30}
-                labelTextColor="#fff"
+                enableLabel={false}
                 enableGridX
                 enableGridY={false}
                 axisTop={null}
                 axisRight={null}
                 axisLeft={{ tickSize: 0, tickPadding: 6 }}
-                axisBottom={{ tickSize: 0, tickPadding: 5, format: (v) => `$${v}B` }}
+                axisBottom={{ tickSize: 0, tickPadding: 5 }}
+                layers={["grid", "axes", "bars", "markers", "legends", "annotations", (props: any) => (
+                  <g>{props.bars.map((bar: any) => (
+                    <text key={bar.key} x={bar.x + bar.width + 5} y={bar.y + bar.height / 2}
+                      textAnchor="start" dominantBaseline="central"
+                      style={{ fill: isDark ? "#CBD5E1" : "#334155", fontSize: 10 }}>
+                      {bar.data.value}
+                    </text>
+                  ))}</g>
+                )]}
                 tooltip={({ value, indexValue }) => (
-                  <div style={{ padding: "8px 12px", background: "#1E293B", border: "1px solid #334155", borderRadius: 8, color: "#E2E8F0", fontSize: 12 }}>
-                    <strong>{indexValue}</strong>: <strong style={{ color: "#8B5CF6" }}>${value}B</strong>
+                  <div style={{ padding: "8px 12px", background: isDark ? "#1E293B" : "#FFFFFF", border: isDark ? "1px solid #334155" : "1px solid #CBD5E1", borderRadius: 8, color: isDark ? "#E2E8F0" : "#0F172A", fontSize: 12 }}>
+                    <strong>{indexValue}</strong>: <strong style={{ color: "#8B5CF6" }}>{value} CEs</strong>
                   </div>
                 )}
               />
@@ -595,22 +876,22 @@ export default function ComunidadesPage() {
       </div>
 
       {/* ── Row 4: Detailed table ── */}
-      <Card delay={0.2}>
+      <Card delay={0.25}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
+            <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
               {selectedDept ? `DETALLE POR MUNICIPIO — ${selectedDeptLabel}` : "DETALLE POR DEPARTAMENTO"}
             </span>
             <span className="text-[10px] text-theme-muted">
               {selectedDept
                 ? `${muniTableData?.length ?? 0} municipios`
-                : `${tableData.length} departamentos`}
+                : `${deptDesdePuntos.length} departamentos`}
             </span>
           </div>
           <div className="flex items-center gap-2">
             {selectedDept && (
               <button onClick={() => setSelectedDept(null)}
-                className="text-[10px] text-theme-muted hover:text-amber-400 transition-colors">
+                className="text-[10px] text-theme-muted hover:text-gold transition-colors">
                 ← Ver todos
               </button>
             )}
@@ -623,30 +904,32 @@ export default function ComunidadesPage() {
                     'Departamento': selectedDept,
                     'Municipio': m.municipio,
                     'N° CEs': m.count,
-                    'Capacidad (kWp)': m.capacidad,
-                    'Inversión Estimada ($)': m.inversion,
+                    'Capacidad (kWp)': Math.round(m.capacidad),
+                    'Inversión Estimada ($)': m.inversionEst,
+                    'Inversión Final ($)': m.inversionFin,
                   }));
                 const totalCEs = muniTableData.reduce((s, m) => s + m.count, 0);
                 const totalCap = muniTableData.reduce((s, m) => s + m.capacidad, 0);
-                const totalInv = muniTableData.reduce((s, m) => s + m.inversion, 0);
-                exportData.push({ 'Departamento': 'TOTAL', 'Municipio': '', 'N° CEs': totalCEs, 'Capacidad (kWp)': totalCap, 'Inversión Estimada ($)': totalInv });
+                const totalInvEst = muniTableData.reduce((s, m) => s + m.inversionEst, 0);
+                const totalInvFin = muniTableData.reduce((s, m) => s + m.inversionFin, 0);
+                exportData.push({ 'Departamento': 'TOTAL', 'Municipio': '', 'N° CEs': totalCEs, 'Capacidad (kWp)': Math.round(totalCap), 'Inversión Estimada ($)': totalInvEst, 'Inversión Final ($)': totalInvFin });
                 const ws = XLSX.utils.json_to_sheet(exportData);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, 'Municipios');
                 XLSX.writeFile(wb, `comunidades_municipios_${selectedDept.replace(/ /g,"_").toLowerCase()}_${new Date().toISOString().split('T')[0]}.xlsx`);
               } else {
-                const exportData = [...tableData]
+                const exportData = [...deptDesdePuntos]
                   .sort((a, b) => b.count - a.count)
                   .map(d => ({
-                    'Departamento': d.departamentoGeo,
+                    'Departamento': d.departamentoGeo.split(" ").map(w => w[0]+w.slice(1).toLowerCase()).join(" "),
                     'N° CEs': d.count,
-                    'Capacidad (kWp)': d.capacidad,
+                    'Capacidad (kWp)': Math.round(d.capacidad),
                     'Inversión Estimada ($)': d.inversion,
                   }));
-                const totalCEs = tableData.reduce((sum, d) => sum + d.count, 0);
-                const totalCapacidad = tableData.reduce((sum, d) => sum + d.capacidad, 0);
-                const totalInversion = tableData.reduce((sum, d) => sum + d.inversion, 0);
-                exportData.push({ 'Departamento': 'TOTAL', 'N° CEs': totalCEs, 'Capacidad (kWp)': totalCapacidad, 'Inversión Estimada ($)': totalInversion });
+                const totalCEs = deptDesdePuntos.reduce((sum, d) => sum + d.count, 0);
+                const totalCapacidad = deptDesdePuntos.reduce((sum, d) => sum + d.capacidad, 0);
+                const totalInversion = deptDesdePuntos.reduce((sum, d) => sum + d.inversion, 0);
+                exportData.push({ 'Departamento': 'TOTAL', 'N° CEs': totalCEs, 'Capacidad (kWp)': Math.round(totalCapacidad), 'Inversión Estimada ($)': totalInversion });
                 const ws = XLSX.utils.json_to_sheet(exportData);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, 'Comunidades Energeticas');
@@ -670,26 +953,26 @@ export default function ComunidadesPage() {
                   <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Municipio</th>
                   <th className="pb-3 pr-4 font-semibold uppercase tracking-wider text-right">N° CEs</th>
                   <th className="pb-3 pr-4 font-semibold uppercase tracking-wider text-right">Capacidad (kWp)</th>
-                  <th className="pb-3 font-semibold uppercase tracking-wider text-right">Inversión estimada</th>
+                  <th className="pb-3 pr-4 font-semibold uppercase tracking-wider text-right">Inv. Estimada</th>
+                  <th className="pb-3 font-semibold uppercase tracking-wider text-right">Inv. Final</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-theme-card">
-                {[...muniTableData].sort((a, b) => b.count - a.count).map((m, i) => (
+                {muniTableData.map((m, i) => (
                   <motion.tr key={m.municipio} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 + i * 0.02 }}
                     className="text-theme-secondary">
-                    <td className="py-2.5 pr-4 font-medium text-theme-primary">
-                      {m.municipio.split(" ").map(w => w[0]+w.slice(1).toLowerCase()).join(" ")}
-                    </td>
+                    <td className="py-2.5 pr-4 font-medium text-theme-primary">{m.municipio}</td>
                     <td className="py-2.5 pr-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <div className="h-1.5 bg-dash-chip rounded-full w-16 overflow-hidden">
                           <div style={{ width: `${Math.min((m.count / (muniTableData[0]?.count || 1)) * 100, 100)}%` }} className="h-full bg-amber-400 rounded-full" />
                         </div>
-                        <span className="text-amber-400 font-semibold w-8 text-right">{m.count}</span>
+                        <span className="text-gold font-semibold w-8 text-right">{m.count}</span>
                       </div>
                     </td>
                     <td className="py-2.5 pr-4 text-right text-cyan-400">{Math.round(m.capacidad).toLocaleString("es-CO")}</td>
-                    <td className="py-2.5 text-right text-purple-400">{fmtCOP(m.inversion)}</td>
+                    <td className="py-2.5 pr-4 text-right text-purple-400">{fmtCOP(m.inversionEst)}</td>
+                    <td className="py-2.5 text-right text-emerald-400">{m.inversionFin > 0 ? fmtCOP(m.inversionFin) : '—'}</td>
                   </motion.tr>
                 ))}
               </tbody>
@@ -706,19 +989,19 @@ export default function ComunidadesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-theme-card">
-                {tableData.sort((a, b) => b.count - a.count).map((d, i) => (
+                {deptDesdePuntos.sort((a, b) => b.count - a.count).map((d, i) => (
                   <motion.tr key={d.departamentoGeo} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 + i * 0.02 }}
-                    onClick={() => setSelectedDept(prev => prev === d.departamentoGeo ? null : d.departamentoGeo)}
-                    className={`text-theme-secondary transition-colors cursor-pointer ${selectedDept === d.departamentoGeo ? "bg-amber-500/10" : "hover:bg-dash-chip"}`}>
+                    onClick={() => setSelectedDept(prev => prev != null && normDeptKey(prev) === normDeptKey(d.departamentoGeo) ? null : d.departamentoGeo)}
+                    className={`text-theme-secondary transition-colors cursor-pointer ${selectedDept != null && normDeptKey(selectedDept) === normDeptKey(d.departamentoGeo) ? "bg-amber-500/10" : "hover:bg-dash-chip"}`}>
                     <td className="py-2.5 pr-4 font-medium text-theme-primary">
                       {d.departamentoGeo.split(" ").map(w => w[0]+w.slice(1).toLowerCase()).join(" ")}
                     </td>
                     <td className="py-2.5 pr-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <div className="h-1.5 bg-dash-chip rounded-full w-16 overflow-hidden">
-                          <div style={{ width: `${Math.min((d.count / (tableData[0]?.count || 1)) * 100, 100)}%` }} className="h-full bg-amber-400 rounded-full" />
+                          <div style={{ width: `${Math.min((d.count / (deptDesdePuntos[0]?.count || 1)) * 100, 100)}%` }} className="h-full bg-amber-400 rounded-full" />
                         </div>
-                        <span className="text-amber-400 font-semibold w-8 text-right">{d.count}</span>
+                        <span className="text-gold font-semibold w-8 text-right">{d.count}</span>
                       </div>
                     </td>
                     <td className="py-2.5 pr-4 text-right text-cyan-400">{Math.round(d.capacidad).toLocaleString("es-CO")}</td>
@@ -728,7 +1011,7 @@ export default function ComunidadesPage() {
               </tbody>
             </table>
           )}
-          {!selectedDept && tableData.length === 0 && (
+          {!selectedDept && deptDesdePuntos.length === 0 && (
             <div className="text-center text-theme-muted text-sm py-8">Sin datos para el filtro seleccionado</div>
           )}
         </div>

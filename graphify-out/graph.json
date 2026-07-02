@@ -9,7 +9,7 @@
       "source_file": "vitest.config.ts",
       "source_location": "L1",
       "id": "vitest_config_ts",
-      "community": 57,
+      "community": 69,
       "norm_label": "vitest.config.ts"
     },
     {
@@ -18,7 +18,7 @@
       "source_file": "postcss.config.mjs",
       "source_location": "L1",
       "id": "postcss_config_mjs",
-      "community": 58,
+      "community": 70,
       "norm_label": "postcss.config.mjs"
     },
     {
@@ -27,7 +27,7 @@
       "source_file": "next-env.d.ts",
       "source_location": "L1",
       "id": "next_env_d_ts",
-      "community": 59,
+      "community": 71,
       "norm_label": "next-env.d.ts"
     },
     {
@@ -36,7 +36,7 @@
       "source_file": "ecosystem.config.js",
       "source_location": "L1",
       "id": "ecosystem_config_js",
-      "community": 60,
+      "community": 72,
       "norm_label": "ecosystem.config.js"
     },
     {
@@ -45,7 +45,7 @@
       "source_file": "next.config.ts",
       "source_location": "L1",
       "id": "next_config_ts",
-      "community": 61,
+      "community": 73,
       "norm_label": "next.config.ts"
     },
     {
@@ -54,8 +54,161 @@
       "source_file": "eslint.config.mjs",
       "source_location": "L1",
       "id": "eslint_config_mjs",
-      "community": 62,
+      "community": 74,
       "norm_label": "eslint.config.mjs"
+    },
+    {
+      "label": "extract_and_render.py",
+      "file_type": "code",
+      "source_file": "scripts/pdf-extract/extract_and_render.py",
+      "source_location": "L1",
+      "id": "scripts_pdf_extract_extract_and_render_py",
+      "community": 6,
+      "norm_label": "extract_and_render.py"
+    },
+    {
+      "label": "normalizar_texto()",
+      "file_type": "code",
+      "source_file": "scripts/pdf-extract/extract_and_render.py",
+      "source_location": "L14",
+      "id": "pdf_extract_extract_and_render_normalizar_texto",
+      "community": 6,
+      "norm_label": "normalizar_texto()"
+    },
+    {
+      "label": "extraer_kpis_xm()",
+      "file_type": "code",
+      "source_file": "scripts/pdf-extract/extract_and_render.py",
+      "source_location": "L22",
+      "id": "pdf_extract_extract_and_render_extraer_kpis_xm",
+      "community": 6,
+      "norm_label": "extraer_kpis_xm()"
+    },
+    {
+      "label": "detectar_secciones()",
+      "file_type": "code",
+      "source_file": "scripts/pdf-extract/extract_and_render.py",
+      "source_location": "L74",
+      "id": "pdf_extract_extract_and_render_detectar_secciones",
+      "community": 6,
+      "norm_label": "detectar_secciones()"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "scripts/pdf-extract/extract_and_render.py",
+      "source_location": "L101",
+      "id": "pdf_extract_extract_and_render_main",
+      "community": 6,
+      "norm_label": "main()"
+    },
+    {
+      "label": "Detecta posibles t\u00edtulos de secci\u00f3n en el texto de cada p\u00e1gina.",
+      "file_type": "rationale",
+      "source_file": "scripts/pdf-extract/extract_and_render.py",
+      "source_location": "L75",
+      "id": "pdf_extract_extract_and_render_rationale_75",
+      "community": 6,
+      "norm_label": "detecta posibles titulos de seccion en el texto de cada pagina."
+    },
+    {
+      "label": "extract_boletin.py",
+      "file_type": "code",
+      "source_file": "scripts/pdf-extract/extract_boletin.py",
+      "source_location": "L1",
+      "id": "scripts_pdf_extract_extract_boletin_py",
+      "community": 37,
+      "norm_label": "extract_boletin.py"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "scripts/pdf-extract/extract_boletin.py",
+      "source_location": "L12",
+      "id": "pdf_extract_extract_boletin_main",
+      "community": 37,
+      "norm_label": "main()"
+    },
+    {
+      "label": "render_pdf.py",
+      "file_type": "code",
+      "source_file": "scripts/pdf-extract/render_pdf.py",
+      "source_location": "L1",
+      "id": "scripts_pdf_extract_render_pdf_py",
+      "community": 24,
+      "norm_label": "render_pdf.py"
+    },
+    {
+      "label": "render_pdf()",
+      "file_type": "code",
+      "source_file": "scripts/pdf-extract/render_pdf.py",
+      "source_location": "L13",
+      "id": "pdf_extract_render_pdf_render_pdf",
+      "community": 24,
+      "norm_label": "render_pdf()"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "scripts/pdf-extract/render_pdf.py",
+      "source_location": "L45",
+      "id": "pdf_extract_render_pdf_main",
+      "community": 24,
+      "norm_label": "main()"
+    },
+    {
+      "label": "extract_xm.py",
+      "file_type": "code",
+      "source_file": "scripts/pdf-extract/extract_xm.py",
+      "source_location": "L1",
+      "id": "scripts_pdf_extract_extract_xm_py",
+      "community": 14,
+      "norm_label": "extract_xm.py"
+    },
+    {
+      "label": "normalizar_texto()",
+      "file_type": "code",
+      "source_file": "scripts/pdf-extract/extract_xm.py",
+      "source_location": "L13",
+      "id": "pdf_extract_extract_xm_normalizar_texto",
+      "community": 14,
+      "norm_label": "normalizar_texto()"
+    },
+    {
+      "label": "extraer_kpis()",
+      "file_type": "code",
+      "source_file": "scripts/pdf-extract/extract_xm.py",
+      "source_location": "L22",
+      "id": "pdf_extract_extract_xm_extraer_kpis",
+      "community": 14,
+      "norm_label": "extraer_kpis()"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "scripts/pdf-extract/extract_xm.py",
+      "source_location": "L72",
+      "id": "pdf_extract_extract_xm_main",
+      "community": 14,
+      "norm_label": "main()"
+    },
+    {
+      "label": "extract_resumen.py",
+      "file_type": "code",
+      "source_file": "scripts/pdf-extract/extract_resumen.py",
+      "source_location": "L1",
+      "id": "scripts_pdf_extract_extract_resumen_py",
+      "community": 38,
+      "norm_label": "extract_resumen.py"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "scripts/pdf-extract/extract_resumen.py",
+      "source_location": "L12",
+      "id": "pdf_extract_extract_resumen_main",
+      "community": 38,
+      "norm_label": "main()"
     },
     {
       "label": "layout.tsx",
@@ -63,7 +216,7 @@
       "source_file": "src/app/layout.tsx",
       "source_location": "L1",
       "id": "src_app_layout_tsx",
-      "community": 29,
+      "community": 39,
       "norm_label": "layout.tsx"
     },
     {
@@ -72,7 +225,7 @@
       "source_file": "src/app/layout.tsx",
       "source_location": "L53",
       "id": "app_layout_rootlayout",
-      "community": 29,
+      "community": 39,
       "norm_label": "rootlayout()"
     },
     {
@@ -81,7 +234,7 @@
       "source_file": "src/app/page.tsx",
       "source_location": "L1",
       "id": "src_app_page_tsx",
-      "community": 12,
+      "community": 15,
       "norm_label": "page.tsx"
     },
     {
@@ -90,7 +243,7 @@
       "source_file": "src/app/page.tsx",
       "source_location": "L101",
       "id": "app_page_card",
-      "community": 12,
+      "community": 15,
       "norm_label": "card()"
     },
     {
@@ -99,7 +252,7 @@
       "source_file": "src/app/page.tsx",
       "source_location": "L608",
       "id": "app_page_extractfondo",
-      "community": 12,
+      "community": 15,
       "norm_label": "extractfondo()"
     },
     {
@@ -108,7 +261,7 @@
       "source_file": "src/app/page.tsx",
       "source_location": "L831",
       "id": "app_page_formato",
-      "community": 12,
+      "community": 15,
       "norm_label": "formato()"
     },
     {
@@ -117,7 +270,7 @@
       "source_file": "src/app/api/sector/route.ts",
       "source_location": "L1",
       "id": "src_app_api_sector_route_ts",
-      "community": 0,
+      "community": 1,
       "norm_label": "route.ts"
     },
     {
@@ -126,7 +279,7 @@
       "source_file": "src/app/api/sector/route.ts",
       "source_location": "L6",
       "id": "sector_route_get",
-      "community": 0,
+      "community": 1,
       "norm_label": "get()"
     },
     {
@@ -135,7 +288,7 @@
       "source_file": "src/app/api/sector/termica/route.ts",
       "source_location": "L1",
       "id": "src_app_api_sector_termica_route_ts",
-      "community": 1,
+      "community": 2,
       "norm_label": "route.ts"
     },
     {
@@ -144,7 +297,7 @@
       "source_file": "src/app/api/sector/termica/route.ts",
       "source_location": "L14",
       "id": "termica_route_fmtfecha",
-      "community": 1,
+      "community": 2,
       "norm_label": "fmtfecha()"
     },
     {
@@ -153,7 +306,7 @@
       "source_file": "src/app/api/sector/termica/route.ts",
       "source_location": "L21",
       "id": "termica_route_tendenciapct",
-      "community": 1,
+      "community": 2,
       "norm_label": "tendenciapct()"
     },
     {
@@ -162,7 +315,7 @@
       "source_file": "src/app/api/sector/termica/route.ts",
       "source_location": "L51",
       "id": "termica_route_get",
-      "community": 1,
+      "community": 2,
       "norm_label": "get()"
     },
     {
@@ -171,7 +324,7 @@
       "source_file": "src/app/api/sector/detalle/route.ts",
       "source_location": "L1",
       "id": "src_app_api_sector_detalle_route_ts",
-      "community": 0,
+      "community": 1,
       "norm_label": "route.ts"
     },
     {
@@ -180,7 +333,7 @@
       "source_file": "src/app/api/supervision/detalle/route.ts",
       "source_location": "L15",
       "id": "detalle_route_get",
-      "community": 0,
+      "community": 1,
       "norm_label": "get()"
     },
     {
@@ -189,7 +342,7 @@
       "source_file": "src/app/api/subsidios/route.ts",
       "source_location": "L1",
       "id": "src_app_api_subsidios_route_ts",
-      "community": 0,
+      "community": 1,
       "norm_label": "route.ts"
     },
     {
@@ -198,7 +351,7 @@
       "source_file": "src/app/api/subsidios/route.ts",
       "source_location": "L6",
       "id": "subsidios_route_get",
-      "community": 0,
+      "community": 1,
       "norm_label": "get()"
     },
     {
@@ -207,7 +360,7 @@
       "source_file": "src/app/api/subsidios/pagos-detalle/route.ts",
       "source_location": "L1",
       "id": "src_app_api_subsidios_pagos_detalle_route_ts",
-      "community": 1,
+      "community": 2,
       "norm_label": "route.ts"
     },
     {
@@ -216,7 +369,7 @@
       "source_file": "src/app/api/subsidios/pagos-detalle/route.ts",
       "source_location": "L35",
       "id": "pagos_detalle_route_tonum",
-      "community": 1,
+      "community": 2,
       "norm_label": "tonum()"
     },
     {
@@ -225,7 +378,7 @@
       "source_file": "src/app/api/subsidios/pagos-detalle/route.ts",
       "source_location": "L44",
       "id": "pagos_detalle_route_buildwhere",
-      "community": 1,
+      "community": 2,
       "norm_label": "buildwhere()"
     },
     {
@@ -234,7 +387,7 @@
       "source_file": "src/app/api/subsidios/pagos-detalle/route.ts",
       "source_location": "L87",
       "id": "pagos_detalle_route_get",
-      "community": 1,
+      "community": 2,
       "norm_label": "get()"
     },
     {
@@ -243,7 +396,7 @@
       "source_file": "src/app/api/subsidios/validaciones/route.ts",
       "source_location": "L1",
       "id": "src_app_api_subsidios_validaciones_route_ts",
-      "community": 1,
+      "community": 2,
       "norm_label": "route.ts"
     },
     {
@@ -252,7 +405,7 @@
       "source_file": "src/app/api/subsidios/validaciones/route.ts",
       "source_location": "L41",
       "id": "validaciones_route_buildwhere",
-      "community": 1,
+      "community": 2,
       "norm_label": "buildwhere()"
     },
     {
@@ -261,7 +414,7 @@
       "source_file": "src/app/api/subsidios/validaciones/route.ts",
       "source_location": "L94",
       "id": "validaciones_route_get",
-      "community": 1,
+      "community": 2,
       "norm_label": "get()"
     },
     {
@@ -270,7 +423,7 @@
       "source_file": "src/app/api/subsidios/deficit-historico/route.ts",
       "source_location": "L1",
       "id": "src_app_api_subsidios_deficit_historico_route_ts",
-      "community": 1,
+      "community": 2,
       "norm_label": "route.ts"
     },
     {
@@ -279,7 +432,7 @@
       "source_file": "src/app/api/subsidios/deficit-historico/route.ts",
       "source_location": "L6",
       "id": "deficit_historico_route_get",
-      "community": 1,
+      "community": 2,
       "norm_label": "get()"
     },
     {
@@ -288,7 +441,7 @@
       "source_file": "src/app/api/cu-evolucion/route.ts",
       "source_location": "L1",
       "id": "src_app_api_cu_evolucion_route_ts",
-      "community": 1,
+      "community": 2,
       "norm_label": "route.ts"
     },
     {
@@ -297,7 +450,7 @@
       "source_file": "src/app/api/cu-evolucion/route.ts",
       "source_location": "L11",
       "id": "cu_evolucion_route_get",
-      "community": 1,
+      "community": 2,
       "norm_label": "get()"
     },
     {
@@ -306,7 +459,7 @@
       "source_file": "src/app/api/energia/route.ts",
       "source_location": "L1",
       "id": "src_app_api_energia_route_ts",
-      "community": 0,
+      "community": 1,
       "norm_label": "route.ts"
     },
     {
@@ -315,7 +468,7 @@
       "source_file": "src/app/api/energia/route.ts",
       "source_location": "L6",
       "id": "energia_route_get",
-      "community": 0,
+      "community": 1,
       "norm_label": "get()"
     },
     {
@@ -324,7 +477,7 @@
       "source_file": "src/app/api/cu/route.ts",
       "source_location": "L1",
       "id": "src_app_api_cu_route_ts",
-      "community": 30,
+      "community": 40,
       "norm_label": "route.ts"
     },
     {
@@ -333,7 +486,7 @@
       "source_file": "src/app/api/cu/route.ts",
       "source_location": "L22",
       "id": "cu_route_get",
-      "community": 30,
+      "community": 40,
       "norm_label": "get()"
     },
     {
@@ -342,7 +495,7 @@
       "source_file": "src/app/api/embalses/capacidad-historica/route.ts",
       "source_location": "L1",
       "id": "src_app_api_embalses_capacidad_historica_route_ts",
-      "community": 1,
+      "community": 2,
       "norm_label": "route.ts"
     },
     {
@@ -351,7 +504,7 @@
       "source_file": "src/app/api/embalses/capacidad-historica/route.ts",
       "source_location": "L50",
       "id": "capacidad_historica_route_get",
-      "community": 1,
+      "community": 2,
       "norm_label": "get()"
     },
     {
@@ -360,7 +513,7 @@
       "source_file": "src/app/api/chatbot/route.ts",
       "source_location": "L1",
       "id": "src_app_api_chatbot_route_ts",
-      "community": 31,
+      "community": 41,
       "norm_label": "route.ts"
     },
     {
@@ -369,7 +522,7 @@
       "source_file": "src/app/api/chatbot/route.ts",
       "source_location": "L5",
       "id": "chatbot_route_post",
-      "community": 31,
+      "community": 41,
       "norm_label": "post()"
     },
     {
@@ -378,7 +531,7 @@
       "source_file": "src/app/api/comunidades/route.ts",
       "source_location": "L1",
       "id": "src_app_api_comunidades_route_ts",
-      "community": 0,
+      "community": 1,
       "norm_label": "route.ts"
     },
     {
@@ -387,7 +540,7 @@
       "source_file": "src/app/api/comunidades/route.ts",
       "source_location": "L6",
       "id": "comunidades_route_get",
-      "community": 0,
+      "community": 1,
       "norm_label": "get()"
     },
     {
@@ -396,7 +549,7 @@
       "source_file": "src/app/api/noticias/route.ts",
       "source_location": "L1",
       "id": "src_app_api_noticias_route_ts",
-      "community": 20,
+      "community": 25,
       "norm_label": "route.ts"
     },
     {
@@ -405,7 +558,7 @@
       "source_file": "src/app/api/noticias/route.ts",
       "source_location": "L10",
       "id": "noticias_route_fetchogimage",
-      "community": 20,
+      "community": 25,
       "norm_label": "fetchogimage()"
     },
     {
@@ -414,7 +567,34 @@
       "source_file": "src/app/api/noticias/route.ts",
       "source_location": "L59",
       "id": "noticias_route_get",
-      "community": 20,
+      "community": 25,
+      "norm_label": "get()"
+    },
+    {
+      "label": "route.ts",
+      "file_type": "code",
+      "source_file": "src/app/api/noticias/hidrocarburos/route.ts",
+      "source_location": "L1",
+      "id": "src_app_api_noticias_hidrocarburos_route_ts",
+      "community": 26,
+      "norm_label": "route.ts"
+    },
+    {
+      "label": "fetchOgImage()",
+      "file_type": "code",
+      "source_file": "src/app/api/noticias/hidrocarburos/route.ts",
+      "source_location": "L6",
+      "id": "hidrocarburos_route_fetchogimage",
+      "community": 26,
+      "norm_label": "fetchogimage()"
+    },
+    {
+      "label": "GET()",
+      "file_type": "code",
+      "source_file": "src/app/api/noticias/hidrocarburos/route.ts",
+      "source_location": "L54",
+      "id": "hidrocarburos_route_get",
+      "community": 26,
       "norm_label": "get()"
     },
     {
@@ -423,7 +603,7 @@
       "source_file": "src/app/api/contratos-or/route.ts",
       "source_location": "L1",
       "id": "src_app_api_contratos_or_route_ts",
-      "community": 0,
+      "community": 1,
       "norm_label": "route.ts"
     },
     {
@@ -432,7 +612,7 @@
       "source_file": "src/app/api/contratos-or/route.ts",
       "source_location": "L6",
       "id": "contratos_or_route_get",
-      "community": 0,
+      "community": 1,
       "norm_label": "get()"
     },
     {
@@ -441,7 +621,7 @@
       "source_file": "src/app/api/health/route.ts",
       "source_location": "L1",
       "id": "src_app_api_health_route_ts",
-      "community": 1,
+      "community": 2,
       "norm_label": "route.ts"
     },
     {
@@ -450,7 +630,7 @@
       "source_file": "src/app/api/health/route.ts",
       "source_location": "L18",
       "id": "health_route_get",
-      "community": 1,
+      "community": 2,
       "norm_label": "get()"
     },
     {
@@ -459,16 +639,52 @@
       "source_file": "src/app/api/informe-diario/route.ts",
       "source_location": "L1",
       "id": "src_app_api_informe_diario_route_ts",
-      "community": 32,
+      "community": 7,
       "norm_label": "route.ts"
     },
     {
       "label": "GET()",
       "file_type": "code",
       "source_file": "src/app/api/informe-diario/route.ts",
-      "source_location": "L12",
+      "source_location": "L10",
       "id": "informe_diario_route_get",
-      "community": 32,
+      "community": 7,
+      "norm_label": "get()"
+    },
+    {
+      "label": "route.ts",
+      "file_type": "code",
+      "source_file": "src/app/api/informe-diario/extracto/route.ts",
+      "source_location": "L1",
+      "id": "src_app_api_informe_diario_extracto_route_ts",
+      "community": 12,
+      "norm_label": "route.ts"
+    },
+    {
+      "label": "runPython()",
+      "file_type": "code",
+      "source_file": "src/app/api/resumen-ejecutivo/extracto/route.ts",
+      "source_location": "L17",
+      "id": "extracto_route_runpython",
+      "community": 12,
+      "norm_label": "runpython()"
+    },
+    {
+      "label": "cleanupOldOutputs()",
+      "file_type": "code",
+      "source_file": "src/app/api/resumen-ejecutivo/extracto/route.ts",
+      "source_location": "L31",
+      "id": "extracto_route_cleanupoldoutputs",
+      "community": 12,
+      "norm_label": "cleanupoldoutputs()"
+    },
+    {
+      "label": "GET()",
+      "file_type": "code",
+      "source_file": "src/app/api/resumen-ejecutivo/extracto/route.ts",
+      "source_location": "L48",
+      "id": "extracto_route_get",
+      "community": 12,
       "norm_label": "get()"
     },
     {
@@ -477,7 +693,7 @@
       "source_file": "src/app/api/informes-diarios/route.ts",
       "source_location": "L1",
       "id": "src_app_api_informes_diarios_route_ts",
-      "community": 33,
+      "community": 42,
       "norm_label": "route.ts"
     },
     {
@@ -486,8 +702,17 @@
       "source_file": "src/app/api/informes-diarios/route.ts",
       "source_location": "L17",
       "id": "informes_diarios_route_get",
-      "community": 33,
+      "community": 42,
       "norm_label": "get()"
+    },
+    {
+      "label": "route.ts",
+      "file_type": "code",
+      "source_file": "src/app/api/informes-diarios/extracto/route.ts",
+      "source_location": "L1",
+      "id": "src_app_api_informes_diarios_extracto_route_ts",
+      "community": 12,
+      "norm_label": "route.ts"
     },
     {
       "label": "route.ts",
@@ -495,16 +720,16 @@
       "source_file": "src/app/api/informes-diarios/catalogo/route.ts",
       "source_location": "L1",
       "id": "src_app_api_informes_diarios_catalogo_route_ts",
-      "community": 34,
+      "community": 43,
       "norm_label": "route.ts"
     },
     {
       "label": "GET()",
       "file_type": "code",
       "source_file": "src/app/api/informes-diarios/catalogo/route.ts",
-      "source_location": "L23",
+      "source_location": "L31",
       "id": "catalogo_route_get",
-      "community": 34,
+      "community": 43,
       "norm_label": "get()"
     },
     {
@@ -513,7 +738,7 @@
       "source_file": "src/app/api/informes-diarios/descargar/route.ts",
       "source_location": "L1",
       "id": "src_app_api_informes_diarios_descargar_route_ts",
-      "community": 35,
+      "community": 44,
       "norm_label": "route.ts"
     },
     {
@@ -522,7 +747,7 @@
       "source_file": "src/app/api/informes-diarios/descargar/route.ts",
       "source_location": "L14",
       "id": "descargar_route_get",
-      "community": 35,
+      "community": 44,
       "norm_label": "get()"
     },
     {
@@ -531,7 +756,7 @@
       "source_file": "src/app/api/fenoge/route.ts",
       "source_location": "L1",
       "id": "src_app_api_fenoge_route_ts",
-      "community": 0,
+      "community": 1,
       "norm_label": "route.ts"
     },
     {
@@ -540,7 +765,7 @@
       "source_file": "src/app/api/fenoge/route.ts",
       "source_location": "L6",
       "id": "fenoge_route_get",
-      "community": 0,
+      "community": 1,
       "norm_label": "get()"
     },
     {
@@ -549,7 +774,7 @@
       "source_file": "src/app/api/fenoge/seguimiento/route.ts",
       "source_location": "L1",
       "id": "src_app_api_fenoge_seguimiento_route_ts",
-      "community": 0,
+      "community": 1,
       "norm_label": "route.ts"
     },
     {
@@ -558,7 +783,7 @@
       "source_file": "src/app/api/fenoge/seguimiento/route.ts",
       "source_location": "L6",
       "id": "seguimiento_route_get",
-      "community": 0,
+      "community": 1,
       "norm_label": "get()"
     },
     {
@@ -567,7 +792,7 @@
       "source_file": "src/app/api/supervision/route.ts",
       "source_location": "L1",
       "id": "src_app_api_supervision_route_ts",
-      "community": 0,
+      "community": 1,
       "norm_label": "route.ts"
     },
     {
@@ -576,7 +801,7 @@
       "source_file": "src/app/api/supervision/route.ts",
       "source_location": "L6",
       "id": "supervision_route_get",
-      "community": 0,
+      "community": 1,
       "norm_label": "get()"
     },
     {
@@ -585,7 +810,7 @@
       "source_file": "src/app/api/supervision/detalle/route.ts",
       "source_location": "L1",
       "id": "src_app_api_supervision_detalle_route_ts",
-      "community": 0,
+      "community": 1,
       "norm_label": "route.ts"
     },
     {
@@ -594,7 +819,7 @@
       "source_file": "src/app/api/supervision/detalle/route.ts",
       "source_location": "L6",
       "id": "detalle_route_buildquerystring",
-      "community": 0,
+      "community": 1,
       "norm_label": "buildquerystring()"
     },
     {
@@ -603,7 +828,7 @@
       "source_file": "src/app/api/colombia-solar/curva-s/route.ts",
       "source_location": "L1",
       "id": "src_app_api_colombia_solar_curva_s_route_ts",
-      "community": 6,
+      "community": 8,
       "norm_label": "route.ts"
     },
     {
@@ -612,62 +837,179 @@
       "source_file": "src/app/api/colombia-solar/curva-s/route.ts",
       "source_location": "L25",
       "id": "curva_s_route_resolveexcelpath",
-      "community": 6,
+      "community": 8,
       "norm_label": "resolveexcelpath()"
     },
     {
       "label": "parseFecha()",
       "file_type": "code",
       "source_file": "src/app/api/colombia-solar/curva-s/route.ts",
-      "source_location": "L39",
+      "source_location": "L46",
       "id": "curva_s_route_parsefecha",
-      "community": 6,
+      "community": 8,
       "norm_label": "parsefecha()"
     },
     {
       "label": "procesarHojaExcel()",
       "file_type": "code",
       "source_file": "src/app/api/colombia-solar/curva-s/route.ts",
-      "source_location": "L46",
+      "source_location": "L53",
       "id": "curva_s_route_procesarhojaexcel",
-      "community": 6,
+      "community": 8,
       "norm_label": "procesarhojaexcel()"
     },
     {
       "label": "forwardFillPct()",
       "file_type": "code",
       "source_file": "src/app/api/colombia-solar/curva-s/route.ts",
-      "source_location": "L103",
+      "source_location": "L110",
       "id": "curva_s_route_forwardfillpct",
-      "community": 6,
+      "community": 8,
       "norm_label": "forwardfillpct()"
+    },
+    {
+      "label": "forwardFillPctReal()",
+      "file_type": "code",
+      "source_file": "src/app/api/colombia-solar/curva-s/route.ts",
+      "source_location": "L118",
+      "id": "curva_s_route_forwardfillpctreal",
+      "community": 8,
+      "norm_label": "forwardfillpctreal()"
     },
     {
       "label": "buildCategoriaExcel()",
       "file_type": "code",
       "source_file": "src/app/api/colombia-solar/curva-s/route.ts",
-      "source_location": "L111",
+      "source_location": "L135",
       "id": "curva_s_route_buildcategoriaexcel",
-      "community": 6,
+      "community": 8,
       "norm_label": "buildcategoriaexcel()"
     },
     {
       "label": "loadCurvaSFromExcel()",
       "file_type": "code",
       "source_file": "src/app/api/colombia-solar/curva-s/route.ts",
-      "source_location": "L179",
+      "source_location": "L218",
       "id": "curva_s_route_loadcurvasfromexcel",
-      "community": 6,
+      "community": 8,
       "norm_label": "loadcurvasfromexcel()"
     },
     {
       "label": "GET()",
       "file_type": "code",
       "source_file": "src/app/api/colombia-solar/curva-s/route.ts",
-      "source_location": "L188",
+      "source_location": "L227",
       "id": "curva_s_route_get",
-      "community": 6,
+      "community": 8,
       "norm_label": "get()"
+    },
+    {
+      "label": "route.ts",
+      "file_type": "code",
+      "source_file": "src/app/api/pdf-image/route.ts",
+      "source_location": "L1",
+      "id": "src_app_api_pdf_image_route_ts",
+      "community": 45,
+      "norm_label": "route.ts"
+    },
+    {
+      "label": "GET()",
+      "file_type": "code",
+      "source_file": "src/app/api/pdf-image/route.ts",
+      "source_location": "L9",
+      "id": "pdf_image_route_get",
+      "community": 45,
+      "norm_label": "get()"
+    },
+    {
+      "label": "route.ts",
+      "file_type": "code",
+      "source_file": "src/app/api/informes/boletines/lista/route.ts",
+      "source_location": "L1",
+      "id": "src_app_api_informes_boletines_lista_route_ts",
+      "community": 27,
+      "norm_label": "route.ts"
+    },
+    {
+      "label": "GET()",
+      "file_type": "code",
+      "source_file": "src/app/api/informes/xm/lista/route.ts",
+      "source_location": "L28",
+      "id": "lista_route_get",
+      "community": 27,
+      "norm_label": "get()"
+    },
+    {
+      "label": "route.ts",
+      "file_type": "code",
+      "source_file": "src/app/api/informes/xm/lista/route.ts",
+      "source_location": "L1",
+      "id": "src_app_api_informes_xm_lista_route_ts",
+      "community": 27,
+      "norm_label": "route.ts"
+    },
+    {
+      "label": "route.ts",
+      "file_type": "code",
+      "source_file": "src/app/api/informes/archivo/route.ts",
+      "source_location": "L1",
+      "id": "src_app_api_informes_archivo_route_ts",
+      "community": 7,
+      "norm_label": "route.ts"
+    },
+    {
+      "label": "GET()",
+      "file_type": "code",
+      "source_file": "src/app/api/informes/archivo/route.ts",
+      "source_location": "L4",
+      "id": "archivo_route_get",
+      "community": 7,
+      "norm_label": "get()"
+    },
+    {
+      "label": "route.ts",
+      "file_type": "code",
+      "source_file": "src/app/api/informes/[tablero]/route.ts",
+      "source_location": "L1",
+      "id": "src_app_api_informes_tablero_route_ts",
+      "community": 46,
+      "norm_label": "route.ts"
+    },
+    {
+      "label": "GET()",
+      "file_type": "code",
+      "source_file": "src/app/api/informes/[tablero]/route.ts",
+      "source_location": "L8",
+      "id": "tablero_route_get",
+      "community": 46,
+      "norm_label": "get()"
+    },
+    {
+      "label": "route.ts",
+      "file_type": "code",
+      "source_file": "src/app/api/resumen-ejecutivo/route.ts",
+      "source_location": "L1",
+      "id": "src_app_api_resumen_ejecutivo_route_ts",
+      "community": 7,
+      "norm_label": "route.ts"
+    },
+    {
+      "label": "GET()",
+      "file_type": "code",
+      "source_file": "src/app/api/resumen-ejecutivo/route.ts",
+      "source_location": "L9",
+      "id": "resumen_ejecutivo_route_get",
+      "community": 7,
+      "norm_label": "get()"
+    },
+    {
+      "label": "route.ts",
+      "file_type": "code",
+      "source_file": "src/app/api/resumen-ejecutivo/extracto/route.ts",
+      "source_location": "L1",
+      "id": "src_app_api_resumen_ejecutivo_extracto_route_ts",
+      "community": 12,
+      "norm_label": "route.ts"
     },
     {
       "label": "route.ts",
@@ -675,7 +1017,7 @@
       "source_file": "src/app/api/presupuesto/route.ts",
       "source_location": "L1",
       "id": "src_app_api_presupuesto_route_ts",
-      "community": 0,
+      "community": 1,
       "norm_label": "route.ts"
     },
     {
@@ -684,7 +1026,7 @@
       "source_file": "src/app/api/presupuesto/route.ts",
       "source_location": "L6",
       "id": "presupuesto_route_get",
-      "community": 0,
+      "community": 1,
       "norm_label": "get()"
     },
     {
@@ -693,7 +1035,7 @@
       "source_file": "src/app/(dashboards)/error.tsx",
       "source_location": "L1",
       "id": "src_app_dashboards_error_tsx",
-      "community": 63,
+      "community": 75,
       "norm_label": "error.tsx"
     },
     {
@@ -702,7 +1044,7 @@
       "source_file": "src/app/(dashboards)/subsidios/page.tsx",
       "source_location": "L1",
       "id": "src_app_dashboards_subsidios_page_tsx",
-      "community": 13,
+      "community": 16,
       "norm_label": "page.tsx"
     },
     {
@@ -711,25 +1053,25 @@
       "source_file": "src/app/(dashboards)/subsidios/page.tsx",
       "source_location": "L12",
       "id": "subsidios_page_card",
-      "community": 13,
+      "community": 16,
       "norm_label": "card()"
     },
     {
       "label": "toggle()",
       "file_type": "code",
       "source_file": "src/app/(dashboards)/subsidios/page.tsx",
-      "source_location": "L183",
+      "source_location": "L186",
       "id": "subsidios_page_toggle",
-      "community": 13,
+      "community": 16,
       "norm_label": "toggle()"
     },
     {
       "label": "handleBarClick()",
       "file_type": "code",
       "source_file": "src/app/(dashboards)/subsidios/page.tsx",
-      "source_location": "L195",
+      "source_location": "L198",
       "id": "subsidios_page_handlebarclick",
-      "community": 13,
+      "community": 16,
       "norm_label": "handlebarclick()"
     },
     {
@@ -738,7 +1080,7 @@
       "source_file": "src/app/(dashboards)/energia/page.tsx",
       "source_location": "L1",
       "id": "src_app_dashboards_energia_page_tsx",
-      "community": 14,
+      "community": 17,
       "norm_label": "page.tsx"
     },
     {
@@ -747,7 +1089,7 @@
       "source_file": "src/app/(dashboards)/energia/page.tsx",
       "source_location": "L81",
       "id": "energia_page_fmtdate",
-      "community": 14,
+      "community": 17,
       "norm_label": "fmtdate()"
     },
     {
@@ -756,17 +1098,89 @@
       "source_file": "src/app/(dashboards)/energia/page.tsx",
       "source_location": "L95",
       "id": "energia_page_riesgolabel",
-      "community": 14,
+      "community": 17,
       "norm_label": "riesgolabel()"
     },
     {
       "label": "formato()",
       "file_type": "code",
       "source_file": "src/app/(dashboards)/energia/page.tsx",
-      "source_location": "L683",
+      "source_location": "L681",
       "id": "energia_page_formato",
-      "community": 14,
+      "community": 17,
       "norm_label": "formato()"
+    },
+    {
+      "label": "page.tsx",
+      "file_type": "code",
+      "source_file": "src/app/(dashboards)/energia/informes/page.tsx",
+      "source_location": "L1",
+      "id": "src_app_dashboards_energia_informes_page_tsx",
+      "community": 9,
+      "norm_label": "page.tsx"
+    },
+    {
+      "label": "fmtFecha()",
+      "file_type": "code",
+      "source_file": "src/app/(dashboards)/energia/informes/page.tsx",
+      "source_location": "L47",
+      "id": "informes_page_fmtfecha",
+      "community": 9,
+      "norm_label": "fmtfecha()"
+    },
+    {
+      "label": "fmtTamano()",
+      "file_type": "code",
+      "source_file": "src/app/(dashboards)/energia/informes/page.tsx",
+      "source_location": "L62",
+      "id": "informes_page_fmttamano",
+      "community": 9,
+      "norm_label": "fmttamano()"
+    },
+    {
+      "label": "buildDescargarUrl()",
+      "file_type": "code",
+      "source_file": "src/app/(dashboards)/energia/informes/page.tsx",
+      "source_location": "L68",
+      "id": "informes_page_builddescargarurl",
+      "community": 9,
+      "norm_label": "builddescargarurl()"
+    },
+    {
+      "label": "useLista()",
+      "file_type": "code",
+      "source_file": "src/app/(dashboards)/energia/informes/page.tsx",
+      "source_location": "L74",
+      "id": "informes_page_uselista",
+      "community": 9,
+      "norm_label": "uselista()"
+    },
+    {
+      "label": "handleTipo()",
+      "file_type": "code",
+      "source_file": "src/app/(dashboards)/energia/informes/page.tsx",
+      "source_location": "L322",
+      "id": "informes_page_handletipo",
+      "community": 9,
+      "norm_label": "handletipo()"
+    },
+    {
+      "label": "handleRango()",
+      "file_type": "code",
+      "source_file": "src/app/(dashboards)/energia/informes/page.tsx",
+      "source_location": "L323",
+      "id": "informes_page_handlerango",
+      "community": 9,
+      "norm_label": "handlerango()"
+    },
+    {
+      "label": "limpiar()",
+      "file_type": "code",
+      "source_file": "src/app/(dashboards)/energia/informes/page.tsx",
+      "source_location": "L324",
+      "id": "informes_page_limpiar",
+      "community": 9,
+      "norm_label": "limpiar()"
     },
     {
       "label": "page.tsx",
@@ -774,7 +1188,7 @@
       "source_file": "src/app/(dashboards)/pagos/page.tsx",
       "source_location": "L1",
       "id": "src_app_dashboards_pagos_page_tsx",
-      "community": 9,
+      "community": 6,
       "norm_label": "page.tsx"
     },
     {
@@ -783,7 +1197,7 @@
       "source_file": "src/app/(dashboards)/pagos/page.tsx",
       "source_location": "L12",
       "id": "pagos_page_card",
-      "community": 9,
+      "community": 6,
       "norm_label": "card()"
     },
     {
@@ -792,7 +1206,7 @@
       "source_file": "src/app/(dashboards)/pagos/page.tsx",
       "source_location": "L54",
       "id": "pagos_page_handler",
-      "community": 9,
+      "community": 6,
       "norm_label": "handler()"
     },
     {
@@ -801,7 +1215,7 @@
       "source_file": "src/app/(dashboards)/pagos/page.tsx",
       "source_location": "L68",
       "id": "pagos_page_toggle",
-      "community": 9,
+      "community": 6,
       "norm_label": "toggle()"
     },
     {
@@ -810,16 +1224,16 @@
       "source_file": "src/app/(dashboards)/pagos/page.tsx",
       "source_location": "L301",
       "id": "pagos_page_set",
-      "community": 9,
+      "community": 6,
       "norm_label": "set()"
     },
     {
       "label": "fmtCOP()",
       "file_type": "code",
       "source_file": "src/app/(dashboards)/pagos/page.tsx",
-      "source_location": "L532",
+      "source_location": "L533",
       "id": "pagos_page_fmtcop",
-      "community": 9,
+      "community": 6,
       "norm_label": "fmtcop()"
     },
     {
@@ -828,7 +1242,7 @@
       "source_file": "src/app/(dashboards)/comunidades/ComunidadesMap.tsx",
       "source_location": "L1",
       "id": "src_app_dashboards_comunidades_comunidadesmap_tsx",
-      "community": 15,
+      "community": 18,
       "norm_label": "comunidadesmap.tsx"
     },
     {
@@ -837,7 +1251,7 @@
       "source_file": "src/app/(dashboards)/comunidades/ComunidadesMap.tsx",
       "source_location": "L32",
       "id": "comunidades_comunidadesmap_shiftgeometrylng",
-      "community": 15,
+      "community": 18,
       "norm_label": "shiftgeometrylng()"
     },
     {
@@ -846,7 +1260,7 @@
       "source_file": "src/app/(dashboards)/comunidades/ComunidadesMap.tsx",
       "source_location": "L55",
       "id": "comunidades_comunidadesmap_applyjitter",
-      "community": 15,
+      "community": 18,
       "norm_label": "applyjitter()"
     },
     {
@@ -855,7 +1269,7 @@
       "source_file": "src/app/(dashboards)/comunidades/ComunidadesMap.tsx",
       "source_location": "L74",
       "id": "comunidades_comunidadesmap_comunidadesmap",
-      "community": 15,
+      "community": 18,
       "norm_label": "comunidadesmap()"
     },
     {
@@ -864,7 +1278,7 @@
       "source_file": "src/app/(dashboards)/comunidades/page.tsx",
       "source_location": "L1",
       "id": "src_app_dashboards_comunidades_page_tsx",
-      "community": 36,
+      "community": 47,
       "norm_label": "page.tsx"
     },
     {
@@ -873,7 +1287,7 @@
       "source_file": "src/app/(dashboards)/comunidades/page.tsx",
       "source_location": "L24",
       "id": "comunidades_page_card",
-      "community": 36,
+      "community": 47,
       "norm_label": "card()"
     },
     {
@@ -882,7 +1296,7 @@
       "source_file": "src/app/(dashboards)/contratos-or/page.tsx",
       "source_location": "L1",
       "id": "src_app_dashboards_contratos_or_page_tsx",
-      "community": 37,
+      "community": 48,
       "norm_label": "page.tsx"
     },
     {
@@ -891,7 +1305,7 @@
       "source_file": "src/app/(dashboards)/contratos-or/page.tsx",
       "source_location": "L15",
       "id": "contratos_or_page_card",
-      "community": 37,
+      "community": 48,
       "norm_label": "card()"
     },
     {
@@ -900,7 +1314,7 @@
       "source_file": "src/app/(dashboards)/validaciones/page.tsx",
       "source_location": "L1",
       "id": "src_app_dashboards_validaciones_page_tsx",
-      "community": 21,
+      "community": 28,
       "norm_label": "page.tsx"
     },
     {
@@ -909,7 +1323,7 @@
       "source_file": "src/app/(dashboards)/validaciones/page.tsx",
       "source_location": "L67",
       "id": "validaciones_page_card",
-      "community": 21,
+      "community": 28,
       "norm_label": "card()"
     },
     {
@@ -918,7 +1332,7 @@
       "source_file": "src/app/(dashboards)/validaciones/page.tsx",
       "source_location": "L385",
       "id": "validaciones_page_handleperiodselect",
-      "community": 21,
+      "community": 28,
       "norm_label": "handleperiodselect()"
     },
     {
@@ -927,7 +1341,7 @@
       "source_file": "src/app/(dashboards)/fenoge/page.tsx",
       "source_location": "L1",
       "id": "src_app_dashboards_fenoge_page_tsx",
-      "community": 38,
+      "community": 49,
       "norm_label": "page.tsx"
     },
     {
@@ -936,7 +1350,7 @@
       "source_file": "src/app/(dashboards)/fenoge/page.tsx",
       "source_location": "L24",
       "id": "fenoge_page_card",
-      "community": 38,
+      "community": 49,
       "norm_label": "card()"
     },
     {
@@ -945,7 +1359,7 @@
       "source_file": "src/app/(dashboards)/fenoge/FenogeCEMap.tsx",
       "source_location": "L1",
       "id": "src_app_dashboards_fenoge_fenogecemap_tsx",
-      "community": 16,
+      "community": 19,
       "norm_label": "fenogecemap.tsx"
     },
     {
@@ -954,7 +1368,7 @@
       "source_file": "src/app/(dashboards)/fenoge/FenogeCEMap.tsx",
       "source_location": "L34",
       "id": "fenoge_fenogecemap_shiftgeometrylng",
-      "community": 16,
+      "community": 19,
       "norm_label": "shiftgeometrylng()"
     },
     {
@@ -963,7 +1377,7 @@
       "source_file": "src/app/(dashboards)/fenoge/FenogeCEMap.tsx",
       "source_location": "L47",
       "id": "fenoge_fenogecemap_applyjitter",
-      "community": 16,
+      "community": 19,
       "norm_label": "applyjitter()"
     },
     {
@@ -972,7 +1386,7 @@
       "source_file": "src/app/(dashboards)/fenoge/FenogeCEMap.tsx",
       "source_location": "L75",
       "id": "fenoge_fenogecemap_fenogecemap",
-      "community": 16,
+      "community": 19,
       "norm_label": "fenogecemap()"
     },
     {
@@ -981,7 +1395,7 @@
       "source_file": "src/app/(dashboards)/supervision/page.tsx",
       "source_location": "L1",
       "id": "src_app_dashboards_supervision_page_tsx",
-      "community": 17,
+      "community": 20,
       "norm_label": "page.tsx"
     },
     {
@@ -990,25 +1404,25 @@
       "source_file": "src/app/(dashboards)/supervision/page.tsx",
       "source_location": "L15",
       "id": "supervision_page_card",
-      "community": 17,
+      "community": 20,
       "norm_label": "card()"
     },
     {
       "label": "pct()",
       "file_type": "code",
       "source_file": "src/app/(dashboards)/supervision/page.tsx",
-      "source_location": "L482",
+      "source_location": "L499",
       "id": "supervision_page_pct",
-      "community": 17,
+      "community": 20,
       "norm_label": "pct()"
     },
     {
       "label": "fmtCOP()",
       "file_type": "code",
       "source_file": "src/app/(dashboards)/supervision/page.tsx",
-      "source_location": "L584",
+      "source_location": "L598",
       "id": "supervision_page_fmtcop",
-      "community": 17,
+      "community": 20,
       "norm_label": "fmtcop()"
     },
     {
@@ -1017,7 +1431,7 @@
       "source_file": "src/app/(dashboards)/presupuesto/page.tsx",
       "source_location": "L1",
       "id": "src_app_dashboards_presupuesto_page_tsx",
-      "community": 39,
+      "community": 50,
       "norm_label": "page.tsx"
     },
     {
@@ -1026,7 +1440,7 @@
       "source_file": "src/app/(dashboards)/presupuesto/page.tsx",
       "source_location": "L17",
       "id": "presupuesto_page_card",
-      "community": 39,
+      "community": 50,
       "norm_label": "card()"
     },
     {
@@ -1035,7 +1449,7 @@
       "source_file": "src/services/index.ts",
       "source_location": "L1",
       "id": "src_services_index_ts",
-      "community": 64,
+      "community": 76,
       "norm_label": "index.ts"
     },
     {
@@ -1278,7 +1692,7 @@
       "source_file": "src/components/HomeSlider.tsx",
       "source_location": "L392",
       "id": "components_homeslider_diagnosticosin",
-      "community": 2,
+      "community": 0,
       "norm_label": "diagnosticosin()"
     },
     {
@@ -1327,12 +1741,30 @@
       "norm_label": "minispark()"
     },
     {
+      "label": "ResumenEjecutivoFab.tsx",
+      "file_type": "code",
+      "source_file": "src/components/ResumenEjecutivoFab.tsx",
+      "source_location": "L1",
+      "id": "src_components_resumenejecutivofab_tsx",
+      "community": 51,
+      "norm_label": "resumenejecutivofab.tsx"
+    },
+    {
+      "label": "ResumenEjecutivoFab()",
+      "file_type": "code",
+      "source_file": "src/components/ResumenEjecutivoFab.tsx",
+      "source_location": "L9",
+      "id": "components_resumenejecutivofab_resumenejecutivofab",
+      "community": 51,
+      "norm_label": "resumenejecutivofab()"
+    },
+    {
       "label": "PanoramaInformeFab.tsx",
       "file_type": "code",
       "source_file": "src/components/PanoramaInformeFab.tsx",
       "source_location": "L1",
       "id": "src_components_panoramainformefab_tsx",
-      "community": 22,
+      "community": 29,
       "norm_label": "panoramainformefab.tsx"
     },
     {
@@ -1341,17 +1773,17 @@
       "source_file": "src/components/PanoramaInformeFab.tsx",
       "source_location": "L6",
       "id": "components_panoramainformefab_lightningicon",
-      "community": 22,
+      "community": 29,
       "norm_label": "lightningicon()"
     },
     {
-      "label": "PanoramaInformeFab()",
+      "label": "prefetch()",
       "file_type": "code",
       "source_file": "src/components/PanoramaInformeFab.tsx",
-      "source_location": "L32",
-      "id": "components_panoramainformefab_panoramainformefab",
-      "community": 22,
-      "norm_label": "panoramainformefab()"
+      "source_location": "L79",
+      "id": "components_panoramainformefab_prefetch",
+      "community": 29,
+      "norm_label": "prefetch()"
     },
     {
       "label": "SlideRedesX.tsx",
@@ -1359,7 +1791,7 @@
       "source_file": "src/components/SlideRedesX.tsx",
       "source_location": "L1",
       "id": "src_components_slideredesx_tsx",
-      "community": 23,
+      "community": 30,
       "norm_label": "slideredesx.tsx"
     },
     {
@@ -1368,7 +1800,7 @@
       "source_file": "src/components/SlideRedesX.tsx",
       "source_location": "L76",
       "id": "components_slideredesx_xlogo",
-      "community": 23,
+      "community": 30,
       "norm_label": "xlogo()"
     },
     {
@@ -1377,7 +1809,7 @@
       "source_file": "src/components/SlideRedesX.tsx",
       "source_location": "L90",
       "id": "components_slideredesx_loadxwidgets",
-      "community": 23,
+      "community": 30,
       "norm_label": "loadxwidgets()"
     },
     {
@@ -1386,16 +1818,16 @@
       "source_file": "src/components/Header.tsx",
       "source_location": "L1",
       "id": "src_components_header_tsx",
-      "community": 11,
+      "community": 13,
       "norm_label": "header.tsx"
     },
     {
       "label": "Header()",
       "file_type": "code",
       "source_file": "src/components/Header.tsx",
-      "source_location": "L50",
+      "source_location": "L51",
       "id": "components_header_header",
-      "community": 11,
+      "community": 13,
       "norm_label": "header()"
     },
     {
@@ -1404,8 +1836,17 @@
       "source_file": "src/components/DashboardLayout.tsx",
       "source_location": "L1",
       "id": "src_components_dashboardlayout_tsx",
-      "community": 65,
+      "community": 52,
       "norm_label": "dashboardlayout.tsx"
+    },
+    {
+      "label": "handleDownload()",
+      "file_type": "code",
+      "source_file": "src/components/DashboardLayout.tsx",
+      "source_location": "L21",
+      "id": "components_dashboardlayout_handledownload",
+      "community": 52,
+      "norm_label": "handledownload()"
     },
     {
       "label": "MapaEmbalsesSVG.tsx",
@@ -1413,7 +1854,7 @@
       "source_file": "src/components/MapaEmbalsesSVG.tsx",
       "source_location": "L1",
       "id": "src_components_mapaembalsessvg_tsx",
-      "community": 24,
+      "community": 31,
       "norm_label": "mapaembalsessvg.tsx"
     },
     {
@@ -1422,7 +1863,7 @@
       "source_file": "src/components/MapaEmbalsesSVG.tsx",
       "source_location": "L31",
       "id": "components_mapaembalsessvg_geotopercent",
-      "community": 24,
+      "community": 31,
       "norm_label": "geotopercent()"
     },
     {
@@ -1431,7 +1872,7 @@
       "source_file": "src/components/MapaEmbalsesSVG.tsx",
       "source_location": "L50",
       "id": "components_mapaembalsessvg_calcradius",
-      "community": 24,
+      "community": 31,
       "norm_label": "calcradius()"
     },
     {
@@ -1440,17 +1881,35 @@
       "source_file": "src/components/InformesDiariosSlider.tsx",
       "source_location": "L1",
       "id": "src_components_informesdiariosslider_tsx",
-      "community": 40,
+      "community": 21,
       "norm_label": "informesdiariosslider.tsx"
     },
     {
       "label": "LightningIcon()",
       "file_type": "code",
       "source_file": "src/components/InformesDiariosSlider.tsx",
-      "source_location": "L18",
+      "source_location": "L28",
       "id": "components_informesdiariosslider_lightningicon",
-      "community": 40,
+      "community": 21,
       "norm_label": "lightningicon()"
+    },
+    {
+      "label": "loadCatalog()",
+      "file_type": "code",
+      "source_file": "src/components/InformesDiariosSlider.tsx",
+      "source_location": "L60",
+      "id": "components_informesdiariosslider_loadcatalog",
+      "community": 21,
+      "norm_label": "loadcatalog()"
+    },
+    {
+      "label": "onVisible()",
+      "file_type": "code",
+      "source_file": "src/components/InformesDiariosSlider.tsx",
+      "source_location": "L82",
+      "id": "components_informesdiariosslider_onvisible",
+      "community": 21,
+      "norm_label": "onvisible()"
     },
     {
       "label": "MapaEmbalses.tsx",
@@ -1458,7 +1917,7 @@
       "source_file": "src/components/MapaEmbalses.tsx",
       "source_location": "L1",
       "id": "src_components_mapaembalses_tsx",
-      "community": 41,
+      "community": 53,
       "norm_label": "mapaembalses.tsx"
     },
     {
@@ -1467,7 +1926,7 @@
       "source_file": "src/components/MapaEmbalses.tsx",
       "source_location": "L24",
       "id": "components_mapaembalses_calcradius",
-      "community": 41,
+      "community": 53,
       "norm_label": "calcradius()"
     },
     {
@@ -1476,61 +1935,61 @@
       "source_file": "src/components/ChatbotWidget.tsx",
       "source_location": "L1",
       "id": "src_components_chatbotwidget_tsx",
-      "community": 8,
+      "community": 11,
       "norm_label": "chatbotwidget.tsx"
     },
     {
       "label": "now()",
       "file_type": "code",
       "source_file": "src/components/ChatbotWidget.tsx",
-      "source_location": "L92",
+      "source_location": "L93",
       "id": "components_chatbotwidget_now",
-      "community": 8,
+      "community": 11,
       "norm_label": "now()"
     },
     {
       "label": "fmt()",
       "file_type": "code",
       "source_file": "src/components/ChatbotWidget.tsx",
-      "source_location": "L96",
+      "source_location": "L97",
       "id": "components_chatbotwidget_fmt",
-      "community": 8,
+      "community": 11,
       "norm_label": "fmt()"
     },
     {
       "label": "renderMarkdown()",
       "file_type": "code",
       "source_file": "src/components/ChatbotWidget.tsx",
-      "source_location": "L102",
+      "source_location": "L103",
       "id": "components_chatbotwidget_rendermarkdown",
-      "community": 8,
+      "community": 11,
       "norm_label": "rendermarkdown()"
     },
     {
       "label": "FichasCards()",
       "file_type": "code",
       "source_file": "src/components/ChatbotWidget.tsx",
-      "source_location": "L124",
+      "source_location": "L125",
       "id": "components_chatbotwidget_fichascards",
-      "community": 8,
+      "community": 11,
       "norm_label": "fichascards()"
     },
     {
       "label": "panelStyle()",
       "file_type": "code",
       "source_file": "src/components/ChatbotWidget.tsx",
-      "source_location": "L394",
+      "source_location": "L395",
       "id": "components_chatbotwidget_panelstyle",
-      "community": 8,
+      "community": 11,
       "norm_label": "panelstyle()"
     },
     {
       "label": "onKeyDown()",
       "file_type": "code",
       "source_file": "src/components/ChatbotWidget.tsx",
-      "source_location": "L585",
+      "source_location": "L586",
       "id": "components_chatbotwidget_onkeydown",
-      "community": 8,
+      "community": 11,
       "norm_label": "onkeydown()"
     },
     {
@@ -1539,7 +1998,7 @@
       "source_file": "src/components/ClientLayout.tsx",
       "source_location": "L1",
       "id": "src_components_clientlayout_tsx",
-      "community": 42,
+      "community": 54,
       "norm_label": "clientlayout.tsx"
     },
     {
@@ -1548,7 +2007,7 @@
       "source_file": "src/components/ClientLayout.tsx",
       "source_location": "L6",
       "id": "components_clientlayout_clientlayout",
-      "community": 42,
+      "community": 54,
       "norm_label": "clientlayout()"
     },
     {
@@ -1557,7 +2016,7 @@
       "source_file": "src/components/ui/ChartCard.tsx",
       "source_location": "L1",
       "id": "src_components_ui_chartcard_tsx",
-      "community": 43,
+      "community": 55,
       "norm_label": "chartcard.tsx"
     },
     {
@@ -1566,7 +2025,7 @@
       "source_file": "src/components/ui/ChartCard.tsx",
       "source_location": "L16",
       "id": "ui_chartcard_chartcard",
-      "community": 43,
+      "community": 55,
       "norm_label": "chartcard()"
     },
     {
@@ -1575,7 +2034,7 @@
       "source_file": "src/components/ui/SemiGauge.tsx",
       "source_location": "L1",
       "id": "src_components_ui_semigauge_tsx",
-      "community": 44,
+      "community": 56,
       "norm_label": "semigauge.tsx"
     },
     {
@@ -1584,7 +2043,7 @@
       "source_file": "src/components/ui/SemiGauge.tsx",
       "source_location": "L14",
       "id": "ui_semigauge_semigauge",
-      "community": 44,
+      "community": 56,
       "norm_label": "semigauge()"
     },
     {
@@ -1593,7 +2052,7 @@
       "source_file": "src/components/ui/SemiPieChart.tsx",
       "source_location": "L1",
       "id": "src_components_ui_semipiechart_tsx",
-      "community": 45,
+      "community": 57,
       "norm_label": "semipiechart.tsx"
     },
     {
@@ -1602,7 +2061,7 @@
       "source_file": "src/components/ui/SemiPieChart.tsx",
       "source_location": "L13",
       "id": "ui_semipiechart_semipiechart",
-      "community": 45,
+      "community": 57,
       "norm_label": "semipiechart()"
     },
     {
@@ -1611,7 +2070,7 @@
       "source_file": "src/components/ui/WaterfallChart.tsx",
       "source_location": "L1",
       "id": "src_components_ui_waterfallchart_tsx",
-      "community": 66,
+      "community": 77,
       "norm_label": "waterfallchart.tsx"
     },
     {
@@ -1620,7 +2079,7 @@
       "source_file": "src/components/ui/TrendBadge.tsx",
       "source_location": "L1",
       "id": "src_components_ui_trendbadge_tsx",
-      "community": 10,
+      "community": 0,
       "norm_label": "trendbadge.tsx"
     },
     {
@@ -1629,7 +2088,7 @@
       "source_file": "src/components/ui/TrendBadge.tsx",
       "source_location": "L17",
       "id": "ui_trendbadge_gettrendcolor",
-      "community": 10,
+      "community": 0,
       "norm_label": "gettrendcolor()"
     },
     {
@@ -1638,7 +2097,7 @@
       "source_file": "src/components/ui/KPICard.tsx",
       "source_location": "L1",
       "id": "src_components_ui_kpicard_tsx",
-      "community": 25,
+      "community": 32,
       "norm_label": "kpicard.tsx"
     },
     {
@@ -1647,7 +2106,7 @@
       "source_file": "src/components/ui/KPICard.tsx",
       "source_location": "L63",
       "id": "ui_kpicard_kpicard",
-      "community": 25,
+      "community": 32,
       "norm_label": "kpicard()"
     },
     {
@@ -1656,7 +2115,7 @@
       "source_file": "src/components/ui/KPICard.tsx",
       "source_location": "L84",
       "id": "ui_kpicard_cn",
-      "community": 25,
+      "community": 32,
       "norm_label": "cn()"
     },
     {
@@ -1665,7 +2124,7 @@
       "source_file": "src/components/ui/ThemeToggle.tsx",
       "source_location": "L1",
       "id": "src_components_ui_themetoggle_tsx",
-      "community": 67,
+      "community": 78,
       "norm_label": "themetoggle.tsx"
     },
     {
@@ -1674,7 +2133,7 @@
       "source_file": "src/components/ui/BulletChart.tsx",
       "source_location": "L1",
       "id": "src_components_ui_bulletchart_tsx",
-      "community": 68,
+      "community": 79,
       "norm_label": "bulletchart.tsx"
     },
     {
@@ -1683,7 +2142,7 @@
       "source_file": "src/components/slides/SlideUI.tsx",
       "source_location": "L1",
       "id": "src_components_slides_slideui_tsx",
-      "community": 18,
+      "community": 22,
       "norm_label": "slideui.tsx"
     },
     {
@@ -1692,7 +2151,7 @@
       "source_file": "src/components/slides/SlideUI.tsx",
       "source_location": "L3",
       "id": "slides_slideui_topaccent",
-      "community": 18,
+      "community": 22,
       "norm_label": "topaccent()"
     },
     {
@@ -1701,7 +2160,7 @@
       "source_file": "src/components/slides/SlideUI.tsx",
       "source_location": "L14",
       "id": "slides_slideui_sectionbadge",
-      "community": 18,
+      "community": 22,
       "norm_label": "sectionbadge()"
     },
     {
@@ -1710,7 +2169,7 @@
       "source_file": "src/components/slides/SlideUI.tsx",
       "source_location": "L36",
       "id": "slides_slideui_navarrow",
-      "community": 18,
+      "community": 22,
       "norm_label": "navarrow()"
     },
     {
@@ -1719,7 +2178,7 @@
       "source_file": "src/components/slides/SlideGeneracionTermica.tsx",
       "source_location": "L1",
       "id": "src_components_slides_slidegeneraciontermica_tsx",
-      "community": 10,
+      "community": 0,
       "norm_label": "slidegeneraciontermica.tsx"
     },
     {
@@ -1728,7 +2187,7 @@
       "source_file": "src/components/slides/SlideGeneracionTermica.tsx",
       "source_location": "L14",
       "id": "slides_slidegeneraciontermica_pricecard",
-      "community": 10,
+      "community": 0,
       "norm_label": "pricecard()"
     },
     {
@@ -1737,7 +2196,7 @@
       "source_file": "src/components/slides/SlideGeneracionTermica.tsx",
       "source_location": "L96",
       "id": "slides_slidegeneraciontermica_topct",
-      "community": 10,
+      "community": 0,
       "norm_label": "topct()"
     },
     {
@@ -1746,7 +2205,7 @@
       "source_file": "src/components/slides/SlidePresupuesto.tsx",
       "source_location": "L1",
       "id": "src_components_slides_slidepresupuesto_tsx",
-      "community": 7,
+      "community": 10,
       "norm_label": "slidepresupuesto.tsx"
     },
     {
@@ -1755,7 +2214,7 @@
       "source_file": "src/components/slides/SlidePresupuesto.tsx",
       "source_location": "L8",
       "id": "slides_slidepresupuesto_slidepresupuesto",
-      "community": 7,
+      "community": 10,
       "norm_label": "slidepresupuesto()"
     },
     {
@@ -1764,7 +2223,7 @@
       "source_file": "src/components/slides/SlideGestionSector.tsx",
       "source_location": "L1",
       "id": "src_components_slides_slidegestionsector_tsx",
-      "community": 69,
+      "community": 80,
       "norm_label": "slidegestionsector.tsx"
     },
     {
@@ -1773,7 +2232,7 @@
       "source_file": "src/components/slides/SlideNoticia.tsx",
       "source_location": "L1",
       "id": "src_components_slides_slidenoticia_tsx",
-      "community": 70,
+      "community": 81,
       "norm_label": "slidenoticia.tsx"
     },
     {
@@ -1782,7 +2241,7 @@
       "source_file": "src/components/slides/SlideContratosOR.tsx",
       "source_location": "L1",
       "id": "src_components_slides_slidecontratosor_tsx",
-      "community": 71,
+      "community": 82,
       "norm_label": "slidecontratosor.tsx"
     },
     {
@@ -1791,7 +2250,7 @@
       "source_file": "src/components/slides/SlideSubsidios.tsx",
       "source_location": "L1",
       "id": "src_components_slides_slidesubsidios_tsx",
-      "community": 46,
+      "community": 58,
       "norm_label": "slidesubsidios.tsx"
     },
     {
@@ -1800,7 +2259,7 @@
       "source_file": "src/components/slides/SlideSubsidios.tsx",
       "source_location": "L11",
       "id": "slides_slidesubsidios_slidesubsidios",
-      "community": 46,
+      "community": 58,
       "norm_label": "slidesubsidios()"
     },
     {
@@ -1809,7 +2268,7 @@
       "source_file": "src/components/slides/index.ts",
       "source_location": "L1",
       "id": "src_components_slides_index_ts",
-      "community": 72,
+      "community": 83,
       "norm_label": "index.ts"
     },
     {
@@ -1818,16 +2277,25 @@
       "source_file": "src/components/slides/SlideSupervision.tsx",
       "source_location": "L1",
       "id": "src_components_slides_slidesupervision_tsx",
-      "community": 47,
+      "community": 33,
       "norm_label": "slidesupervision.tsx"
+    },
+    {
+      "label": "EtapaChip()",
+      "file_type": "code",
+      "source_file": "src/components/slides/SlideSupervision.tsx",
+      "source_location": "L17",
+      "id": "slides_slidesupervision_etapachip",
+      "community": 33,
+      "norm_label": "etapachip()"
     },
     {
       "label": "pct()",
       "file_type": "code",
       "source_file": "src/components/slides/SlideSupervision.tsx",
-      "source_location": "L13",
+      "source_location": "L29",
       "id": "slides_slidesupervision_pct",
-      "community": 47,
+      "community": 33,
       "norm_label": "pct()"
     },
     {
@@ -1836,7 +2304,7 @@
       "source_file": "src/components/slides/SlideComunidades.tsx",
       "source_location": "L1",
       "id": "src_components_slides_slidecomunidades_tsx",
-      "community": 73,
+      "community": 84,
       "norm_label": "slidecomunidades.tsx"
     },
     {
@@ -1845,7 +2313,7 @@
       "source_file": "src/components/charts/BarChart.tsx",
       "source_location": "L1",
       "id": "src_components_charts_barchart_tsx",
-      "community": 48,
+      "community": 59,
       "norm_label": "barchart.tsx"
     },
     {
@@ -1854,7 +2322,7 @@
       "source_file": "src/components/charts/BarChart.tsx",
       "source_location": "L14",
       "id": "charts_barchart_barchart",
-      "community": 48,
+      "community": 59,
       "norm_label": "barchart()"
     },
     {
@@ -1863,7 +2331,7 @@
       "source_file": "src/components/charts/CapacidadEmbalseChart.tsx",
       "source_location": "L1",
       "id": "src_components_charts_capacidadembalsechart_tsx",
-      "community": 19,
+      "community": 23,
       "norm_label": "capacidadembalsechart.tsx"
     },
     {
@@ -1872,7 +2340,7 @@
       "source_file": "src/components/charts/CapacidadEmbalseChart.tsx",
       "source_location": "L61",
       "id": "charts_capacidadembalsechart_leyendaxm",
-      "community": 19,
+      "community": 23,
       "norm_label": "leyendaxm()"
     },
     {
@@ -1881,7 +2349,7 @@
       "source_file": "src/components/charts/CapacidadEmbalseChart.tsx",
       "source_location": "L254",
       "id": "charts_capacidadembalsechart_pct",
-      "community": 19,
+      "community": 23,
       "norm_label": "pct()"
     },
     {
@@ -1890,7 +2358,7 @@
       "source_file": "src/components/charts/CapacidadEmbalseChart.tsx",
       "source_location": "L256",
       "id": "charts_capacidadembalsechart_fmt",
-      "community": 19,
+      "community": 23,
       "norm_label": "fmt()"
     },
     {
@@ -1899,7 +2367,7 @@
       "source_file": "src/components/charts/PieChart.tsx",
       "source_location": "L1",
       "id": "src_components_charts_piechart_tsx",
-      "community": 49,
+      "community": 60,
       "norm_label": "piechart.tsx"
     },
     {
@@ -1908,7 +2376,7 @@
       "source_file": "src/components/charts/PieChart.tsx",
       "source_location": "L15",
       "id": "charts_piechart_piechart",
-      "community": 49,
+      "community": 60,
       "norm_label": "piechart()"
     },
     {
@@ -1917,7 +2385,7 @@
       "source_file": "src/components/charts/LineChart.tsx",
       "source_location": "L1",
       "id": "src_components_charts_linechart_tsx",
-      "community": 50,
+      "community": 61,
       "norm_label": "linechart.tsx"
     },
     {
@@ -1926,7 +2394,7 @@
       "source_file": "src/components/charts/LineChart.tsx",
       "source_location": "L14",
       "id": "charts_linechart_linechart",
-      "community": 50,
+      "community": 61,
       "norm_label": "linechart()"
     },
     {
@@ -1935,7 +2403,7 @@
       "source_file": "src/components/kpi/DualGaugeSparklines.tsx",
       "source_location": "L1",
       "id": "src_components_kpi_dualgaugesparklines_tsx",
-      "community": 51,
+      "community": 62,
       "norm_label": "dualgaugesparklines.tsx"
     },
     {
@@ -1944,7 +2412,7 @@
       "source_file": "src/components/kpi/DualGaugeSparklines.tsx",
       "source_location": "L14",
       "id": "kpi_dualgaugesparklines_minispark",
-      "community": 51,
+      "community": 62,
       "norm_label": "minispark()"
     },
     {
@@ -1953,7 +2421,7 @@
       "source_file": "src/components/kpi/index.ts",
       "source_location": "L1",
       "id": "src_components_kpi_index_ts",
-      "community": 74,
+      "community": 85,
       "norm_label": "index.ts"
     },
     {
@@ -1962,7 +2430,7 @@
       "source_file": "src/components/kpi/StatusChip.tsx",
       "source_location": "L1",
       "id": "src_components_kpi_statuschip_tsx",
-      "community": 52,
+      "community": 63,
       "norm_label": "statuschip.tsx"
     },
     {
@@ -1971,7 +2439,7 @@
       "source_file": "src/components/kpi/StatusChip.tsx",
       "source_location": "L8",
       "id": "kpi_statuschip_statuschip",
-      "community": 52,
+      "community": 63,
       "norm_label": "statuschip()"
     },
     {
@@ -1980,7 +2448,7 @@
       "source_file": "src/components/kpi/KpiBlock.tsx",
       "source_location": "L1",
       "id": "src_components_kpi_kpiblock_tsx",
-      "community": 75,
+      "community": 86,
       "norm_label": "kpiblock.tsx"
     },
     {
@@ -1989,7 +2457,7 @@
       "source_file": "src/components/kpi/HydroKpiBlock.tsx",
       "source_location": "L1",
       "id": "src_components_kpi_hydrokpiblock_tsx",
-      "community": 53,
+      "community": 64,
       "norm_label": "hydrokpiblock.tsx"
     },
     {
@@ -1998,7 +2466,7 @@
       "source_file": "src/components/kpi/HydroKpiBlock.tsx",
       "source_location": "L29",
       "id": "kpi_hydrokpiblock_fmt",
-      "community": 53,
+      "community": 64,
       "norm_label": "fmt()"
     },
     {
@@ -2007,7 +2475,7 @@
       "source_file": "src/providers/ThemeProvider.tsx",
       "source_location": "L1",
       "id": "src_providers_themeprovider_tsx",
-      "community": 11,
+      "community": 13,
       "norm_label": "themeprovider.tsx"
     },
     {
@@ -2016,7 +2484,7 @@
       "source_file": "src/providers/ThemeProvider.tsx",
       "source_location": "L17",
       "id": "providers_themeprovider_themeprovider",
-      "community": 11,
+      "community": 13,
       "norm_label": "themeprovider()"
     },
     {
@@ -2025,7 +2493,7 @@
       "source_file": "src/providers/ThemeProvider.tsx",
       "source_location": "L97",
       "id": "providers_themeprovider_usetheme",
-      "community": 11,
+      "community": 13,
       "norm_label": "usetheme()"
     },
     {
@@ -2034,7 +2502,7 @@
       "source_file": "src/lib/utils.ts",
       "source_location": "L1",
       "id": "src_lib_utils_ts",
-      "community": 54,
+      "community": 65,
       "norm_label": "utils.ts"
     },
     {
@@ -2043,8 +2511,26 @@
       "source_file": "src/lib/utils.ts",
       "source_location": "L4",
       "id": "lib_utils_cn",
-      "community": 54,
+      "community": 65,
       "norm_label": "cn()"
+    },
+    {
+      "label": "news-keywords.ts",
+      "file_type": "code",
+      "source_file": "src/lib/news-keywords.ts",
+      "source_location": "L1",
+      "id": "src_lib_news_keywords_ts",
+      "community": 66,
+      "norm_label": "news-keywords.ts"
+    },
+    {
+      "label": "countKeywordHits()",
+      "file_type": "code",
+      "source_file": "src/lib/news-keywords.ts",
+      "source_location": "L59",
+      "id": "lib_news_keywords_countkeywordhits",
+      "community": 66,
+      "norm_label": "countkeywordhits()"
     },
     {
       "label": "umbralesOficiales.ts",
@@ -2052,7 +2538,7 @@
       "source_file": "src/lib/umbralesOficiales.ts",
       "source_location": "L1",
       "id": "src_lib_umbralesoficiales_ts",
-      "community": 2,
+      "community": 0,
       "norm_label": "umbralesoficiales.ts"
     },
     {
@@ -2061,7 +2547,7 @@
       "source_file": "src/lib/umbralesOficiales.ts",
       "source_location": "L82",
       "id": "lib_umbralesoficiales_obtenersendareferencia",
-      "community": 2,
+      "community": 0,
       "norm_label": "obtenersendareferencia()"
     },
     {
@@ -2070,7 +2556,7 @@
       "source_file": "src/lib/umbralesOficiales.ts",
       "source_location": "L99",
       "id": "lib_umbralesoficiales_clasificarindicene",
-      "community": 2,
+      "community": 0,
       "norm_label": "clasificarindicene()"
     },
     {
@@ -2079,7 +2565,7 @@
       "source_file": "src/lib/umbralesOficiales.ts",
       "source_location": "L185",
       "id": "lib_umbralesoficiales_clasificarvisualembalse",
-      "community": 2,
+      "community": 0,
       "norm_label": "clasificarvisualembalse()"
     },
     {
@@ -2088,7 +2574,7 @@
       "source_file": "src/lib/umbralesOficiales.ts",
       "source_location": "L229",
       "id": "lib_umbralesoficiales_clasificarvisualaportes",
-      "community": 2,
+      "community": 0,
       "norm_label": "clasificarvisualaportes()"
     },
     {
@@ -2106,35 +2592,53 @@
       "source_file": "src/lib/backendClient.ts",
       "source_location": "L1",
       "id": "src_lib_backendclient_ts",
-      "community": 0,
+      "community": 7,
       "norm_label": "backendclient.ts"
     },
     {
       "label": "BackendError",
       "file_type": "code",
       "source_file": "src/lib/backendClient.ts",
-      "source_location": "L9",
+      "source_location": "L13",
       "id": "lib_backendclient_backenderror",
-      "community": 0,
+      "community": 7,
       "norm_label": "backenderror"
     },
     {
       "label": ".constructor()",
       "file_type": "code",
       "source_file": "src/lib/backendClient.ts",
-      "source_location": "L10",
+      "source_location": "L14",
       "id": "lib_backendclient_backenderror_constructor",
-      "community": 0,
+      "community": 7,
       "norm_label": ".constructor()"
+    },
+    {
+      "label": "requestBackend()",
+      "file_type": "code",
+      "source_file": "src/lib/backendClient.ts",
+      "source_location": "L28",
+      "id": "lib_backendclient_requestbackend",
+      "community": 7,
+      "norm_label": "requestbackend()"
     },
     {
       "label": "backendGet()",
       "file_type": "code",
       "source_file": "src/lib/backendClient.ts",
-      "source_location": "L16",
+      "source_location": "L74",
       "id": "lib_backendclient_backendget",
-      "community": 0,
+      "community": 1,
       "norm_label": "backendget()"
+    },
+    {
+      "label": "backendGetPdf()",
+      "file_type": "code",
+      "source_file": "src/lib/backendClient.ts",
+      "source_location": "L101",
+      "id": "lib_backendclient_backendgetpdf",
+      "community": 7,
+      "norm_label": "backendgetpdf()"
     },
     {
       "label": "nivo-theme.ts",
@@ -2142,7 +2646,7 @@
       "source_file": "src/lib/nivo-theme.ts",
       "source_location": "L1",
       "id": "src_lib_nivo_theme_ts",
-      "community": 55,
+      "community": 67,
       "norm_label": "nivo-theme.ts"
     },
     {
@@ -2151,7 +2655,7 @@
       "source_file": "src/lib/nivo-theme.ts",
       "source_location": "L55",
       "id": "lib_nivo_theme_getnivotheme",
-      "community": 55,
+      "community": 67,
       "norm_label": "getnivotheme()"
     },
     {
@@ -2160,7 +2664,7 @@
       "source_file": "src/lib/embalses-coords.ts",
       "source_location": "L1",
       "id": "src_lib_embalses_coords_ts",
-      "community": 2,
+      "community": 0,
       "norm_label": "embalses-coords.ts"
     },
     {
@@ -2169,7 +2673,7 @@
       "source_file": "src/lib/embalses-coords.ts",
       "source_location": "L135",
       "id": "lib_embalses_coords_calcularaportespordepto",
-      "community": 2,
+      "community": 0,
       "norm_label": "calcularaportespordepto()"
     },
     {
@@ -2178,7 +2682,7 @@
       "source_file": "src/lib/embalses-coords.ts",
       "source_location": "L165",
       "id": "lib_embalses_coords_getembalsecolor",
-      "community": 2,
+      "community": 0,
       "norm_label": "getembalsecolor()"
     },
     {
@@ -2187,7 +2691,7 @@
       "source_file": "src/lib/embalses-coords.ts",
       "source_location": "L169",
       "id": "lib_embalses_coords_getembalseriesgo",
-      "community": 2,
+      "community": 0,
       "norm_label": "getembalseriesgo()"
     },
     {
@@ -2196,7 +2700,7 @@
       "source_file": "src/lib/embalses-coords.ts",
       "source_location": "L174",
       "id": "lib_embalses_coords_getestadosin",
-      "community": 2,
+      "community": 0,
       "norm_label": "getestadosin()"
     },
     {
@@ -2205,7 +2709,7 @@
       "source_file": "src/lib/embalses-coords.ts",
       "source_location": "L183",
       "id": "lib_embalses_coords_calcularsemafotopordepto",
-      "community": 2,
+      "community": 0,
       "norm_label": "calcularsemafotopordepto()"
     },
     {
@@ -2254,10 +2758,19 @@
       "norm_label": "forwardfillpct()"
     },
     {
+      "label": "forwardFillPctReal()",
+      "file_type": "code",
+      "source_file": "src/lib/colombia-solar-curva-s.ts",
+      "source_location": "L109",
+      "id": "lib_colombia_solar_curva_s_forwardfillpctreal",
+      "community": 5,
+      "norm_label": "forwardfillpctreal()"
+    },
+    {
       "label": "extractSeries()",
       "file_type": "code",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L104",
+      "source_location": "L125",
       "id": "lib_colombia_solar_curva_s_extractseries",
       "community": 5,
       "norm_label": "extractseries()"
@@ -2266,7 +2779,7 @@
       "label": "maxPositive()",
       "file_type": "code",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L108",
+      "source_location": "L129",
       "id": "lib_colombia_solar_curva_s_maxpositive",
       "community": 5,
       "norm_label": "maxpositive()"
@@ -2275,7 +2788,7 @@
       "label": "isValidProyecto()",
       "file_type": "code",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L112",
+      "source_location": "L133",
       "id": "lib_colombia_solar_curva_s_isvalidproyecto",
       "community": 5,
       "norm_label": "isvalidproyecto()"
@@ -2284,7 +2797,7 @@
       "label": "tableExists()",
       "file_type": "code",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L118",
+      "source_location": "L139",
       "id": "lib_colombia_solar_curva_s_tableexists",
       "community": 5,
       "norm_label": "tableexists()"
@@ -2293,7 +2806,7 @@
       "label": "getDateColumns()",
       "file_type": "code",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L131",
+      "source_location": "L152",
       "id": "lib_colombia_solar_curva_s_getdatecolumns",
       "community": 5,
       "norm_label": "getdatecolumns()"
@@ -2302,7 +2815,7 @@
       "label": "rowTotal()",
       "file_type": "code",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L142",
+      "source_location": "L163",
       "id": "lib_colombia_solar_curva_s_rowtotal",
       "community": 5,
       "norm_label": "rowtotal()"
@@ -2311,7 +2824,7 @@
       "label": "buildRowMap()",
       "file_type": "code",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L148",
+      "source_location": "L169",
       "id": "lib_colombia_solar_curva_s_buildrowmap",
       "community": 5,
       "norm_label": "buildrowmap()"
@@ -2320,7 +2833,7 @@
       "label": "loadCurvaSFromDb()",
       "file_type": "code",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L157",
+      "source_location": "L178",
       "id": "lib_colombia_solar_curva_s_loadcurvasfromdb",
       "community": 5,
       "norm_label": "loadcurvasfromdb()"
@@ -2331,7 +2844,7 @@
       "source_file": "src/lib/kpi-logic.ts",
       "source_location": "L1",
       "id": "src_lib_kpi_logic_ts",
-      "community": 2,
+      "community": 0,
       "norm_label": "kpi-logic.ts"
     },
     {
@@ -2340,7 +2853,7 @@
       "source_file": "src/lib/kpi-logic.ts",
       "source_location": "L42",
       "id": "lib_kpi_logic_estadoreservas",
-      "community": 2,
+      "community": 0,
       "norm_label": "estadoreservas()"
     },
     {
@@ -2349,7 +2862,7 @@
       "source_file": "src/lib/kpi-logic.ts",
       "source_location": "L47",
       "id": "lib_kpi_logic_estadoaportes",
-      "community": 2,
+      "community": 0,
       "norm_label": "estadoaportes()"
     },
     {
@@ -2358,7 +2871,7 @@
       "source_file": "src/lib/kpi-logic.ts",
       "source_location": "L52",
       "id": "lib_kpi_logic_estadoprecio",
-      "community": 2,
+      "community": 0,
       "norm_label": "estadoprecio()"
     },
     {
@@ -2367,7 +2880,7 @@
       "source_file": "src/lib/kpi-logic.ts",
       "source_location": "L78",
       "id": "lib_kpi_logic_prio",
-      "community": 2,
+      "community": 0,
       "norm_label": "prio()"
     },
     {
@@ -2376,7 +2889,7 @@
       "source_file": "src/lib/kpi-logic.ts",
       "source_location": "L82",
       "id": "lib_kpi_logic_estadoi2hidro",
-      "community": 2,
+      "community": 0,
       "norm_label": "estadoi2hidro()"
     },
     {
@@ -2385,7 +2898,7 @@
       "source_file": "src/lib/kpi-logic.ts",
       "source_location": "L89",
       "id": "lib_kpi_logic_estadoi3termica",
-      "community": 2,
+      "community": 0,
       "norm_label": "estadoi3termica()"
     },
     {
@@ -2394,7 +2907,7 @@
       "source_file": "src/lib/kpi-logic.ts",
       "source_location": "L96",
       "id": "lib_kpi_logic_estadogeneracion",
-      "community": 2,
+      "community": 0,
       "norm_label": "estadogeneracion()"
     },
     {
@@ -2403,7 +2916,7 @@
       "source_file": "src/lib/kpi-logic.ts",
       "source_location": "L118",
       "id": "lib_kpi_logic_diagnosticosin",
-      "community": 2,
+      "community": 0,
       "norm_label": "diagnosticosin()"
     },
     {
@@ -2412,7 +2925,7 @@
       "source_file": "src/lib/termica-combustible.ts",
       "source_location": "L1",
       "id": "src_lib_termica_combustible_ts",
-      "community": 56,
+      "community": 68,
       "norm_label": "termica-combustible.ts"
     },
     {
@@ -2421,7 +2934,7 @@
       "source_file": "src/lib/termica-combustible.ts",
       "source_location": "L30",
       "id": "lib_termica_combustible_clasificarcombustible",
-      "community": 56,
+      "community": 68,
       "norm_label": "clasificarcombustible()"
     },
     {
@@ -2430,7 +2943,7 @@
       "source_file": "src/lib/embalse-utils.ts",
       "source_location": "L1",
       "id": "src_lib_embalse_utils_ts",
-      "community": 26,
+      "community": 34,
       "norm_label": "embalse-utils.ts"
     },
     {
@@ -2439,7 +2952,7 @@
       "source_file": "src/lib/embalse-utils.ts",
       "source_location": "L1",
       "id": "lib_embalse_utils_getembalsecolor",
-      "community": 26,
+      "community": 34,
       "norm_label": "getembalsecolor()"
     },
     {
@@ -2448,7 +2961,7 @@
       "source_file": "src/lib/embalse-utils.ts",
       "source_location": "L9",
       "id": "lib_embalse_utils_getembalseestado",
-      "community": 26,
+      "community": 34,
       "norm_label": "getembalseestado()"
     },
     {
@@ -2457,7 +2970,7 @@
       "source_file": "src/lib/svg-math.ts",
       "source_location": "L1",
       "id": "src_lib_svg_math_ts",
-      "community": 27,
+      "community": 35,
       "norm_label": "svg-math.ts"
     },
     {
@@ -2466,7 +2979,7 @@
       "source_file": "src/lib/svg-math.ts",
       "source_location": "L7",
       "id": "lib_svg_math_polartocartesian",
-      "community": 27,
+      "community": 35,
       "norm_label": "polartocartesian()"
     },
     {
@@ -2475,7 +2988,7 @@
       "source_file": "src/lib/svg-math.ts",
       "source_location": "L17",
       "id": "lib_svg_math_describearc",
-      "community": 27,
+      "community": 35,
       "norm_label": "describearc()"
     },
     {
@@ -2484,7 +2997,7 @@
       "source_file": "src/lib/db.ts",
       "source_location": "L1",
       "id": "src_lib_db_ts",
-      "community": 1,
+      "community": 2,
       "norm_label": "db.ts"
     },
     {
@@ -2493,7 +3006,7 @@
       "source_file": "src/lib/db.ts",
       "source_location": "L6",
       "id": "lib_db_validateenv",
-      "community": 1,
+      "community": 2,
       "norm_label": "validateenv()"
     },
     {
@@ -2502,7 +3015,7 @@
       "source_file": "src/lib/db.ts",
       "source_location": "L19",
       "id": "lib_db_getpool",
-      "community": 1,
+      "community": 2,
       "norm_label": "getpool()"
     },
     {
@@ -2511,7 +3024,7 @@
       "source_file": "src/lib/format.ts",
       "source_location": "L1",
       "id": "src_lib_format_ts",
-      "community": 7,
+      "community": 10,
       "norm_label": "format.ts"
     },
     {
@@ -2520,7 +3033,7 @@
       "source_file": "src/lib/format.ts",
       "source_location": "L9",
       "id": "lib_format_fmtcop",
-      "community": 7,
+      "community": 10,
       "norm_label": "fmtcop()"
     },
     {
@@ -2529,7 +3042,7 @@
       "source_file": "src/lib/format.ts",
       "source_location": "L13",
       "id": "lib_format_fmtnum",
-      "community": 7,
+      "community": 10,
       "norm_label": "fmtnum()"
     },
     {
@@ -2538,7 +3051,7 @@
       "source_file": "src/lib/format.ts",
       "source_location": "L17",
       "id": "lib_format_fmtfull",
-      "community": 7,
+      "community": 10,
       "norm_label": "fmtfull()"
     },
     {
@@ -2547,7 +3060,7 @@
       "source_file": "src/lib/format.ts",
       "source_location": "L22",
       "id": "lib_format_fmtcopshort",
-      "community": 7,
+      "community": 10,
       "norm_label": "fmtcopshort()"
     },
     {
@@ -2556,7 +3069,7 @@
       "source_file": "src/lib/format.ts",
       "source_location": "L46",
       "id": "lib_format_fmtcortepresupuesto",
-      "community": 7,
+      "community": 10,
       "norm_label": "fmtcortepresupuesto()"
     },
     {
@@ -2565,7 +3078,7 @@
       "source_file": "src/lib/__tests__/format.test.ts",
       "source_location": "L1",
       "id": "src_lib_tests_format_test_ts",
-      "community": 76,
+      "community": 87,
       "norm_label": "format.test.ts"
     },
     {
@@ -2574,7 +3087,7 @@
       "source_file": "src/lib/__tests__/kpi-logic.test.ts",
       "source_location": "L1",
       "id": "src_lib_tests_kpi_logic_test_ts",
-      "community": 77,
+      "community": 88,
       "norm_label": "kpi-logic.test.ts"
     },
     {
@@ -2583,7 +3096,7 @@
       "source_file": "src/lib/__tests__/svg-math.test.ts",
       "source_location": "L1",
       "id": "src_lib_tests_svg_math_test_ts",
-      "community": 78,
+      "community": 89,
       "norm_label": "svg-math.test.ts"
     },
     {
@@ -2592,7 +3105,7 @@
       "source_file": "src/types/home-slider.ts",
       "source_location": "L1",
       "id": "src_types_home_slider_ts",
-      "community": 79,
+      "community": 90,
       "norm_label": "home-slider.ts"
     },
     {
@@ -2601,7 +3114,7 @@
       "source_file": "src/mocks/home-data.ts",
       "source_location": "L1",
       "id": "src_mocks_home_data_ts",
-      "community": 80,
+      "community": 91,
       "norm_label": "home-data.ts"
     },
     {
@@ -2610,7 +3123,7 @@
       "source_file": "src/mocks/colombia-data.ts",
       "source_location": "L1",
       "id": "src_mocks_colombia_data_ts",
-      "community": 81,
+      "community": 92,
       "norm_label": "colombia-data.ts"
     },
     {
@@ -2619,29 +3132,257 @@
       "source_file": "src/hooks/useHomeSlider.ts",
       "source_location": "L1",
       "id": "src_hooks_usehomeslider_ts",
-      "community": 28,
+      "community": 36,
       "norm_label": "usehomeslider.ts"
     },
     {
       "label": "formatFetchedAt()",
       "file_type": "code",
       "source_file": "src/hooks/useHomeSlider.ts",
-      "source_location": "L33",
+      "source_location": "L34",
       "id": "hooks_usehomeslider_formatfetchedat",
-      "community": 28,
+      "community": 36,
       "norm_label": "formatfetchedat()"
     },
     {
       "label": "useHomeSlider()",
       "file_type": "code",
       "source_file": "src/hooks/useHomeSlider.ts",
-      "source_location": "L39",
+      "source_location": "L40",
       "id": "hooks_usehomeslider_usehomeslider",
-      "community": 28,
+      "community": 36,
       "norm_label": "usehomeslider()"
     }
   ],
   "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/pdf-extract/extract_and_render.py",
+      "source_location": "L14",
+      "weight": 1.0,
+      "_src": "scripts_pdf_extract_extract_and_render_py",
+      "_tgt": "pdf_extract_extract_and_render_normalizar_texto",
+      "source": "scripts_pdf_extract_extract_and_render_py",
+      "target": "pdf_extract_extract_and_render_normalizar_texto",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/pdf-extract/extract_and_render.py",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_src": "scripts_pdf_extract_extract_and_render_py",
+      "_tgt": "pdf_extract_extract_and_render_extraer_kpis_xm",
+      "source": "scripts_pdf_extract_extract_and_render_py",
+      "target": "pdf_extract_extract_and_render_extraer_kpis_xm",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/pdf-extract/extract_and_render.py",
+      "source_location": "L74",
+      "weight": 1.0,
+      "_src": "scripts_pdf_extract_extract_and_render_py",
+      "_tgt": "pdf_extract_extract_and_render_detectar_secciones",
+      "source": "scripts_pdf_extract_extract_and_render_py",
+      "target": "pdf_extract_extract_and_render_detectar_secciones",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/pdf-extract/extract_and_render.py",
+      "source_location": "L101",
+      "weight": 1.0,
+      "_src": "scripts_pdf_extract_extract_and_render_py",
+      "_tgt": "pdf_extract_extract_and_render_main",
+      "source": "scripts_pdf_extract_extract_and_render_py",
+      "target": "pdf_extract_extract_and_render_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/pdf-extract/extract_and_render.py",
+      "source_location": "L24",
+      "weight": 1.0,
+      "_src": "pdf_extract_extract_and_render_extraer_kpis_xm",
+      "_tgt": "pdf_extract_extract_and_render_normalizar_texto",
+      "source": "pdf_extract_extract_and_render_normalizar_texto",
+      "target": "pdf_extract_extract_and_render_extraer_kpis_xm",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/pdf-extract/extract_and_render.py",
+      "source_location": "L143",
+      "weight": 1.0,
+      "_src": "pdf_extract_extract_and_render_main",
+      "_tgt": "pdf_extract_extract_and_render_extraer_kpis_xm",
+      "source": "pdf_extract_extract_and_render_extraer_kpis_xm",
+      "target": "pdf_extract_extract_and_render_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/pdf-extract/extract_and_render.py",
+      "source_location": "L146",
+      "weight": 1.0,
+      "_src": "pdf_extract_extract_and_render_main",
+      "_tgt": "pdf_extract_extract_and_render_detectar_secciones",
+      "source": "pdf_extract_extract_and_render_detectar_secciones",
+      "target": "pdf_extract_extract_and_render_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/pdf-extract/extract_and_render.py",
+      "source_location": "L75",
+      "weight": 1.0,
+      "_src": "pdf_extract_extract_and_render_rationale_75",
+      "_tgt": "pdf_extract_extract_and_render_detectar_secciones",
+      "source": "pdf_extract_extract_and_render_detectar_secciones",
+      "target": "pdf_extract_extract_and_render_rationale_75",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "scripts/pdf-extract/extract_and_render.py",
+      "source_location": "L91",
+      "weight": 1.0,
+      "_src": "pdf_extract_extract_and_render_detectar_secciones",
+      "_tgt": "pagos_page_set",
+      "source": "pdf_extract_extract_and_render_detectar_secciones",
+      "target": "pagos_page_set"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/pdf-extract/extract_boletin.py",
+      "source_location": "L12",
+      "weight": 1.0,
+      "_src": "scripts_pdf_extract_extract_boletin_py",
+      "_tgt": "pdf_extract_extract_boletin_main",
+      "source": "scripts_pdf_extract_extract_boletin_py",
+      "target": "pdf_extract_extract_boletin_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/pdf-extract/render_pdf.py",
+      "source_location": "L13",
+      "weight": 1.0,
+      "_src": "scripts_pdf_extract_render_pdf_py",
+      "_tgt": "pdf_extract_render_pdf_render_pdf",
+      "source": "scripts_pdf_extract_render_pdf_py",
+      "target": "pdf_extract_render_pdf_render_pdf",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/pdf-extract/render_pdf.py",
+      "source_location": "L45",
+      "weight": 1.0,
+      "_src": "scripts_pdf_extract_render_pdf_py",
+      "_tgt": "pdf_extract_render_pdf_main",
+      "source": "scripts_pdf_extract_render_pdf_py",
+      "target": "pdf_extract_render_pdf_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/pdf-extract/render_pdf.py",
+      "source_location": "L55",
+      "weight": 1.0,
+      "_src": "pdf_extract_render_pdf_main",
+      "_tgt": "pdf_extract_render_pdf_render_pdf",
+      "source": "pdf_extract_render_pdf_render_pdf",
+      "target": "pdf_extract_render_pdf_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/pdf-extract/extract_xm.py",
+      "source_location": "L13",
+      "weight": 1.0,
+      "_src": "scripts_pdf_extract_extract_xm_py",
+      "_tgt": "pdf_extract_extract_xm_normalizar_texto",
+      "source": "scripts_pdf_extract_extract_xm_py",
+      "target": "pdf_extract_extract_xm_normalizar_texto",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/pdf-extract/extract_xm.py",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_src": "scripts_pdf_extract_extract_xm_py",
+      "_tgt": "pdf_extract_extract_xm_extraer_kpis",
+      "source": "scripts_pdf_extract_extract_xm_py",
+      "target": "pdf_extract_extract_xm_extraer_kpis",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/pdf-extract/extract_xm.py",
+      "source_location": "L72",
+      "weight": 1.0,
+      "_src": "scripts_pdf_extract_extract_xm_py",
+      "_tgt": "pdf_extract_extract_xm_main",
+      "source": "scripts_pdf_extract_extract_xm_py",
+      "target": "pdf_extract_extract_xm_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/pdf-extract/extract_xm.py",
+      "source_location": "L24",
+      "weight": 1.0,
+      "_src": "pdf_extract_extract_xm_extraer_kpis",
+      "_tgt": "pdf_extract_extract_xm_normalizar_texto",
+      "source": "pdf_extract_extract_xm_normalizar_texto",
+      "target": "pdf_extract_extract_xm_extraer_kpis",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/pdf-extract/extract_xm.py",
+      "source_location": "L87",
+      "weight": 1.0,
+      "_src": "pdf_extract_extract_xm_main",
+      "_tgt": "pdf_extract_extract_xm_extraer_kpis",
+      "source": "pdf_extract_extract_xm_extraer_kpis",
+      "target": "pdf_extract_extract_xm_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/pdf-extract/extract_resumen.py",
+      "source_location": "L12",
+      "weight": 1.0,
+      "_src": "scripts_pdf_extract_extract_resumen_py",
+      "_tgt": "pdf_extract_extract_resumen_main",
+      "source": "scripts_pdf_extract_extract_resumen_py",
+      "target": "pdf_extract_extract_resumen_main",
+      "confidence_score": 1.0
+    },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
@@ -3161,6 +3902,30 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "src/app/api/noticias/hidrocarburos/route.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_src": "src_app_api_noticias_hidrocarburos_route_ts",
+      "_tgt": "hidrocarburos_route_fetchogimage",
+      "source": "src_app_api_noticias_hidrocarburos_route_ts",
+      "target": "hidrocarburos_route_fetchogimage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/noticias/hidrocarburos/route.ts",
+      "source_location": "L54",
+      "weight": 1.0,
+      "_src": "src_app_api_noticias_hidrocarburos_route_ts",
+      "_tgt": "hidrocarburos_route_get",
+      "source": "src_app_api_noticias_hidrocarburos_route_ts",
+      "target": "hidrocarburos_route_get",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "src/app/api/contratos-or/route.ts",
       "source_location": "L6",
       "weight": 1.0,
@@ -3210,12 +3975,156 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/app/api/informe-diario/route.ts",
-      "source_location": "L12",
+      "source_location": "L10",
       "weight": 1.0,
       "_src": "src_app_api_informe_diario_route_ts",
       "_tgt": "informe_diario_route_get",
       "source": "src_app_api_informe_diario_route_ts",
       "target": "informe_diario_route_get",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "src/app/api/informe-diario/route.ts",
+      "source_location": "L12",
+      "weight": 1.0,
+      "_src": "informe_diario_route_get",
+      "_tgt": "lib_backendclient_backendgetpdf",
+      "source": "informe_diario_route_get",
+      "target": "lib_backendclient_backendgetpdf"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/informe-diario/extracto/route.ts",
+      "source_location": "L17",
+      "weight": 1.0,
+      "_src": "src_app_api_informe_diario_extracto_route_ts",
+      "_tgt": "extracto_route_runpython",
+      "source": "src_app_api_informe_diario_extracto_route_ts",
+      "target": "extracto_route_runpython",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/informe-diario/extracto/route.ts",
+      "source_location": "L31",
+      "weight": 1.0,
+      "_src": "src_app_api_informe_diario_extracto_route_ts",
+      "_tgt": "extracto_route_cleanupoldoutputs",
+      "source": "src_app_api_informe_diario_extracto_route_ts",
+      "target": "extracto_route_cleanupoldoutputs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/informe-diario/extracto/route.ts",
+      "source_location": "L48",
+      "weight": 1.0,
+      "_src": "src_app_api_informe_diario_extracto_route_ts",
+      "_tgt": "extracto_route_get",
+      "source": "src_app_api_informe_diario_extracto_route_ts",
+      "target": "extracto_route_get",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/resumen-ejecutivo/extracto/route.ts",
+      "source_location": "L89",
+      "weight": 1.0,
+      "_src": "extracto_route_get",
+      "_tgt": "extracto_route_runpython",
+      "source": "extracto_route_runpython",
+      "target": "extracto_route_get",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/informes-diarios/extracto/route.ts",
+      "source_location": "L23",
+      "weight": 1.0,
+      "_src": "src_app_api_informes_diarios_extracto_route_ts",
+      "_tgt": "extracto_route_runpython",
+      "source": "extracto_route_runpython",
+      "target": "src_app_api_informes_diarios_extracto_route_ts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/resumen-ejecutivo/extracto/route.ts",
+      "source_location": "L17",
+      "weight": 1.0,
+      "_src": "src_app_api_resumen_ejecutivo_extracto_route_ts",
+      "_tgt": "extracto_route_runpython",
+      "source": "extracto_route_runpython",
+      "target": "src_app_api_resumen_ejecutivo_extracto_route_ts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/resumen-ejecutivo/extracto/route.ts",
+      "source_location": "L105",
+      "weight": 1.0,
+      "_src": "extracto_route_get",
+      "_tgt": "extracto_route_cleanupoldoutputs",
+      "source": "extracto_route_cleanupoldoutputs",
+      "target": "extracto_route_get",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/informes-diarios/extracto/route.ts",
+      "source_location": "L37",
+      "weight": 1.0,
+      "_src": "src_app_api_informes_diarios_extracto_route_ts",
+      "_tgt": "extracto_route_cleanupoldoutputs",
+      "source": "extracto_route_cleanupoldoutputs",
+      "target": "src_app_api_informes_diarios_extracto_route_ts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/resumen-ejecutivo/extracto/route.ts",
+      "source_location": "L31",
+      "weight": 1.0,
+      "_src": "src_app_api_resumen_ejecutivo_extracto_route_ts",
+      "_tgt": "extracto_route_cleanupoldoutputs",
+      "source": "extracto_route_cleanupoldoutputs",
+      "target": "src_app_api_resumen_ejecutivo_extracto_route_ts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/informes-diarios/extracto/route.ts",
+      "source_location": "L55",
+      "weight": 1.0,
+      "_src": "src_app_api_informes_diarios_extracto_route_ts",
+      "_tgt": "extracto_route_get",
+      "source": "extracto_route_get",
+      "target": "src_app_api_informes_diarios_extracto_route_ts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/resumen-ejecutivo/extracto/route.ts",
+      "source_location": "L48",
+      "weight": 1.0,
+      "_src": "src_app_api_resumen_ejecutivo_extracto_route_ts",
+      "_tgt": "extracto_route_get",
+      "source": "extracto_route_get",
+      "target": "src_app_api_resumen_ejecutivo_extracto_route_ts",
       "confidence_score": 1.0
     },
     {
@@ -3234,7 +4143,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/app/api/informes-diarios/catalogo/route.ts",
-      "source_location": "L23",
+      "source_location": "L31",
       "weight": 1.0,
       "_src": "src_app_api_informes_diarios_catalogo_route_ts",
       "_tgt": "catalogo_route_get",
@@ -3354,7 +4263,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/app/api/colombia-solar/curva-s/route.ts",
-      "source_location": "L39",
+      "source_location": "L46",
       "weight": 1.0,
       "_src": "src_app_api_colombia_solar_curva_s_route_ts",
       "_tgt": "curva_s_route_parsefecha",
@@ -3366,7 +4275,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/app/api/colombia-solar/curva-s/route.ts",
-      "source_location": "L46",
+      "source_location": "L53",
       "weight": 1.0,
       "_src": "src_app_api_colombia_solar_curva_s_route_ts",
       "_tgt": "curva_s_route_procesarhojaexcel",
@@ -3378,7 +4287,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/app/api/colombia-solar/curva-s/route.ts",
-      "source_location": "L103",
+      "source_location": "L110",
       "weight": 1.0,
       "_src": "src_app_api_colombia_solar_curva_s_route_ts",
       "_tgt": "curva_s_route_forwardfillpct",
@@ -3390,7 +4299,19 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/app/api/colombia-solar/curva-s/route.ts",
-      "source_location": "L111",
+      "source_location": "L118",
+      "weight": 1.0,
+      "_src": "src_app_api_colombia_solar_curva_s_route_ts",
+      "_tgt": "curva_s_route_forwardfillpctreal",
+      "source": "src_app_api_colombia_solar_curva_s_route_ts",
+      "target": "curva_s_route_forwardfillpctreal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/colombia-solar/curva-s/route.ts",
+      "source_location": "L135",
       "weight": 1.0,
       "_src": "src_app_api_colombia_solar_curva_s_route_ts",
       "_tgt": "curva_s_route_buildcategoriaexcel",
@@ -3402,7 +4323,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/app/api/colombia-solar/curva-s/route.ts",
-      "source_location": "L179",
+      "source_location": "L218",
       "weight": 1.0,
       "_src": "src_app_api_colombia_solar_curva_s_route_ts",
       "_tgt": "curva_s_route_loadcurvasfromexcel",
@@ -3414,7 +4335,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/app/api/colombia-solar/curva-s/route.ts",
-      "source_location": "L188",
+      "source_location": "L227",
       "weight": 1.0,
       "_src": "src_app_api_colombia_solar_curva_s_route_ts",
       "_tgt": "curva_s_route_get",
@@ -3426,7 +4347,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/app/api/colombia-solar/curva-s/route.ts",
-      "source_location": "L180",
+      "source_location": "L219",
       "weight": 1.0,
       "_src": "curva_s_route_loadcurvasfromexcel",
       "_tgt": "curva_s_route_resolveexcelpath",
@@ -3438,7 +4359,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/app/api/colombia-solar/curva-s/route.ts",
-      "source_location": "L128",
+      "source_location": "L152",
       "weight": 1.0,
       "_src": "curva_s_route_buildcategoriaexcel",
       "_tgt": "curva_s_route_procesarhojaexcel",
@@ -3450,7 +4371,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/app/api/colombia-solar/curva-s/route.ts",
-      "source_location": "L200",
+      "source_location": "L239",
       "weight": 1.0,
       "_src": "curva_s_route_get",
       "_tgt": "curva_s_route_loadcurvasfromexcel",
@@ -3481,6 +4402,102 @@
       "_tgt": "lib_db_getpool",
       "source": "curva_s_route_get",
       "target": "lib_db_getpool"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/pdf-image/route.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "_src": "src_app_api_pdf_image_route_ts",
+      "_tgt": "pdf_image_route_get",
+      "source": "src_app_api_pdf_image_route_ts",
+      "target": "pdf_image_route_get",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/informes/boletines/lista/route.ts",
+      "source_location": "L19",
+      "weight": 1.0,
+      "_src": "src_app_api_informes_boletines_lista_route_ts",
+      "_tgt": "lista_route_get",
+      "source": "src_app_api_informes_boletines_lista_route_ts",
+      "target": "lista_route_get",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/informes/xm/lista/route.ts",
+      "source_location": "L28",
+      "weight": 1.0,
+      "_src": "src_app_api_informes_xm_lista_route_ts",
+      "_tgt": "lista_route_get",
+      "source": "lista_route_get",
+      "target": "src_app_api_informes_xm_lista_route_ts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/informes/archivo/route.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "_src": "src_app_api_informes_archivo_route_ts",
+      "_tgt": "archivo_route_get",
+      "source": "src_app_api_informes_archivo_route_ts",
+      "target": "archivo_route_get",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "src/app/api/informes/archivo/route.ts",
+      "source_location": "L17",
+      "weight": 1.0,
+      "_src": "archivo_route_get",
+      "_tgt": "lib_backendclient_backendgetpdf",
+      "source": "archivo_route_get",
+      "target": "lib_backendclient_backendgetpdf"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/informes/[tablero]/route.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "_src": "src_app_api_informes_tablero_route_ts",
+      "_tgt": "tablero_route_get",
+      "source": "src_app_api_informes_tablero_route_ts",
+      "target": "tablero_route_get",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/api/resumen-ejecutivo/route.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "_src": "src_app_api_resumen_ejecutivo_route_ts",
+      "_tgt": "resumen_ejecutivo_route_get",
+      "source": "src_app_api_resumen_ejecutivo_route_ts",
+      "target": "resumen_ejecutivo_route_get",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "src/app/api/resumen-ejecutivo/route.ts",
+      "source_location": "L11",
+      "weight": 1.0,
+      "_src": "resumen_ejecutivo_route_get",
+      "_tgt": "lib_backendclient_backendgetpdf",
+      "source": "resumen_ejecutivo_route_get",
+      "target": "lib_backendclient_backendgetpdf"
     },
     {
       "relation": "contains",
@@ -3522,7 +4539,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/app/(dashboards)/subsidios/page.tsx",
-      "source_location": "L183",
+      "source_location": "L186",
       "weight": 1.0,
       "_src": "src_app_dashboards_subsidios_page_tsx",
       "_tgt": "subsidios_page_toggle",
@@ -3534,7 +4551,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/app/(dashboards)/subsidios/page.tsx",
-      "source_location": "L195",
+      "source_location": "L198",
       "weight": 1.0,
       "_src": "src_app_dashboards_subsidios_page_tsx",
       "_tgt": "subsidios_page_handlebarclick",
@@ -3570,12 +4587,96 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/app/(dashboards)/energia/page.tsx",
-      "source_location": "L683",
+      "source_location": "L681",
       "weight": 1.0,
       "_src": "src_app_dashboards_energia_page_tsx",
       "_tgt": "energia_page_formato",
       "source": "src_app_dashboards_energia_page_tsx",
       "target": "energia_page_formato",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/(dashboards)/energia/informes/page.tsx",
+      "source_location": "L47",
+      "weight": 1.0,
+      "_src": "src_app_dashboards_energia_informes_page_tsx",
+      "_tgt": "informes_page_fmtfecha",
+      "source": "src_app_dashboards_energia_informes_page_tsx",
+      "target": "informes_page_fmtfecha",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/(dashboards)/energia/informes/page.tsx",
+      "source_location": "L62",
+      "weight": 1.0,
+      "_src": "src_app_dashboards_energia_informes_page_tsx",
+      "_tgt": "informes_page_fmttamano",
+      "source": "src_app_dashboards_energia_informes_page_tsx",
+      "target": "informes_page_fmttamano",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/(dashboards)/energia/informes/page.tsx",
+      "source_location": "L68",
+      "weight": 1.0,
+      "_src": "src_app_dashboards_energia_informes_page_tsx",
+      "_tgt": "informes_page_builddescargarurl",
+      "source": "src_app_dashboards_energia_informes_page_tsx",
+      "target": "informes_page_builddescargarurl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/(dashboards)/energia/informes/page.tsx",
+      "source_location": "L74",
+      "weight": 1.0,
+      "_src": "src_app_dashboards_energia_informes_page_tsx",
+      "_tgt": "informes_page_uselista",
+      "source": "src_app_dashboards_energia_informes_page_tsx",
+      "target": "informes_page_uselista",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/(dashboards)/energia/informes/page.tsx",
+      "source_location": "L322",
+      "weight": 1.0,
+      "_src": "src_app_dashboards_energia_informes_page_tsx",
+      "_tgt": "informes_page_handletipo",
+      "source": "src_app_dashboards_energia_informes_page_tsx",
+      "target": "informes_page_handletipo",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/(dashboards)/energia/informes/page.tsx",
+      "source_location": "L323",
+      "weight": 1.0,
+      "_src": "src_app_dashboards_energia_informes_page_tsx",
+      "_tgt": "informes_page_handlerango",
+      "source": "src_app_dashboards_energia_informes_page_tsx",
+      "target": "informes_page_handlerango",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/(dashboards)/energia/informes/page.tsx",
+      "source_location": "L324",
+      "weight": 1.0,
+      "_src": "src_app_dashboards_energia_informes_page_tsx",
+      "_tgt": "informes_page_limpiar",
+      "source": "src_app_dashboards_energia_informes_page_tsx",
+      "target": "informes_page_limpiar",
       "confidence_score": 1.0
     },
     {
@@ -3630,7 +4731,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/app/(dashboards)/pagos/page.tsx",
-      "source_location": "L532",
+      "source_location": "L533",
       "weight": 1.0,
       "_src": "src_app_dashboards_pagos_page_tsx",
       "_tgt": "pagos_page_fmtcop",
@@ -3786,7 +4887,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/app/(dashboards)/supervision/page.tsx",
-      "source_location": "L482",
+      "source_location": "L499",
       "weight": 1.0,
       "_src": "src_app_dashboards_supervision_page_tsx",
       "_tgt": "supervision_page_pct",
@@ -3798,7 +4899,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/app/(dashboards)/supervision/page.tsx",
-      "source_location": "L584",
+      "source_location": "L598",
       "weight": 1.0,
       "_src": "src_app_dashboards_supervision_page_tsx",
       "_tgt": "supervision_page_fmtcop",
@@ -4409,6 +5510,18 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "src/components/ResumenEjecutivoFab.tsx",
+      "source_location": "L9",
+      "weight": 1.0,
+      "_src": "src_components_resumenejecutivofab_tsx",
+      "_tgt": "components_resumenejecutivofab_resumenejecutivofab",
+      "source": "src_components_resumenejecutivofab_tsx",
+      "target": "components_resumenejecutivofab_resumenejecutivofab",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "src/components/PanoramaInformeFab.tsx",
       "source_location": "L6",
       "weight": 1.0,
@@ -4422,12 +5535,12 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/PanoramaInformeFab.tsx",
-      "source_location": "L32",
+      "source_location": "L79",
       "weight": 1.0,
       "_src": "src_components_panoramainformefab_tsx",
-      "_tgt": "components_panoramainformefab_panoramainformefab",
+      "_tgt": "components_panoramainformefab_prefetch",
       "source": "src_components_panoramainformefab_tsx",
-      "target": "components_panoramainformefab_panoramainformefab",
+      "target": "components_panoramainformefab_prefetch",
       "confidence_score": 1.0
     },
     {
@@ -4458,7 +5571,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/Header.tsx",
-      "source_location": "L50",
+      "source_location": "L51",
       "weight": 1.0,
       "_src": "src_components_header_tsx",
       "_tgt": "components_header_header",
@@ -4477,6 +5590,18 @@
       "_tgt": "providers_themeprovider_usetheme",
       "source": "components_header_header",
       "target": "providers_themeprovider_usetheme"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/DashboardLayout.tsx",
+      "source_location": "L21",
+      "weight": 1.0,
+      "_src": "src_components_dashboardlayout_tsx",
+      "_tgt": "components_dashboardlayout_handledownload",
+      "source": "src_components_dashboardlayout_tsx",
+      "target": "components_dashboardlayout_handledownload",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -4506,12 +5631,48 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/InformesDiariosSlider.tsx",
-      "source_location": "L18",
+      "source_location": "L28",
       "weight": 1.0,
       "_src": "src_components_informesdiariosslider_tsx",
       "_tgt": "components_informesdiariosslider_lightningicon",
       "source": "src_components_informesdiariosslider_tsx",
       "target": "components_informesdiariosslider_lightningicon",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/InformesDiariosSlider.tsx",
+      "source_location": "L60",
+      "weight": 1.0,
+      "_src": "src_components_informesdiariosslider_tsx",
+      "_tgt": "components_informesdiariosslider_loadcatalog",
+      "source": "src_components_informesdiariosslider_tsx",
+      "target": "components_informesdiariosslider_loadcatalog",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/InformesDiariosSlider.tsx",
+      "source_location": "L82",
+      "weight": 1.0,
+      "_src": "src_components_informesdiariosslider_tsx",
+      "_tgt": "components_informesdiariosslider_onvisible",
+      "source": "src_components_informesdiariosslider_tsx",
+      "target": "components_informesdiariosslider_onvisible",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/InformesDiariosSlider.tsx",
+      "source_location": "L84",
+      "weight": 1.0,
+      "_src": "components_informesdiariosslider_onvisible",
+      "_tgt": "components_informesdiariosslider_loadcatalog",
+      "source": "components_informesdiariosslider_loadcatalog",
+      "target": "components_informesdiariosslider_onvisible",
       "confidence_score": 1.0
     },
     {
@@ -4530,7 +5691,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/ChatbotWidget.tsx",
-      "source_location": "L92",
+      "source_location": "L93",
       "weight": 1.0,
       "_src": "src_components_chatbotwidget_tsx",
       "_tgt": "components_chatbotwidget_now",
@@ -4542,7 +5703,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/ChatbotWidget.tsx",
-      "source_location": "L213",
+      "source_location": "L214",
       "weight": 1.0,
       "_src": "src_components_chatbotwidget_tsx",
       "_tgt": "components_chatbotwidget_fmt",
@@ -4554,7 +5715,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/ChatbotWidget.tsx",
-      "source_location": "L102",
+      "source_location": "L103",
       "weight": 1.0,
       "_src": "src_components_chatbotwidget_tsx",
       "_tgt": "components_chatbotwidget_rendermarkdown",
@@ -4566,7 +5727,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/ChatbotWidget.tsx",
-      "source_location": "L124",
+      "source_location": "L125",
       "weight": 1.0,
       "_src": "src_components_chatbotwidget_tsx",
       "_tgt": "components_chatbotwidget_fichascards",
@@ -4578,7 +5739,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/ChatbotWidget.tsx",
-      "source_location": "L394",
+      "source_location": "L395",
       "weight": 1.0,
       "_src": "src_components_chatbotwidget_tsx",
       "_tgt": "components_chatbotwidget_panelstyle",
@@ -4590,7 +5751,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/ChatbotWidget.tsx",
-      "source_location": "L585",
+      "source_location": "L586",
       "weight": 1.0,
       "_src": "src_components_chatbotwidget_tsx",
       "_tgt": "components_chatbotwidget_onkeydown",
@@ -4806,7 +5967,19 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/slides/SlideSupervision.tsx",
-      "source_location": "L13",
+      "source_location": "L17",
+      "weight": 1.0,
+      "_src": "src_components_slides_slidesupervision_tsx",
+      "_tgt": "slides_slidesupervision_etapachip",
+      "source": "src_components_slides_slidesupervision_tsx",
+      "target": "slides_slidesupervision_etapachip",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/slides/SlideSupervision.tsx",
+      "source_location": "L29",
       "weight": 1.0,
       "_src": "src_components_slides_slidesupervision_tsx",
       "_tgt": "slides_slidesupervision_pct",
@@ -4956,6 +6129,18 @@
       "_tgt": "lib_utils_cn",
       "source": "src_lib_utils_ts",
       "target": "lib_utils_cn",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/news-keywords.ts",
+      "source_location": "L59",
+      "weight": 1.0,
+      "_src": "src_lib_news_keywords_ts",
+      "_tgt": "lib_news_keywords_countkeywordhits",
+      "source": "src_lib_news_keywords_ts",
+      "target": "lib_news_keywords_countkeywordhits",
       "confidence_score": 1.0
     },
     {
@@ -5130,7 +6315,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/backendClient.ts",
-      "source_location": "L9",
+      "source_location": "L13",
       "weight": 1.0,
       "_src": "src_lib_backendclient_ts",
       "_tgt": "lib_backendclient_backenderror",
@@ -5142,7 +6327,19 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/backendClient.ts",
-      "source_location": "L16",
+      "source_location": "L28",
+      "weight": 1.0,
+      "_src": "src_lib_backendclient_ts",
+      "_tgt": "lib_backendclient_requestbackend",
+      "source": "src_lib_backendclient_ts",
+      "target": "lib_backendclient_requestbackend",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/backendClient.ts",
+      "source_location": "L74",
       "weight": 1.0,
       "_src": "src_lib_backendclient_ts",
       "_tgt": "lib_backendclient_backendget",
@@ -5151,15 +6348,39 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/backendClient.ts",
+      "source_location": "L101",
+      "weight": 1.0,
+      "_src": "src_lib_backendclient_ts",
+      "_tgt": "lib_backendclient_backendgetpdf",
+      "source": "src_lib_backendclient_ts",
+      "target": "lib_backendclient_backendgetpdf",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/backendClient.ts",
-      "source_location": "L10",
+      "source_location": "L14",
       "weight": 1.0,
       "_src": "lib_backendclient_backenderror",
       "_tgt": "lib_backendclient_backenderror_constructor",
       "source": "lib_backendclient_backenderror",
       "target": "lib_backendclient_backenderror_constructor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/backendClient.ts",
+      "source_location": "L102",
+      "weight": 1.0,
+      "_src": "lib_backendclient_backendgetpdf",
+      "_tgt": "lib_backendclient_requestbackend",
+      "source": "lib_backendclient_requestbackend",
+      "target": "lib_backendclient_backendgetpdf",
       "confidence_score": 1.0
     },
     {
@@ -5298,7 +6519,19 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L104",
+      "source_location": "L109",
+      "weight": 1.0,
+      "_src": "src_lib_colombia_solar_curva_s_ts",
+      "_tgt": "lib_colombia_solar_curva_s_forwardfillpctreal",
+      "source": "src_lib_colombia_solar_curva_s_ts",
+      "target": "lib_colombia_solar_curva_s_forwardfillpctreal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/colombia-solar-curva-s.ts",
+      "source_location": "L125",
       "weight": 1.0,
       "_src": "src_lib_colombia_solar_curva_s_ts",
       "_tgt": "lib_colombia_solar_curva_s_extractseries",
@@ -5310,7 +6543,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L108",
+      "source_location": "L129",
       "weight": 1.0,
       "_src": "src_lib_colombia_solar_curva_s_ts",
       "_tgt": "lib_colombia_solar_curva_s_maxpositive",
@@ -5322,7 +6555,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L112",
+      "source_location": "L133",
       "weight": 1.0,
       "_src": "src_lib_colombia_solar_curva_s_ts",
       "_tgt": "lib_colombia_solar_curva_s_isvalidproyecto",
@@ -5334,7 +6567,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L118",
+      "source_location": "L139",
       "weight": 1.0,
       "_src": "src_lib_colombia_solar_curva_s_ts",
       "_tgt": "lib_colombia_solar_curva_s_tableexists",
@@ -5346,7 +6579,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L131",
+      "source_location": "L152",
       "weight": 1.0,
       "_src": "src_lib_colombia_solar_curva_s_ts",
       "_tgt": "lib_colombia_solar_curva_s_getdatecolumns",
@@ -5358,7 +6591,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L142",
+      "source_location": "L163",
       "weight": 1.0,
       "_src": "src_lib_colombia_solar_curva_s_ts",
       "_tgt": "lib_colombia_solar_curva_s_rowtotal",
@@ -5370,7 +6603,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L148",
+      "source_location": "L169",
       "weight": 1.0,
       "_src": "src_lib_colombia_solar_curva_s_ts",
       "_tgt": "lib_colombia_solar_curva_s_buildrowmap",
@@ -5382,7 +6615,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L157",
+      "source_location": "L178",
       "weight": 1.0,
       "_src": "src_lib_colombia_solar_curva_s_ts",
       "_tgt": "lib_colombia_solar_curva_s_loadcurvasfromdb",
@@ -5394,7 +6627,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L144",
+      "source_location": "L165",
       "weight": 1.0,
       "_src": "lib_colombia_solar_curva_s_rowtotal",
       "_tgt": "lib_colombia_solar_curva_s_parsenum",
@@ -5406,7 +6639,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L219",
+      "source_location": "L250",
       "weight": 1.0,
       "_src": "lib_colombia_solar_curva_s_loadcurvasfromdb",
       "_tgt": "lib_colombia_solar_curva_s_forwardfillpct",
@@ -5418,7 +6651,19 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L195",
+      "source_location": "L251",
+      "weight": 1.0,
+      "_src": "lib_colombia_solar_curva_s_loadcurvasfromdb",
+      "_tgt": "lib_colombia_solar_curva_s_forwardfillpctreal",
+      "source": "lib_colombia_solar_curva_s_forwardfillpctreal",
+      "target": "lib_colombia_solar_curva_s_loadcurvasfromdb",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/colombia-solar-curva-s.ts",
+      "source_location": "L217",
       "weight": 1.0,
       "_src": "lib_colombia_solar_curva_s_loadcurvasfromdb",
       "_tgt": "lib_colombia_solar_curva_s_extractseries",
@@ -5430,7 +6675,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L195",
+      "source_location": "L217",
       "weight": 1.0,
       "_src": "lib_colombia_solar_curva_s_loadcurvasfromdb",
       "_tgt": "lib_colombia_solar_curva_s_maxpositive",
@@ -5442,7 +6687,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L152",
+      "source_location": "L173",
       "weight": 1.0,
       "_src": "lib_colombia_solar_curva_s_buildrowmap",
       "_tgt": "lib_colombia_solar_curva_s_isvalidproyecto",
@@ -5454,7 +6699,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L189",
+      "source_location": "L210",
       "weight": 1.0,
       "_src": "lib_colombia_solar_curva_s_loadcurvasfromdb",
       "_tgt": "lib_colombia_solar_curva_s_isvalidproyecto",
@@ -5466,7 +6711,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L161",
+      "source_location": "L182",
       "weight": 1.0,
       "_src": "lib_colombia_solar_curva_s_loadcurvasfromdb",
       "_tgt": "lib_colombia_solar_curva_s_tableexists",
@@ -5478,7 +6723,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L178",
+      "source_location": "L199",
       "weight": 1.0,
       "_src": "lib_colombia_solar_curva_s_loadcurvasfromdb",
       "_tgt": "lib_colombia_solar_curva_s_getdatecolumns",
@@ -5490,7 +6735,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L213",
+      "source_location": "L245",
       "weight": 1.0,
       "_src": "lib_colombia_solar_curva_s_loadcurvasfromdb",
       "_tgt": "lib_colombia_solar_curva_s_rowtotal",
@@ -5502,7 +6747,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/colombia-solar-curva-s.ts",
-      "source_location": "L163",
+      "source_location": "L184",
       "weight": 1.0,
       "_src": "lib_colombia_solar_curva_s_loadcurvasfromdb",
       "_tgt": "lib_colombia_solar_curva_s_buildrowmap",
@@ -5826,7 +7071,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hooks/useHomeSlider.ts",
-      "source_location": "L33",
+      "source_location": "L34",
       "weight": 1.0,
       "_src": "src_hooks_usehomeslider_ts",
       "_tgt": "hooks_usehomeslider_formatfetchedat",
@@ -5838,7 +7083,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/hooks/useHomeSlider.ts",
-      "source_location": "L39",
+      "source_location": "L40",
       "weight": 1.0,
       "_src": "src_hooks_usehomeslider_ts",
       "_tgt": "hooks_usehomeslider_usehomeslider",

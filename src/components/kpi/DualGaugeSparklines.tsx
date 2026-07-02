@@ -52,7 +52,7 @@ export function DualGaugeSparklines({ embalsesPct, aportesPct, sparklines }: Dua
               <path d={describeArc(60, 60, 50, 0, 180)} fill="none" stroke="#1E293B" strokeWidth="10" strokeLinecap="round" />
               <path d={describeArc(60, 60, 50, 0, (embalsesPct / 100) * 180)} fill="none" stroke={embColor} strokeWidth="10" strokeLinecap="round" />
               <text x="60" y="52" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold">{embalsesPct.toFixed(1)}%</text>
-              <text x="60" y="62" textAnchor="middle" fill="#94A3B8" fontSize="7">Embalses</text>
+              <text x="60" y="62" textAnchor="middle" fill="currentColor" style={{ color: "var(--text-muted)" }} fontSize="7">Embalses</text>
             </svg>
           </div>
           <MiniSpark data={sparklines.embalses} color={embColor} />
@@ -64,7 +64,7 @@ export function DualGaugeSparklines({ embalsesPct, aportesPct, sparklines }: Dua
               <path d={describeArc(60, 60, 50, 0, 180)} fill="none" stroke="#1E293B" strokeWidth="10" strokeLinecap="round" />
               <path d={describeArc(60, 60, 50, 0, ((aportesPct ?? 0) / 100) * 180)} fill="none" stroke={apoColor} strokeWidth="10" strokeLinecap="round" />
               <text x="60" y="52" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold">{aportesPct !== null ? `${aportesPct.toFixed(1)}%` : "—"}</text>
-              <text x="60" y="62" textAnchor="middle" fill="#94A3B8" fontSize="7">Aportes</text>
+              <text x="60" y="62" textAnchor="middle" fill="currentColor" style={{ color: "var(--text-muted)" }} fontSize="7">Aportes</text>
             </svg>
           </div>
           <MiniSpark data={sparklines.aportes} color={apoColor} />

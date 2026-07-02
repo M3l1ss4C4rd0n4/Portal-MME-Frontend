@@ -34,7 +34,7 @@ html.light {
 
   --text-primary: #0F172A;
   --text-secondary: #475569;
-  --text-muted: #94A3B8;
+  --text-muted: #64748B;
 
   --border-primary: #CBD5E1;
   --border-secondary: #E2E8F0;
@@ -246,10 +246,225 @@ html.dark .nivo-tooltip {
 }
 
 /* ========================================
+   LIGHT MODE — OVERRIDE TAILWIND ACCENT COLORS
+   Colores pastel (300/400/500) son invisibles en fondo blanco.
+   Los selectores de atributo [class*="text-XXX-N"] cubren:
+     • clase base:          text-amber-400
+     • variantes opacidad:  text-amber-400/80  text-amber-400/50
+     • variantes hover:     hover:text-amber-400  (solo en :hover)
+   Reglas sin @layer → prioridad cascade mayor que Tailwind @layer utilities.
+   ======================================== */
+
+/* Amber / Gold */
+html.light [class*="text-amber-3"],
+html.light [class*="text-amber-4"],
+html.light [class*="text-amber-5"]  { color: #92400E; }
+html.light [class*="hover:text-amber"]:hover { color: #92400E; }
+html.light .text-gold,
+html.light .text-gold-light          { color: #92400E; }
+
+/* Cyan */
+html.light [class*="text-cyan-3"],
+html.light [class*="text-cyan-4"]   { color: #0E7490; }
+html.light [class*="hover:text-cyan"]:hover  { color: #0E7490; }
+
+/* Teal */
+html.light [class*="text-teal-3"],
+html.light [class*="text-teal-4"]   { color: #0F766E; }
+html.light [class*="hover:text-teal"]:hover  { color: #0F766E; }
+
+/* Emerald */
+html.light [class*="text-emerald-3"],
+html.light [class*="text-emerald-4"] { color: #065F46; }
+html.light [class*="hover:text-emerald"]:hover { color: #065F46; }
+
+/* Green */
+html.light [class*="text-green-3"],
+html.light [class*="text-green-4"]  { color: #166534; }
+html.light [class*="hover:text-green"]:hover { color: #166534; }
+
+/* Purple */
+html.light [class*="text-purple-3"],
+html.light [class*="text-purple-4"] { color: #5B21B6; }
+html.light [class*="hover:text-purple"]:hover { color: #5B21B6; }
+
+/* Violet */
+html.light [class*="text-violet-3"],
+html.light [class*="text-violet-4"] { color: #4C1D95; }
+html.light [class*="hover:text-violet"]:hover { color: #4C1D95; }
+
+/* Blue */
+html.light [class*="text-blue-3"],
+html.light [class*="text-blue-4"]  { color: #1D4ED8; }
+html.light [class*="hover:text-blue"]:hover  { color: #1D4ED8; }
+
+/* Sky */
+html.light [class*="text-sky-3"],
+html.light [class*="text-sky-4"]   { color: #0369A1; }
+html.light [class*="hover:text-sky"]:hover   { color: #0369A1; }
+
+/* Indigo */
+html.light [class*="text-indigo-3"],
+html.light [class*="text-indigo-4"] { color: #3730A3; }
+html.light [class*="hover:text-indigo"]:hover { color: #3730A3; }
+
+/* Red */
+html.light [class*="text-red-3"],
+html.light [class*="text-red-4"]   { color: #991B1B; }
+html.light [class*="hover:text-red"]:hover   { color: #991B1B; }
+
+/* Rose */
+html.light [class*="text-rose-3"],
+html.light [class*="text-rose-4"]  { color: #9F1239; }
+html.light [class*="hover:text-rose"]:hover  { color: #9F1239; }
+
+/* Orange */
+html.light [class*="text-orange-3"],
+html.light [class*="text-orange-4"] { color: #7C2D12; }
+html.light [class*="hover:text-orange"]:hover { color: #7C2D12; }
+
+/* Pink */
+html.light [class*="text-pink-3"],
+html.light [class*="text-pink-4"]  { color: #831843; }
+html.light [class*="hover:text-pink"]:hover  { color: #831843; }
+
+/* Slate / Gray */
+html.light [class*="text-slate-1"],
+html.light [class*="text-slate-2"],
+html.light [class*="text-slate-3"],
+html.light [class*="text-slate-4"],
+html.light [class*="text-slate-5"],
+html.light [class*="text-slate-6"] { color: #334155; }
+html.light [class*="hover:text-slate"]:hover { color: #334155; }
+html.light [class*="text-gray-1"],
+html.light [class*="text-gray-2"],
+html.light [class*="text-gray-3"],
+html.light [class*="text-gray-4"],
+html.light [class*="text-gray-5"],
+html.light [class*="text-gray-6"]  { color: #374151; }
+html.light [class*="hover:text-gray"]:hover  { color: #374151; }
+
+/* White text — invisible on light backgrounds */
+html.light [class*="text-white"] { color: var(--text-primary); }
+
+/* SVG text fills invisible on light backgrounds (attribute-based, e.g. <text fill="...">) */
+html.light svg text[fill="white"],
+html.light svg text[fill="#fff"],
+html.light svg text[fill="#CBD5E1"],
+html.light svg text[fill="#E2E8F0"] { fill: var(--text-primary); }
+
+/* Nivo renders text with inline styles — cover dark-mode palette in light/PDF context */
+html.light svg text[style*="fill: #F1F5F9"],
+html.light svg text[style*="fill: #E2E8F0"],
+html.light svg text[style*="fill: #CBD5E1"],
+html.light svg text[style*="fill: #94A3B8"],
+html.light svg text[style*="fill:#F1F5F9"],
+html.light svg text[style*="fill:#E2E8F0"],
+html.light svg text[style*="fill:#CBD5E1"],
+html.light svg text[style*="fill:#94A3B8"] { fill: var(--text-primary) !important; }
+
+/* ========================================
    RESPONSIVE UTILITIES
    ======================================== */
 @media (max-width: 640px) {
   .leaflet-popup-content {
     max-width: 280px;
   }
+}
+
+@media print {
+  @page { margin: 10mm 8mm; size: A4 portrait; }
+
+  html, body {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    min-height: auto !important;
+  }
+
+  /* ── Ocultar chrome de la UI ──────────────────────────────────────────── */
+  nav, header, aside, footer,
+  [class*="Sidebar"], [class*="sidebar"], [class*="Nav"], [class*="nav-"],
+  .glass, .grid-pattern, .animate-pulse-gold,
+  nav button, header button,
+  select, input,
+  iframe, [role="navigation"], .fixed, .sticky {
+    display: none !important;
+  }
+
+  /* ── Fondo blanco en tarjetas ─────────────────────────────────────────── */
+  .bg-theme-primary, .bg-theme-secondary, .bg-theme-tertiary,
+  .bg-theme-hover, .bg-dash-chip {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+  }
+
+  /* ── Texto legible en blanco/negro ────────────────────────────────────── */
+  .text-theme-primary, .text-white, .text-gold, .text-gold-light,
+  h1, h2, h3, h4, h5, h6, strong, b { color: #000000 !important; }
+  .text-theme-secondary, .text-theme-muted { color: #555555 !important; }
+
+  /* ── Bordes y sombras ────────────────────────────────────────────────── */
+  [class*="border-"] { border-color: #dddddd !important; }
+  .rounded-2xl, .rounded-xl, .rounded-lg { border-radius: 4px !important; }
+  [class*="shadow-"] { box-shadow: none !important; }
+  [class*="hover:"] { transition: none !important; }
+
+  /* ── Overflow: solo ampliar los scrollables, NUNCA overflow-hidden ───── */
+  /* overflow-hidden es usado por Nivo para recortar los SVG de gráficos;   */
+  /* hacerlo visible desbordaría labels fuera del contenedor del chart.     */
+  .overflow-x-auto, .overflow-auto, .overflow-scroll, .overflow-y-auto {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  /* ── Evitar corte de cards entre páginas ─────────────────────────────── */
+  .rounded-2xl {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* ── Grids ───────────────────────────────────────────────────────────── */
+  .grid-cols-6 { grid-template-columns: repeat(5, 1fr) !important; gap: 2px !important; }
+  .lg\:grid-cols-3 { grid-template-columns: repeat(2, 1fr) !important; }
+  .lg\:grid-cols-2 { grid-template-columns: 1fr !important; }
+  .gap-5, .gap-4, .gap-6 { gap: 6px !important; }
+
+  /* ── Espaciado ───────────────────────────────────────────────────────── */
+  .p-5, .p-4, .p-6 { padding: 4px !important; }
+  .py-8 { padding-top: 2px !important; padding-bottom: 2px !important; }
+  .pt-28, .pt-24, .pt-20 { padding-top: 0 !important; }
+  .mb-8, .mb-5, .mb-4, .mb-3 { margin-bottom: 4px !important; }
+  .mt-10, .mt-8, .mt-5 { margin-top: 4px !important; }
+
+  /* ── Tipografía ──────────────────────────────────────────────────────── */
+  .text-\[10px\] { font-size: 8px !important; }
+  .text-\[11px\] { font-size: 9px !important; }
+  table { font-size: 8px !important; width: 100% !important; }
+  th, td { padding: 2px 3px !important; }
+
+  /* ── SVG e imágenes ──────────────────────────────────────────────────── */
+  img, svg { max-width: 100% !important; }
+
+  /* ── Framer Motion: forzar visible sin transforms ────────────────────── */
+  [class*="motion"] { transform: none !important; opacity: 1 !important; }
+
+  /* ── Mapas Leaflet: mostrar en PDF con dimensiones fijas ─────────────── */
+  /* El print CSS anterior los ocultaba; ahora los preservamos.            */
+  .leaflet-container {
+    display: block !important;
+    height: 380px !important;
+    width: 100% !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+  /* Ocultar controles de Leaflet (zoom, atribución) que no aportan info  */
+  .leaflet-control-container,
+  .leaflet-control-zoom,
+  .leaflet-control-attribution {
+    display: none !important;
+  }
+
+  /* SankeyFlow: evitar desborde en A4 cuando hay min-w-[960px] */
+  [class*="min-w-\["] { min-width: auto !important; }
 }

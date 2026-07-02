@@ -21,6 +21,8 @@ const navItems: NavItem[] = [
     href: '/energia',
     children: [
       { label: 'Gestión del sector', href: '/energia' },
+      { label: 'Predicciones SIN', href: '/energia/predicciones' },
+      { label: 'Informes energéticos', href: '/energia/informes' },
       { label: 'Portal Energético', href: 'https://portalenergetico.minenergia.gov.co/' },
     ],
   },

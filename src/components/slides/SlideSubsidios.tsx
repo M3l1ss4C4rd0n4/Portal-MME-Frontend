@@ -4,7 +4,8 @@ import { ResponsiveBar } from "@nivo/bar";
 import { ResponsiveLine } from "@nivo/line";
 import { KpiBlock } from "@/components/kpi";
 import { fmtCOP, fmtNum, fmtFull } from "@/lib/format";
-import { NIVO_SLIDER } from "@/lib/nivo-theme";
+import { getNivoTheme } from "@/lib/nivo-theme";
+import { useTheme } from "@/providers/ThemeProvider";
 import type { HomeSliderProps } from "@/types/home-slider";
 import { TopAccent, SectionBadge } from "./SlideUI";
 
@@ -19,6 +20,8 @@ export function SlideSubsidios({
   deficitSeries?: Array<{ x: string; y: number }>;
   subBarData?: Array<{ anio: string; Subsidios: number; Contribuciones: number }>;
 }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme !== "light";
   const asig = d.anio2026.valorAsignado;
   const pag = d.anio2026.pagado;
   const pend = d.anio2026.pendiente;
@@ -53,12 +56,12 @@ export function SlideSubsidios({
   ];
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-[#060B14] overflow-hidden">
+    <div className="relative w-full h-full flex flex-col items-center justify-center bg-theme-primary overflow-hidden">
       <TopAccent color="#EF4444" />
       <div className="absolute inset-0 bg-gradient-to-br from-red-900/15 via-transparent to-rose-900/10 pointer-events-none" />
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[50%] h-[25%] bg-red-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 w-full h-full max-w-7xl px-4 xl:px-8 py-4 overflow-y-auto flex flex-col items-center justify-center gap-5">
+      <div className="relative z-10 w-full h-full max-w-7xl px-4 xl:px-8 py-4 overflow-y-auto flex flex-col items-center justify-evenly">
         <div className="text-center">
           <SectionBadge label="Subsidios Energéticos" dot="#EF4444" />
           <p className="text-slate-500 text-base xl:text-lg">
@@ -75,12 +78,12 @@ export function SlideSubsidios({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 w-full divide-x divide-white/5">
+        <div className="grid grid-cols-3 w-full divide-x divide-theme-primary/20">
           <KpiBlock
             label="Resoluciones 2026"
             value={fmtNum(d.anio2026.resoluciones)}
             unit="expedidas"
-            valueClass="text-amber-400"
+            valueClass="text-gold"
           />
           <KpiBlock
             label="Comprometido en Resoluciones 2026"
@@ -94,13 +97,13 @@ export function SlideSubsidios({
               {fmtFull(pend)}
               <span className="relative group cursor-help text-lg xl:text-xl leading-none mt-1">
                 *
-                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-xs text-slate-200 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-theme-secondary border border-theme-primary rounded text-xs text-theme-primary whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
                   Pendiente de desembolso por parte del Ministerio de Hacienda y Crédito Público
                 </span>
               </span>
             </div>
             <div className="w-full max-w-[280px] mt-3">
-              <div className="h-3 bg-slate-800 rounded-full overflow-hidden flex">
+              <div className="h-3 bg-theme-tertiary rounded-full overflow-hidden flex">
                 <div
                   className="h-full bg-gradient-to-r from-emerald-700 to-emerald-500 transition-all duration-1000 shrink-0"
                   style={{ width: `${pctPag}%` }}
@@ -127,12 +130,12 @@ export function SlideSubsidios({
                 <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1 text-center">
                   Subsidios (SIN+ZNI) y Contribuciones por Año
                 </p>
-                <div className="h-[150px]">
+                <div className="h-[16vh]">
                   <ResponsiveBar
                     data={subBarData}
                     keys={["Subsidios", "Contribuciones"]}
                     indexBy="anio"
-                    theme={NIVO_SLIDER}
+                    theme={getNivoTheme(isDark)}
                     margin={{ top: 6, right: 12, bottom: 28, left: 44 }}
                     groupMode="grouped"
                     valueScale={{ type: "linear" }}
@@ -158,7 +161,7 @@ export function SlideSubsidios({
                         itemsSpacing: 12,
                         itemWidth: 90,
                         itemHeight: 12,
-                        itemTextColor: "#94A3B8",
+                        itemTextColor: "var(--text-secondary)",
                         itemDirection: "left-to-right" as const,
                         symbolSize: 8,
                         symbolShape: "circle" as const,
@@ -167,8 +170,8 @@ export function SlideSubsidios({
                     tooltip={({ id, indexValue, data }) => {
                       const exacto = (data as unknown as Record<string, number>)[`${id}_exacto`];
                       return (
-                        <div className="px-3 py-2 bg-slate-800 border border-slate-700 rounded text-xs text-slate-200 min-w-[200px]">
-                          <p className="font-semibold mb-1 text-slate-300">Año {indexValue}</p>
+                        <div className="px-3 py-2 bg-theme-secondary border border-theme-primary rounded text-xs text-theme-primary min-w-[200px]">
+                          <p className="font-semibold mb-1 text-theme-secondary">Año {indexValue}</p>
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-1.5">
                               <span className="inline-block w-2 h-2 rounded-full" style={{ background: id === "Subsidios" ? "#F59E0B" : "#8B5CF6" }} />
@@ -189,10 +192,10 @@ export function SlideSubsidios({
                 <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1 text-center">
                   Déficit acumulado FSSRI (Miles M$)
                 </p>
-                <div className="h-[150px]">
+                <div className="h-[16vh]">
                   <ResponsiveLine
                     data={[{ id: "Déficit Acumulado", color: "#EF4444", data: deficitSeries }]}
-                    theme={NIVO_SLIDER}
+                    theme={getNivoTheme(isDark)}
                     margin={{ top: 6, right: 12, bottom: 28, left: 44 }}
                     xScale={{ type: "point" }}
                     yScale={{ type: "linear", min: "auto", max: "auto" }}
@@ -217,8 +220,8 @@ export function SlideSubsidios({
                       const year = slice.points[0]?.data.xFormatted ?? "";
                       const pt = slice.points[0];
                       return (
-                        <div className="px-3 py-2 bg-slate-800 border border-slate-700 rounded text-xs text-slate-200 min-w-[140px]">
-                          <p className="font-semibold mb-1 text-slate-300">Año {year}</p>
+                        <div className="px-3 py-2 bg-theme-secondary border border-theme-primary rounded text-xs text-theme-primary min-w-[140px]">
+                          <p className="font-semibold mb-1 text-theme-secondary">Año {year}</p>
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-1.5">
                               <span className="inline-block w-2 h-2 rounded-full bg-red-400" />

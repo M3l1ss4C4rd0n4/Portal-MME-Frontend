@@ -474,8 +474,8 @@ NEXT_PUBLIC_SITE_URL=https://portaldireccionee.minenergia.gov.co
 
 ```bash
 # API FastAPI
-sudo systemctl status api-mme
-sudo systemctl restart api-mme
+sudo systemctl status portal-api.service
+sudo systemctl restart portal-api.service
 
 # Dashboard Dash
 sudo systemctl status dashboard-mme
@@ -589,7 +589,7 @@ pg_isready -h localhost -p 5432
 redis-cli ping
 
 # Reiniciar API
-sudo systemctl restart api-mme
+sudo systemctl restart portal-api.service
 ```
 
 #### 3. Frontend no carga datos

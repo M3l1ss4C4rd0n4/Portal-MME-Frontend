@@ -126,8 +126,8 @@ export default function MapaEmbalsesSVG({ embalses, height = "180px" }: MapaEmba
       </svg>
 
       {/* Leyenda de semáforo */}
-      <div className="absolute bottom-1.5 left-1.5 z-20 bg-slate-900/90 backdrop-blur-sm border border-white/10 rounded-lg px-2 py-1.5 text-[9px]">
-        <p className="font-bold text-slate-300 mb-0.5">Estado embalses (XM/UPME)</p>
+      <div className="absolute bottom-1.5 left-1.5 z-20 bg-theme-secondary backdrop-blur-sm border border-theme-primary rounded-lg px-2 py-1.5 text-[9px]">
+        <p className="font-bold text-theme-primary mb-0.5">Estado embalses (XM/UPME)</p>
         {[
           { color: "#22C55E", label: "Normal", range: "> 80%" },
           { color: "#06B6D4", label: "Estable", range: "70–80%" },
@@ -137,8 +137,8 @@ export default function MapaEmbalsesSVG({ embalses, height = "180px" }: MapaEmba
         ].map((item) => (
           <div key={item.label} className="flex items-center gap-1 mb-0.5 last:mb-0">
             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: item.color }} />
-            <span className="text-slate-400">{item.label}</span>
-            <span className="text-slate-500 ml-auto pl-1">{item.range}</span>
+            <span className="text-theme-secondary">{item.label}</span>
+            <span className="text-theme-muted ml-auto pl-1">{item.range}</span>
           </div>
         ))}
       </div>

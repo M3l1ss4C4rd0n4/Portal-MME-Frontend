@@ -12,12 +12,12 @@ export function SlidePresupuesto({ d }: { d: HomeSliderProps["presuData"] }) {
   const fechaCorte = fmtCortePresupuesto(d.ultimaActualizacion);
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-[#060B14] overflow-hidden">
+    <div className="relative w-full h-full flex flex-col items-center justify-center bg-theme-primary overflow-hidden">
       <TopAccent color="#F59E0B" />
       <div className="absolute inset-0 bg-gradient-to-br from-amber-900/15 via-transparent to-slate-900/10 pointer-events-none" />
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[50%] h-[25%] bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 w-full h-full max-w-7xl px-4 xl:px-8 py-4 overflow-y-auto flex flex-col items-center justify-center gap-5">
+      <div className="relative z-10 w-full h-full max-w-7xl px-4 xl:px-8 py-4 overflow-y-auto flex flex-col items-center justify-evenly">
         <div className="text-center">
           <SectionBadge label="Ejecución Presupuestal 2026" dot="#F59E0B" />
           <p className="text-slate-500 text-base xl:text-lg">
@@ -29,13 +29,13 @@ export function SlidePresupuesto({ d }: { d: HomeSliderProps["presuData"] }) {
           <p className="text-slate-400 text-lg xl:text-xl uppercase tracking-[0.2em] font-medium mb-1">
             Apropiación Pptal DEE
           </p>
-          <div className="text-4xl xl:text-5xl 2xl:text-6xl font-black text-amber-400 leading-none">
+          <div className="text-4xl xl:text-5xl 2xl:text-6xl font-black text-gold leading-none">
             {fmtFull(apropiacion)}
           </div>
         </div>
 
         <div className="w-full max-w-4xl">
-          <div className="h-4 xl:h-5 bg-slate-800 rounded-full overflow-hidden flex">
+          <div className="h-4 xl:h-5 bg-theme-tertiary rounded-full overflow-hidden flex">
             <div
               className="h-full bg-gradient-to-r from-red-700 to-red-500 transition-all duration-1000 relative group cursor-pointer shrink-0"
               style={{ width: `${pct_obligado}%` }}
@@ -59,7 +59,7 @@ export function SlidePresupuesto({ d }: { d: HomeSliderProps["presuData"] }) {
             </div>
           </div>
           <div className="flex justify-between mt-2 text-sm xl:text-base">
-            <span className="text-amber-400 font-semibold">
+            <span className="text-gold font-semibold">
               {pct_comprometido.toFixed(2)}% Comp. ({pct_obligado.toFixed(1)}% obl.)
             </span>
             <span className="text-slate-500">

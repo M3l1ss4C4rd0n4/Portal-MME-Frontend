@@ -43,7 +43,7 @@ const ESTADOS_VALIDOS = ["b. VI", "c. VI SP", "d. VP", "e. VF"] as const;
 type EstadoKey = (typeof ESTADOS_VALIDOS)[number];
 
 const COLORES: Record<string, string> = {
-  "e. VF":    "#FDE68A",
+  "e. VF":    "var(--color-gold)",
   "d. VP":    "#78350F",
   "c. VI SP": "#B45309",
   "b. VI":    "#F59E0B",
@@ -233,7 +233,7 @@ function ValidacionBar({
     <div className="flex flex-col h-full">
       <h3 className="text-sm font-semibold text-theme-primary mb-1">{title}</h3>
       {selectedPeriod && (
-        <p className="text-[10px] text-amber-400 mb-2">
+        <p className="text-[10px] text-gold mb-2">
           Periodo: <strong>{selectedPeriod}</strong> — haz clic nuevamente para ver todos
         </p>
       )}
@@ -274,20 +274,20 @@ function ValidacionBar({
             const raw = (barData as Record<string, unknown>)[`_n_${String(id)}`] as number ?? 0;
             const total = (barData as Record<string, unknown>)["_total"] as number ?? 0;
             return (
-              <div className="bg-[#1E293B] border border-[#334155] rounded-lg px-3 py-2 text-xs text-[#E2E8F0] shadow-lg">
-                <div className="font-semibold mb-1 text-amber-300">{String(barData.id)}</div>
+              <div className="bg-theme-secondary border border-theme-primary rounded-lg px-3 py-2 text-xs text-theme-primary shadow-lg">
+                <div className="font-semibold mb-1 text-gold">{String(barData.id)}</div>
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <span className="w-2 h-2 rounded-full shrink-0" style={{ background: COLORES[String(id)] }} />
                   <span>{LABELS[String(id)] ?? String(id)}</span>
                 </div>
                 <div className="pl-3.5 text-[11px]">
-                  <span className="font-bold text-amber-400">{raw.toLocaleString("es-CO")}</span>
-                  <span className="text-[#94A3B8] ml-1.5">({value}%)</span>
+                  <span className="font-bold text-gold">{raw.toLocaleString("es-CO")}</span>
+                  <span className="text-theme-secondary ml-1.5">({value}%)</span>
                 </div>
-                <div className="pl-3.5 text-[10px] text-[#64748B] mt-0.5">
+                <div className="pl-3.5 text-[10px] text-theme-muted mt-0.5">
                   Total periodo: {total.toLocaleString("es-CO")}
                 </div>
-                <div className="mt-1.5 pt-1 border-t border-[#334155] text-[9px] text-[#64748B]">
+                <div className="mt-1.5 pt-1 border-t border-theme-primary text-[9px] text-theme-muted">
                   Click para aislar este periodo
                 </div>
               </div>
@@ -325,8 +325,25 @@ export default function ValidacionesPage() {
   // Estado para aislar un periodo al hacer click en una barra
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
 
-  // Carga inicial: obtener fechas disponibles para setear el default
+  // Carga inicial: leer parámetros de URL (para capturas Playwright con filtros)
+  // y obtener fechas disponibles para setear el default
   useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+
+    if (sp.has("fondo"))             setFondo(sp.get("fondo")!);
+    if (sp.has("prestador"))         setPrestador(sp.get("prestador")!);
+    if (sp.has("anioDesde"))         setAnioDesde(sp.get("anioDesde")!);
+    if (sp.has("anioHasta"))         setAnioHasta(sp.get("anioHasta")!);
+    if (sp.has("trimestre"))         setTrimestre(sp.get("trimestre")!);
+    if (sp.has("departamento"))      setDepartamento(sp.get("departamento")!);
+
+    // Si fechaActualizacion viene en la URL, usarla directamente
+    if (sp.has("fechaActualizacion")) {
+      setFechaActualizacion(sp.get("fechaActualizacion")!);
+      return;
+    }
+
+    // Sino, obtener fechas disponibles para setear la más reciente
     fetch("/api/subsidios/validaciones/?fechaActualizacion=1970-01")
       .then((r) => r.json())
       .then((d: ValidacionesData) => {
@@ -412,17 +429,28 @@ export default function ValidacionesPage() {
     !departamento;
 
   return (
-    <DashboardLayout title="Relación de Cuentas Subsidios" subtitle="Subsidios — Validaciones y controles">
+    <DashboardLayout title="Relación de Cuentas Subsidios"
+      downloadTablero="validaciones"
+      subtitle="Subsidios — Validaciones y controles"
+      downloadParams={{
+        fondo: fondo || '',
+        prestador: prestador || '',
+        anioDesde: anioDesde || '',
+        anioHasta: anioHasta || '',
+        trimestre: trimestre || '',
+        departamento: departamento || '',
+        fechaActualizacion: fechaActualizacion || '',
+      }}>
 
       {/* KPIs */}
       <Card delay={0.05} className="mb-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-[10px] text-theme-muted uppercase tracking-wider">Última actualización</p>
-            <p className="text-sm font-semibold text-amber-400">{ultimaAct}</p>
+            <p className="text-sm font-semibold text-gold">{ultimaAct}</p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <KpiChip label="VF — Validación Final"       value={loading ? "…" : resumenValidos.vf.toLocaleString("es-CO")}    color="#FDE68A" />
+            <KpiChip label="VF — Validación Final"       value={loading ? "…" : resumenValidos.vf.toLocaleString("es-CO")}    color="var(--color-gold)" />
             <KpiChip label="VP — Validación Pendiente"   value={loading ? "…" : resumenValidos.vp.toLocaleString("es-CO")}    color="#F59E0B" />
             <KpiChip label="VI — Validación Inicial"     value={loading ? "…" : resumenValidos.vi.toLocaleString("es-CO")}    color="#B45309" />
             <KpiChip label="VI SP — Saldos Pendientes"   value={loading ? "…" : resumenValidos.viSp.toLocaleString("es-CO")}  color="#78350F" />
@@ -490,7 +518,7 @@ export default function ValidacionesPage() {
                 setDepartamento("");
                 // fechaActualizacion NO se resetea — siempre debe tener un valor
               }}
-              className="text-[10px] text-amber-400 hover:text-amber-300 underline underline-offset-2 self-end pb-1.5"
+              className="text-[10px] text-gold hover:text-gold underline underline-offset-2 self-end pb-1.5"
             >
               Restaurar vista por defecto
             </button>
@@ -508,10 +536,10 @@ export default function ValidacionesPage() {
       {/* Indicador de periodo seleccionado */}
       {selectedPeriod && (
         <div className="mb-4 flex items-center gap-3 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30">
-          <span className="text-xs text-amber-400">Mostrando periodo: <strong>{selectedPeriod}</strong></span>
+          <span className="text-xs text-gold">Mostrando periodo: <strong>{selectedPeriod}</strong></span>
           <button
             onClick={() => setSelectedPeriod(null)}
-            className="text-[10px] text-amber-400/70 hover:text-amber-300 underline underline-offset-2"
+            className="text-[10px] text-gold/70 hover:text-gold underline underline-offset-2"
           >
             Ver todos los periodos
           </button>

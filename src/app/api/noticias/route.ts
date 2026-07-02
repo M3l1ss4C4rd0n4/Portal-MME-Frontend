@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
+import { ENERGY_KEYWORDS, HYDRO_KEYWORDS, countKeywordHits } from "@/lib/news-keywords";
 
-// Sin caché de Next.js — el backend Redis controla el TTL (20 min)
 export const dynamic = "force-dynamic";
 
 /**
@@ -85,18 +85,37 @@ export async function GET() {
 
     const data = await res.json();
 
-    // El orquestador puede devolver la lista en data.data.noticias, data.noticias o data.news
-    const rawList =
+    // Obtener el pool completo: top 3 + otras 7
+    const topList =
       data?.data?.noticias ??
       data?.noticias ??
       data?.news ??
       [];
 
-    const base = (Array.isArray(rawList) ? rawList : []).slice(0, 3);
+    const extraList =
+      data?.data?.otras_noticias ??
+      data?.otras_noticias ??
+      [];
+
+    const pool = [
+      ...(Array.isArray(topList) ? topList : []),
+      ...(Array.isArray(extraList) ? extraList : []),
+    ];
+
+    // Sistema de scoring: energía vs hidrocarburos
+    // Un artículo va a ENERGÍA si tiene más hits de energía que de hidrocarburos
+    const energyNews = pool.filter((n: Record<string, string>) => {
+      const text = `${n.titulo ?? n.title ?? ""} ${n.resumen ?? n.description ?? ""}`;
+      const energyHits = countKeywordHits(text, ENERGY_KEYWORDS);
+      const hydroHits = countKeywordHits(text, HYDRO_KEYWORDS);
+      return energyHits > 0 && energyHits > hydroHits;
+    });
+
+    const selected = energyNews.slice(0, 3);
 
     // Enriquecer con imagen OG en paralelo; si ya viene imagen del orquestador la usamos
     const noticias = await Promise.all(
-      base.map(async (n: Record<string, string>) => {
+      selected.map(async (n: Record<string, string>) => {
         const existing = n.imagen ?? n.image ?? "";
         let imagen = existing;
         if (!imagen) {

@@ -117,7 +117,7 @@ export const homeDashboardData: Record<string, DashboardCardData> = {
         subLabel: 'Potencia instalada'
       },
     ],
-    updateTime: '1/04/2026, 3:00 AM',
+    updateTime: '23/06/2026, 14:29',
     link: '/comunidades',
   },
 

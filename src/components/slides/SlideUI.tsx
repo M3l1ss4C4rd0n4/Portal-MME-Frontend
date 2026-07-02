@@ -26,11 +26,33 @@ export function SectionBadge({
         className={`w-3.5 h-3.5 rounded-full ${pulse ? "animate-pulse" : ""}`}
         style={{ backgroundColor: dot }}
       />
-      <span className="text-amber-400 font-black tracking-[0.3em] text-xl xl:text-2xl 2xl:text-3xl uppercase">
+      <span className="text-gold font-black tracking-[0.3em] text-xl xl:text-2xl 2xl:text-3xl uppercase">
         {label}
       </span>
     </div>
   );
+}
+
+export function TooltipSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="mt-1.5">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">{label}</span>
+      <div className="text-xs text-theme-secondary leading-relaxed">{children}</div>
+    </div>
+  );
+}
+
+export function TooltipField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline gap-1.5 mt-0.5">
+      <span className="text-theme-muted text-[11px] flex-shrink-0">{label}:</span>
+      <span className="text-theme-primary">{value}</span>
+    </div>
+  );
+}
+
+export function TooltipDivider() {
+  return <div className="my-1.5 border-t border-theme-primary/30" />;
 }
 
 export function NavArrow({

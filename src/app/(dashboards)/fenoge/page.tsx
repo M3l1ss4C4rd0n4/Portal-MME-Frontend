@@ -40,11 +40,11 @@ function KpiChip({ label, value, avg, avgLabel, accent = false }: {
   const fontClass = strLen <= 8 ? "text-xl" : strLen <= 13 ? "text-base" : "text-sm";
   return (
     <div className="bg-dash-chip rounded-xl px-4 py-3">
-      <div className={`${fontClass} font-bold leading-tight break-all ${accent ? "text-amber-400" : "text-theme-primary"}`}>{value}</div>
+      <div className={`${fontClass} font-bold leading-tight break-all ${accent ? "text-gold" : "text-theme-primary"}`}>{value}</div>
       <div className="text-[11px] text-theme-muted mt-1.5 leading-tight">{label}</div>
       {avg && (
         <div className="mt-2 pt-2 border-t border-white/[0.07] flex items-baseline gap-1">
-          <span className="text-[10px] font-bold text-amber-400/90 leading-none">{avg}</span>
+          <span className="text-[10px] font-bold text-gold/90 leading-none">{avg}</span>
           <span className="text-[9px] text-theme-muted leading-none">{avgLabel ?? "/ CE"}</span>
         </div>
       )}
@@ -130,6 +130,8 @@ interface SegRow {
   fecha: string;
   realAcum: number | null;
   programadoAcum: number | null;
+  usuarios: number;
+  potencia: number;
 }
 interface SegData {
   regiones: string[];
@@ -158,11 +160,22 @@ export default function FenogePage() {
   const [mapa, setMapa]       = useState<FenogeMapa>(DEFAULT_MAPA);
   const [seg, setSeg]         = useState<SegData>(DEFAULT_SEG);
   const [geoData, setGeoData] = useState<object | null>(null);
+  const [ultimaActualizacion, setUltimaActualizacion] = useState<string>("");
   const [selectedDept, setSelectedDept]   = useState<string | null>(null);
   const [selectedFase, setSelectedFase]   = useState<FaseFilter>("TODOS");
   const [segRegion, setSegRegion]         = useState<string>("TODOS");
   const [segContrato, setSegContrato]     = useState<string>("TODOS");
   const [segComunidad, setSegComunidad]   = useState<string>("TODOS");
+
+  // Leer parámetros de URL (para capturas Playwright con filtros)
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.has("departamento")) setSelectedDept(sp.get("departamento")!);
+    if (sp.has("fase"))        setSelectedFase(sp.get("fase")! as FaseFilter);
+    if (sp.has("region"))      setSegRegion(sp.get("region")!);
+    if (sp.has("contrato"))    setSegContrato(sp.get("contrato")!);
+    if (sp.has("comunidad"))   setSegComunidad(sp.get("comunidad")!);
+  }, []);
 
   useEffect(() => {
     fetch("/departamentos_colombia.geojson").then(r => r.json()).then(setGeoData).catch(() => {});
@@ -220,6 +233,7 @@ export default function FenogePage() {
             ])
           ),
         });
+      if (raw.ultima_actualizacion) setUltimaActualizacion(String(raw.ultima_actualizacion ?? ""));
       })
       .catch(() => {});
   }, []);
@@ -241,6 +255,8 @@ export default function FenogePage() {
             fecha:          String(d.fecha ?? ""),
             realAcum:       d.realAcum != null ? Number(d.realAcum) : null,
             programadoAcum: d.programadoAcum != null ? Number(d.programadoAcum) : null,
+            usuarios:       Number(d.usuarios) || 0,
+            potencia:       Number(d.potencia) || 0,
           })),
         });
       })
@@ -310,7 +326,7 @@ export default function FenogePage() {
   const barDataInv = top12inv.slice().sort((a, b) => b.inversion - a.inversion)
     .map(d => ({
       dept: d.departamentoGeo.length > 18 ? d.departamentoGeo.slice(0, 18) + "…" : d.departamentoGeo,
-      "Inversión B$": +(d.inversion / 1e9).toFixed(2),
+      "Inversión B$": d.inversion,
     })).reverse();
 
   const muniTableData: MuniRow[] | null = selectedDept ? (mapa.porMunicipio[selectedDept] ?? []) : null;
@@ -339,7 +355,11 @@ export default function FenogePage() {
   // ─── Seguimiento chart ────────────────────────────────────────────────────────
   const contratosEnRegion = useMemo(() => {
     if (segRegion === "TODOS") return seg.contratos;
-    const enRegion = new Set(seg.data.filter(d => d.region === segRegion).map(d => d.contrato));
+    const enRegion = new Set(
+      seg.data
+        .filter(d => d.region === segRegion && (d.realAcum !== null || d.programadoAcum !== null))
+        .map(d => d.contrato)
+    );
     return seg.contratos.filter(c => enRegion.has(c));
   }, [seg, segRegion]);
 
@@ -349,7 +369,7 @@ export default function FenogePage() {
     if (segContrato !== "TODOS") rows = rows.filter(d => d.contrato === segContrato);
     const set = new Set<string>();
     for (const r of rows) {
-      if (r.comunidad) set.add(r.comunidad);
+      if (r.comunidad && (r.realAcum !== null || r.programadoAcum !== null)) set.add(r.comunidad);
     }
     return [...set].sort();
   }, [seg, segRegion, segContrato]);
@@ -363,34 +383,50 @@ export default function FenogePage() {
 
   const seguimientoSeries = useMemo(() => {
     let filtered = seg.data.filter(d => !d.fecha || d.fecha <= SEGUIMIENTO_FECHA_CORTE);
-    if (segRegion     !== "TODOS") filtered = filtered.filter(d => d.region     === segRegion);
-    if (segContrato   !== "TODOS") filtered = filtered.filter(d => d.contrato   === segContrato);
-    if (segComunidad  !== "TODOS") filtered = filtered.filter(d => d.comunidad  === segComunidad);
+    if (segRegion    !== "TODOS") filtered = filtered.filter(d => d.region    === segRegion);
+    if (segContrato  !== "TODOS") filtered = filtered.filter(d => d.contrato  === segContrato);
+    if (segComunidad !== "TODOS") filtered = filtered.filter(d => d.comunidad === segComunidad);
 
-    const byFecha = new Map<string, { realVals: number[]; progVals: number[] }>();
+    const allDates = [...new Set(filtered.map(d => d.fecha).filter((f): f is string => !!f))].sort();
+    const n = allDates.length;
+    const dateIdx = new Map(allDates.map((d, i) => [d, i] as const));
+
+    // Series por contrato/comunidad para poder forward-fillear cada una por separado
+    const byKey = new Map<string, { real: (number | null)[]; prog: (number | null)[] }>();
     for (const row of filtered) {
       if (!row.fecha) continue;
-      if (!byFecha.has(row.fecha)) byFecha.set(row.fecha, { realVals: [], progVals: [] });
-      const entry = byFecha.get(row.fecha)!;
-      if (row.realAcum       != null) entry.realVals.push(row.realAcum);
-      if (row.programadoAcum != null) entry.progVals.push(row.programadoAcum);
+      const key = `${row.contrato}||${row.comunidad}`;
+      if (!byKey.has(key)) byKey.set(key, { real: Array<number | null>(n).fill(null), prog: Array<number | null>(n).fill(null) });
+      const e = byKey.get(key)!;
+      const i = dateIdx.get(row.fecha)!;
+      e.real[i] = row.realAcum;
+      e.prog[i] = row.programadoAcum;
     }
 
-    const sortedDates = [...byFecha.keys()].sort();
+    // realAcum es acumulado → máximo monotónico + forward-fill de nulls.
+    // null ANTES del primer reporte: excluir del promedio (contrato no ha empezado).
+    // null DESPUÉS del primer reporte: mantener último valor (el avance acumulado no retrocede).
+    for (const e of byKey.values()) {
+      let lr: number | null = null, lp: number | null = null;
+      for (let i = 0; i < n; i++) {
+        const r = e.real[i], p = e.prog[i];
+        if (r !== null) { lr = lr === null ? r : Math.max(lr, r); e.real[i] = lr; }
+        else if (lr !== null) { e.real[i] = lr; }
+        if (p !== null) { lp = lp === null ? p : Math.max(lp, p); e.prog[i] = lp; }
+        else if (lp !== null) { e.prog[i] = lp; }
+      }
+    }
 
-    const realData = sortedDates
-      .filter(d => byFecha.get(d)!.realVals.length > 0)
-      .map(d => {
-        const vals = byFecha.get(d)!.realVals;
-        return { x: d, y: +(vals.reduce((s, v) => s + v, 0) / vals.length).toFixed(2) };
-      });
-
-    const progData = sortedDates
-      .filter(d => byFecha.get(d)!.progVals.length > 0)
-      .map(d => {
-        const vals = byFecha.get(d)!.progVals;
-        return { x: d, y: +(vals.reduce((s, v) => s + v, 0) / vals.length).toFixed(2) };
-      });
+    // Promediar por fecha solo los contratos que tienen dato en esa fecha
+    const contracts = [...byKey.values()];
+    const realData = allDates.flatMap((d, i) => {
+      const vals = contracts.map(c => c.real[i]).filter((v): v is number => v !== null);
+      return vals.length > 0 ? [{ x: d, y: +(vals.reduce((s, v) => s + v, 0) / vals.length).toFixed(2) }] : [];
+    });
+    const progData = allDates.flatMap((d, i) => {
+      const vals = contracts.map(c => c.prog[i]).filter((v): v is number => v !== null);
+      return vals.length > 0 ? [{ x: d, y: +(vals.reduce((s, v) => s + v, 0) / vals.length).toFixed(2) }] : [];
+    });
 
     return [
       { id: "Avance Programado Acumulado", color: "#06B6D4", data: progData },
@@ -398,17 +434,47 @@ export default function FenogePage() {
     ];
   }, [seg, segRegion, segContrato, segComunidad]);
 
+  /** KPIs dinámicos de usuarios y potencia filtrados por los mismos criterios que la curva S */
+  const segKpiFiltered = useMemo(() => {
+    let filtered = seg.data.filter(d => !d.fecha || d.fecha <= SEGUIMIENTO_FECHA_CORTE);
+    if (segRegion    !== "TODOS") filtered = filtered.filter(d => d.region    === segRegion);
+    if (segContrato  !== "TODOS") filtered = filtered.filter(d => d.contrato  === segContrato);
+    if (segComunidad !== "TODOS") filtered = filtered.filter(d => d.comunidad === segComunidad);
+
+    // Tomar el valor MAX de usuarios/potencia por contrato+comunidad (evitar filas con 0)
+    const maxByKey = new Map<string, { usuarios: number; potencia: number }>();
+    for (const row of filtered) {
+      const key = `${row.contrato}||${row.comunidad}`;
+      const prev = maxByKey.get(key);
+      if (!prev) {
+        maxByKey.set(key, { usuarios: row.usuarios, potencia: row.potencia });
+      } else {
+        if (row.usuarios > prev.usuarios) prev.usuarios = row.usuarios;
+        if (row.potencia > prev.potencia) prev.potencia = row.potencia;
+      }
+    }
+    let totalUsuarios = 0;
+    let totalPotencia = 0;
+    for (const val of maxByKey.values()) {
+      totalUsuarios += val.usuarios;
+      totalPotencia += val.potencia;
+    }
+    return { totalUsuarios, totalPotencia };
+  }, [seg, segRegion, segContrato, segComunidad]);
+
   // ─── Render ───────────────────────────────────────────────────────────────────
   return (
-    <DashboardLayout title="Fenoge 1.0, 1.1" subtitle="Comunidades energéticas — Programa Fenoge">
+    <DashboardLayout title="Fenoge 1.0, 1.1"
+      downloadTablero="fenoge" subtitle={`Comunidades energéticas — Programa Fenoge${ultimaActualizacion ? "  ·  Última actualización: " + ultimaActualizacion : ""}`}
+      downloadParams={{ departamento: selectedDept || '', fase: selectedFase, region: segRegion, contrato: segContrato, comunidad: segComunidad }}>
 
       {/* ── Row 1: KPIs ── */}
       <Card delay={0.05} className="mb-5">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">INDICADORES GENERALES</span>
+          <span className="text-gold font-bold uppercase tracking-widest text-[11px]">INDICADORES GENERALES</span>
           <div className="flex items-center gap-2">
             {selectedDept && (
-              <span className="flex items-center gap-1.5 text-[10px] bg-amber-500/15 text-amber-400 px-2.5 py-1 rounded-full border border-amber-500/30">
+              <span className="flex items-center gap-1.5 text-[10px] bg-amber-500/15 text-gold px-2.5 py-1 rounded-full border border-amber-500/30">
                 <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"/></svg>
                 {selectedDeptLabel}
               </span>
@@ -443,9 +509,9 @@ export default function FenogePage() {
         {/* Mapa Colombia */}
         <Card delay={0.1} className="lg:col-span-3">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">CES — MAPA DE UBICACIÓN</span>
+            <span className="text-gold font-bold uppercase tracking-widest text-[11px]">CES — MAPA DE UBICACIÓN</span>
             {selectedDept && (
-              <button onClick={() => setSelectedDept(null)} className="text-[10px] text-theme-muted hover:text-amber-400 transition-colors">← Ver todos</button>
+              <button onClick={() => setSelectedDept(null)} className="text-[10px] text-theme-muted hover:text-gold transition-colors">← Ver todos</button>
             )}
           </div>
           <div className="h-[380px]">
@@ -456,6 +522,8 @@ export default function FenogePage() {
               isDark={isDark}
               deptColors={deptColors}
               onSelectDept={setSelectedDept}
+              porDepartamento={mapa.porDepartamento}
+              deptAvgs={mapa.deptAvgs}
             />
           </div>
           <div className="flex items-center justify-between mt-2">
@@ -477,7 +545,7 @@ export default function FenogePage() {
 
         {/* Panel filtro fase */}
         <Card delay={0.12} className="lg:col-span-2">
-          <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px] block mb-3">FILTRO POR FASE</span>
+          <span className="text-gold font-bold uppercase tracking-widest text-[11px] block mb-3">FILTRO POR FASE</span>
           <div className="grid grid-cols-2 gap-2 mb-4">
             {([
               { key: "TODOS", label: "Todos" },
@@ -491,7 +559,7 @@ export default function FenogePage() {
                     ? "border-amber-500/60 bg-amber-500/15"
                     : "border-theme-card bg-dash-chip hover:border-amber-500/30"
                 }`}>
-                <div className={`text-xs font-bold ${selectedFase === key ? "text-amber-400" : "text-theme-primary"}`}>{label}</div>
+                <div className={`text-xs font-bold ${selectedFase === key ? "text-gold" : "text-theme-primary"}`}>{label}</div>
                 {key !== "TODOS" && (
                   <div className="text-[10px] text-theme-muted mt-0.5">
                     {(faseCounts as any)[key] ?? 0} CEs
@@ -538,7 +606,7 @@ export default function FenogePage() {
       {/* ── Row 3: Bar charts ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
         <Card delay={0.15}>
-          <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
+          <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
             {selectedDept ? `CEs — ${selectedDeptLabel}` : "CES POR DEPARTAMENTO"}
           </span>
           <div className="h-[300px] mt-3">
@@ -562,7 +630,7 @@ export default function FenogePage() {
                 axisLeft={{ tickSize: 0, tickPadding: 6 }}
                 axisBottom={{ tickSize: 0, tickPadding: 5 }}
                 tooltip={({ id, value, indexValue }) => (
-                  <div style={{ padding: "8px 12px", background: "#1E293B", border: "1px solid #334155", borderRadius: 8, color: "#E2E8F0", fontSize: 12 }}>
+                  <div style={{ padding: "8px 12px", background: isDark ? "#1E293B" : "#FFFFFF", border: isDark ? "1px solid #334155" : "1px solid #CBD5E1", borderRadius: 8, color: isDark ? "#E2E8F0" : "#0F172A", fontSize: 12 }}>
                     <strong>{indexValue}</strong> — {id}: <strong style={{ color: "#F59E0B" }}>{value}</strong>
                   </div>
                 )}
@@ -582,7 +650,7 @@ export default function FenogePage() {
         </Card>
 
         <Card delay={0.18}>
-          <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
+          <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
             {selectedDept ? `INVERSIÓN — ${selectedDeptLabel}` : "INVERSIÓN POR DEPARTAMENTO"}
           </span>
           <div className="h-[300px] mt-3">
@@ -600,16 +668,16 @@ export default function FenogePage() {
                 borderRadius={3}
                 padding={0.3}
                 enableLabel
-                label={(d) => `$${d.value}B`}
-                labelSkipWidth={30}
+                label={(d) => `$${Number(d.value).toLocaleString("es-CO")}`}
+                labelSkipWidth={80}
                 labelTextColor="#fff"
                 enableGridX enableGridY={false}
                 axisTop={null} axisRight={null}
                 axisLeft={{ tickSize: 0, tickPadding: 6 }}
-                axisBottom={{ tickSize: 0, tickPadding: 5, format: (v) => `$${v}B` }}
+                axisBottom={{ tickSize: 0, tickPadding: 5, format: (v) => `$${(Number(v) / 1e9).toFixed(0)}B` }}
                 tooltip={({ value, indexValue }) => (
-                  <div style={{ padding: "8px 12px", background: "#1E293B", border: "1px solid #334155", borderRadius: 8, color: "#E2E8F0", fontSize: 12 }}>
-                    <strong>{indexValue}</strong>: <strong style={{ color: "#8B5CF6" }}>${value}B</strong>
+                  <div style={{ padding: "8px 12px", background: isDark ? "#1E293B" : "#FFFFFF", border: isDark ? "1px solid #334155" : "1px solid #CBD5E1", borderRadius: 8, color: isDark ? "#E2E8F0" : "#0F172A", fontSize: 12 }}>
+                    <strong>{indexValue}</strong>: <strong style={{ color: "#8B5CF6" }}>${Number(value).toLocaleString("es-CO")}</strong>
                   </div>
                 )}
               />
@@ -624,7 +692,7 @@ export default function FenogePage() {
       <Card delay={0.2} className="mb-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
+            <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
               {selectedDept ? `DETALLE POR MUNICIPIO — ${selectedDeptLabel}` : "DETALLE POR DEPARTAMENTO"}
             </span>
             <span className="text-[10px] text-theme-muted">
@@ -633,7 +701,7 @@ export default function FenogePage() {
           </div>
           <div className="flex items-center gap-2">
             {selectedDept && (
-              <button onClick={() => setSelectedDept(null)} className="text-[10px] text-theme-muted hover:text-amber-400 transition-colors">← Ver todos</button>
+              <button onClick={() => setSelectedDept(null)} className="text-[10px] text-theme-muted hover:text-gold transition-colors">← Ver todos</button>
             )}
             <button
               onClick={() => {
@@ -687,7 +755,7 @@ export default function FenogePage() {
                         <div className="h-1.5 bg-dash-chip rounded-full w-16 overflow-hidden">
                           <div style={{ width: `${Math.min((m.count/(muniTableData[0]?.count||1))*100, 100)}%` }} className="h-full bg-amber-400 rounded-full" />
                         </div>
-                        <span className="text-amber-400 font-semibold w-8 text-right">{m.count}</span>
+                        <span className="text-gold font-semibold w-8 text-right">{m.count}</span>
                       </div>
                     </td>
                     <td className="py-2.5 pr-4 text-right text-cyan-400">{Math.round(m.capacidad).toLocaleString("es-CO")}</td>
@@ -720,7 +788,7 @@ export default function FenogePage() {
                         <div className="h-1.5 bg-dash-chip rounded-full w-16 overflow-hidden">
                           <div style={{ width: `${Math.min((d.count/(tableData[0]?.count||1))*100, 100)}%` }} className="h-full bg-amber-400 rounded-full" />
                         </div>
-                        <span className="text-amber-400 font-semibold w-8 text-right">{d.count}</span>
+                        <span className="text-gold font-semibold w-8 text-right">{d.count}</span>
                       </div>
                     </td>
                     <td className="py-2.5 pr-4 text-right text-cyan-400">{Math.round(d.capacidad).toLocaleString("es-CO")}</td>
@@ -740,7 +808,7 @@ export default function FenogePage() {
       <Card delay={0.25}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <div>
-            <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px] block">
+            <span className="text-gold font-bold uppercase tracking-widest text-[11px] block">
               AVANCE DE OBRA — SEGUIMIENTO ACUMULADO
             </span>
             <span className="text-[10px] text-theme-muted mt-0.5">
@@ -764,7 +832,11 @@ export default function FenogePage() {
               </span>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* KPIs dinámicos de usuarios y potencia */}
+            <KpiChip label="Número de usuarios" value={segKpiFiltered.totalUsuarios.toLocaleString("es-CO")} />
+            <KpiChip label="Potencia total instalada" value={`${segKpiFiltered.totalPotencia.toLocaleString("es-CO")} kWp`} accent />
+            <div className="w-px h-8 bg-white/10 mx-1" />
             {/* Filtro región */}
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] text-theme-muted">Región:</span>
@@ -857,7 +929,7 @@ export default function FenogePage() {
                   ? String(point.data.x)
                   : d.toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });
                 return (
-                  <div style={{ padding: "8px 12px", background: "#1E293B", border: "1px solid #334155", borderRadius: 8, color: "#E2E8F0", fontSize: 12 }}>
+                  <div style={{ padding: "8px 12px", background: isDark ? "#1E293B" : "#FFFFFF", border: isDark ? "1px solid #334155" : "1px solid #CBD5E1", borderRadius: 8, color: isDark ? "#E2E8F0" : "#0F172A", fontSize: 12 }}>
                     <div className="text-theme-muted text-[10px] mb-1">{fecha}</div>
                     <div style={{ color: point.seriesColor }}>
                       <strong>{point.seriesId}</strong>: {Number(point.data.y).toFixed(2)}%
@@ -881,7 +953,7 @@ export default function FenogePage() {
               onClick={() => { setSegRegion(r); setSegContrato("TODOS"); setSegComunidad("TODOS"); }}
               className={`text-[10px] px-2.5 py-1 rounded-lg border transition-all ${
                 segRegion === r
-                  ? "bg-amber-500/15 border-amber-500/40 text-amber-400"
+                  ? "bg-amber-500/15 border-amber-500/40 text-gold"
                   : "bg-dash-chip border-theme-card text-theme-muted hover:border-amber-500/30"
               }`}>
               {r === "TODOS" ? "Todas las regiones" : r}

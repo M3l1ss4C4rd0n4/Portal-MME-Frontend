@@ -31,7 +31,7 @@
 | API route nueva en FastAPI | Skill 0 (CDA) → Skill 1.3 (validar cero ciclos) | Skill 2, 9 | Verificar que no crea ciclo con container.py. |
 | ETL en Celery Beat | Skill 9.2 (Protocol ETL) → tabla prueba OBLIGATORIA | Skill 1 | Dry-run en test_tabla antes de aplicar en producción. |
 | Puerto 8000 caído / API no responde | **Skill 17 (Emergencia) SOLAMENTE** | TODO LO DEMÁS | SEV-1. Recuperar servicio, luego investigar causa. |
-| Servicios systemd (api-mme, dash, telegram-polling) | Skill 0 (CDA) + Skill 8 regla #8 | Skill 2 | Backup con `cp /etc/systemd/system/nombre.service /tmp/nombre.service.bak` obligatorio. |
+| Servicios systemd (portal-api, dash, telegram-polling) | Skill 0 (CDA) + Skill 8 regla #8 | Skill 2 | Backup con `cp /etc/systemd/system/nombre.service /tmp/nombre.service.bak` obligatorio. |
 | Cambio a PostgreSQL schema (>100 líneas SQL) | Skill 9 (Data Verification) + pg_dump previo | Skill 0 | Snapshot de producción antes. Skill 8 regla #7. |
 
 ---

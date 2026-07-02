@@ -75,7 +75,7 @@ El **Portal de Direccion MME** es un ecosistema de software que soporta las oper
 | Scripts de utilidad | 47 | 705 | En scripts/ (47 .py + 16 .sh) |
 | ETLs | 18 | 236 | En etl/ |
 | Archivos de configuracion | ~10 | — | docker-compose.yml, .env, etc. |
-| Servicios systemd | 4 | — | api-mme.service, dash-mme.service, whatsapp-bot.service, telegram-polling.service |
+| Servicios systemd | 4 | — | portal-api.service, dash-mme.service, whatsapp-bot.service, telegram-polling.service |
 | Dependencias PyPI | 77 | — | requirements.txt |
 
 **Nota sobre discrepancia nodos vs archivos:** El grafo cuenta cada funcion, clase, metodo y docstring como un nodo. Por eso hay 6.021 nodos para 371 archivos Python (~16 nodos por archivo promedio).
@@ -360,7 +360,7 @@ energia · fenoge · pagos · presupuesto · subsidios · supervision · validac
 
 | Proceso PM2 | PID | Uptime | Memoria | Puerto | Rol |
 |---|---|---|---|---|---|
-| api-mme | 184770 | 21h | 30.3 MB | 8000 | API REST FastAPI |
+| portal-api | — (systemd) | — | — | 8000 | API REST FastAPI (portal-api.service) |
 | dash-mme | 3962455 | 4D | 101.1 MB | 8050 | Dashboard Dash |
 | portal-mme | 187007 | 21h | 148.3 MB | 3000 | Frontend Next.js |
 
@@ -368,7 +368,7 @@ energia · fenoge · pagos · presupuesto · subsidios · supervision · validac
 
 | Servicio | Estado | Descripcion |
 |---|---|---|
-| api-mme.service | Activo | FastAPI (entry point: api/main.py) |
+| portal-api.service | Activo | FastAPI (entry point: api/main.py, uvicorn directo) |
 | dash-mme.service | Activo | Dash (entry point: app.py) |
 | whatsapp-bot.service | Activo | Bot WhatsApp (puerto 8001, venv anidado) |
 | telegram-polling.service | Activo | Bot Telegram (polling, venv anidado) |
@@ -378,7 +378,7 @@ energia · fenoge · pagos · presupuesto · subsidios · supervision · validac
 | Puerto | Destino | Ruta |
 |---|---|---|
 | 80/443 | portal-mme:3000 | / (frontend) |
-| 80/443 | api-mme:8000 | /api/ (API REST) |
+| 80/443 | portal-api:8000 | /api/ (API REST) |
 | 80/443 | dash-mme:8050 | /dash/ (dashboard legacy) |
 
 #### Base de datos PostgreSQL
@@ -1027,7 +1027,7 @@ npx tsc --noEmit
 
 **Contexto que debe conocer:**
 - Deploy: PM2 + systemd + Docker Compose + Nginx
-- Servicios: api-mme (8000), dash-mme (8050), portal-mme (3000), bot (8001)
+- Servicios: portal-api (8000, systemd), dash-mme (8050), portal-mme (3000), bot (8001)
 - BD: PostgreSQL 16 (~15 GB, 64M filas)
 - Cache: Redis 7.x
 - Secrets: .env, .env.vault, .vault_key (NUNCA commitear)

@@ -28,7 +28,7 @@ export interface EstadoReservasResult extends EstadoResult {
 const TW_COLOR_MAP: Record<string, string> = {
   "#22C55E": "text-emerald-400",
   "#06B6D4": "text-cyan-400",
-  "#F59E0B": "text-amber-400",
+  "#F59E0B": "text-gold",
   "#F97316": "text-orange-400",
   "#EF4444": "text-red-400",
 };
@@ -139,4 +139,28 @@ export function diagnosticoSIN(
     return `Sistema estable — embalse ≥ 70% (regla absoluta CREG 209/2020).`;
   }
   return `Sistema sobre senda CREG ${sendaPct.toFixed(1)}% — NE Superior.`;
+}
+
+export function diagnosticoTermico(
+  participacionPct: number,
+  precioPPP: number,
+  _precioEscasez: number,
+  precios?: PreciosEscasezOpciones,
+): string {
+  const pe = precios?.pe ?? PRECIO_ESCASEZ_PE_REF_2026_01;
+  const pct = participacionPct.toFixed(1);
+
+  if (participacionPct > 35) {
+    return `Despacho crítico — térmica al ${pct}% supera el umbral estructural CND (35%).`;
+  }
+  if (participacionPct > 25) {
+    if (precioPPP > pe) {
+      return `Despacho en alerta media — térmica al ${pct}% con precio PPP sobre escasez.`;
+    }
+    return `Despacho en alerta media — térmica al ${pct}% indica presión sobre la generación hídrica.`;
+  }
+  if (participacionPct > 15) {
+    return `Despacho térmico normal — soporte complementario al ${pct}% de la generación del SIN.`;
+  }
+  return `Despacho térmico sostenible — participación ${pct}% dentro del rango base del SIN.`;
 }

@@ -8,18 +8,6 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
   trailingSlash: true,
-
-  // Excluir carpetas locales con symlinks/binarios ajenos al portal (p. ej. venv Python)
-  outputFileTracingExcludes: {
-    '*': [
-      './informes del mes/**',
-      './graphify-out/**',
-      './.next.bak*/**',
-      './venv/**',
-      './venv_*/**',
-      './.venv/**',
-    ],
-  },
   
   // Redirecciones para compatibilidad con rutas antiguas
   async redirects() {
@@ -49,6 +37,24 @@ const nextConfig: NextConfig = {
           {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
+          },
+        ],
+      },
+      {
+        source: '/energia',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+        ],
+      },
+      {
+        source: '/energia/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
           },
         ],
       },

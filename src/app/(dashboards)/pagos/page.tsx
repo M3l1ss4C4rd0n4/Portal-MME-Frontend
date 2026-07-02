@@ -93,21 +93,21 @@ function MultiSelect({
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1 z-50 bg-[#0F172A] border border-slate-700 rounded-lg shadow-2xl min-w-[170px] max-h-[240px] overflow-y-auto">
+        <div className="absolute top-full left-0 mt-1 z-50 bg-theme-primary border border-theme-primary rounded-lg shadow-2xl min-w-[170px] max-h-[240px] overflow-y-auto">
           {/* Todos */}
-          <label className="flex items-center gap-2 px-3 py-2 hover:bg-white/5 cursor-pointer border-b border-slate-700/60 text-xs select-none">
+          <label className="flex items-center gap-2 px-3 py-2 hover:bg-theme-hover cursor-pointer border-b border-theme-secondary text-xs select-none">
             <input
               type="checkbox"
               checked={isTodos}
               onChange={() => onChange([])}
               className="accent-amber-500 shrink-0"
             />
-            <span className="text-amber-400 font-semibold">Todos</span>
+            <span className="text-gold font-semibold">Todos</span>
           </label>
           {options.map((opt) => (
             <label
               key={opt}
-              className="flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 cursor-pointer text-xs select-none"
+              className="flex items-center gap-2 px-3 py-1.5 hover:bg-theme-hover cursor-pointer text-xs select-none"
             >
               <input
                 type="checkbox"
@@ -206,6 +206,7 @@ const FILTROS_VACIOS: FiltrosState = {
 export default function PagosPage() {
   const { resolvedTheme } = useTheme();
   const T = getNivoTheme(resolvedTheme === "dark");
+  const isDark = resolvedTheme === "dark";
 
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -225,6 +226,24 @@ export default function PagosPage() {
     filtros.departamentos.forEach((v)=> params.append("departamento",v));
     return params.toString();
   }, [filtros]);
+
+  // Leer parámetros de URL (para capturas Playwright con filtros)
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const nf: FiltrosState = {
+      prestadores:   sp.has("prestador")    ? sp.getAll("prestador")    : FILTROS_VACIOS.prestadores,
+      aniosPago:     sp.has("anioPago")     ? sp.getAll("anioPago")     : FILTROS_VACIOS.aniosPago,
+      aniosExp:      sp.has("anioExp")      ? sp.getAll("anioExp")      : FILTROS_VACIOS.aniosExp,
+      estadosPago:   sp.has("estadoPago")   ? sp.getAll("estadoPago")   : FILTROS_VACIOS.estadosPago,
+      resoluciones:  sp.has("resolucion")   ? sp.getAll("resolucion")   : FILTROS_VACIOS.resoluciones,
+      trimestres:    sp.has("trimestre")    ? sp.getAll("trimestre")    : FILTROS_VACIOS.trimestres,
+      areas:         sp.has("area")         ? sp.getAll("area")         : FILTROS_VACIOS.areas,
+      fondos:        sp.has("fondo")        ? sp.getAll("fondo")        : FILTROS_VACIOS.fondos,
+      departamentos: sp.has("departamento") ? sp.getAll("departamento") : FILTROS_VACIOS.departamentos,
+    };
+    const hasFilters = sp.has("prestador") || sp.has("anioPago") || sp.has("anioExp") || sp.has("estadoPago") || sp.has("resolucion") || sp.has("trimestre") || sp.has("area") || sp.has("fondo") || sp.has("departamento");
+    if (hasFilters) setFiltros(nf);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -307,7 +326,8 @@ export default function PagosPage() {
 
   if (loading && !data) {
     return (
-      <DashboardLayout title="Detalle de pagos" subtitle={subtitulo}>
+      <DashboardLayout title="Detalle de pagos"
+      downloadTablero="pagos" subtitle={subtitulo}>
         <div className="flex items-center justify-center h-64 text-theme-muted">Cargando datos…</div>
       </DashboardLayout>
     );
@@ -315,7 +335,7 @@ export default function PagosPage() {
 
   if (error) {
     return (
-      <DashboardLayout title="Detalle de pagos" subtitle={subtitulo}>
+      <DashboardLayout title="Detalle de pagos" subtitle={subtitulo} downloadTablero="pagos">
         <div className="flex items-center justify-center h-64 text-red-400">
           Error al cargar datos: {error}
         </div>
@@ -325,7 +345,7 @@ export default function PagosPage() {
 
   if (!data) {
     return (
-      <DashboardLayout title="Detalle de pagos" subtitle={subtitulo}>
+      <DashboardLayout title="Detalle de pagos" subtitle={subtitulo} downloadTablero="pagos">
         <div className="flex items-center justify-center h-64 text-theme-muted">Sin datos disponibles</div>
       </DashboardLayout>
     );
@@ -348,10 +368,10 @@ export default function PagosPage() {
 
   const tooltipStyle = {
     padding: "8px 12px",
-    background: "#1E293B",
-    border: "1px solid #334155",
+    background: isDark ? "#1E293B" : "#FFFFFF",
+    border: isDark ? "1px solid #334155" : "1px solid #CBD5E1",
     borderRadius: 8,
-    color: "#E2E8F0",
+    color: isDark ? "#E2E8F0" : "#0F172A",
     fontSize: 12,
   };
 
@@ -362,12 +382,13 @@ export default function PagosPage() {
   const optsResoluciones = filtrosOpciones.resoluciones.map(String);
 
   return (
-    <DashboardLayout title="Detalle de pagos" subtitle={subtitulo}>
+    <DashboardLayout title="Detalle de pagos" subtitle={subtitulo} downloadTablero="pagos"
+      downloadQueryString={buildQuery()}>
 
       {/* ── KPIs ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-5">
         <Card delay={0.05}>
-          <div className="text-[10px] text-amber-400/80 font-semibold uppercase tracking-wide">Valor Comprometido en Resoluciones</div>
+          <div className="text-[10px] text-gold/80 font-semibold uppercase tracking-wide">Valor Comprometido en Resoluciones</div>
           <div className="mt-1.5 text-lg font-extrabold text-theme-primary leading-none tabular-nums">
             {fmtCOP(kpis.valorAsignado)}
           </div>
@@ -385,13 +406,13 @@ export default function PagosPage() {
           </div>
         </Card>
         <Card delay={0.14}>
-          <div className="text-[10px] text-amber-400/80 font-semibold uppercase tracking-wide">Res. Pendientes</div>
-          <div className="mt-1.5 text-lg font-extrabold text-amber-400 leading-none tabular-nums">
+          <div className="text-[10px] text-gold/80 font-semibold uppercase tracking-wide">Res. Pendientes</div>
+          <div className="mt-1.5 text-lg font-extrabold text-gold leading-none tabular-nums">
             {kpis.resolucionesPendientes}
           </div>
         </Card>
         <Card delay={0.17}>
-          <div className="text-[10px] text-amber-400/80 font-semibold uppercase tracking-wide">Total Resoluciones</div>
+          <div className="text-[10px] text-gold/80 font-semibold uppercase tracking-wide">Total Resoluciones</div>
           <div className="mt-1.5 text-lg font-extrabold text-theme-primary leading-none tabular-nums">
             {kpis.totalResoluciones}
           </div>
@@ -476,7 +497,7 @@ export default function PagosPage() {
               <span className="text-[10px] opacity-0">x</span>
               <button
                 onClick={() => setFiltros(FILTROS_VACIOS)}
-                className="text-[11px] text-amber-400 border border-amber-700/40 rounded px-3 py-1.5 hover:bg-amber-500/10 transition-colors"
+                className="text-[11px] text-gold border border-amber-700/40 rounded px-3 py-1.5 hover:bg-amber-500/10 transition-colors"
               >
                 × Limpiar filtros
               </button>
@@ -488,7 +509,7 @@ export default function PagosPage() {
       {/* ── Gráfico trimestres + Gauge ────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
         <Card delay={0.25} className="lg:col-span-2">
-          <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
+          <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
             Valores pagados y pendientes por trimestre
           </span>
           <div className="h-[280px] mt-4">
@@ -520,7 +541,7 @@ export default function PagosPage() {
         </Card>
 
         <Card delay={0.3} className="flex flex-col items-center justify-center">
-          <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px] mb-4">
+          <span className="text-gold font-bold uppercase tracking-widest text-[11px] mb-4">
             Porcentaje pagado
           </span>
           <SemiGauge value={kpis.pctPagado} label="Pagado / Comprometido en Resoluciones" size="lg" color="gold" />
@@ -538,7 +559,7 @@ export default function PagosPage() {
       {/* ── Tabla resoluciones + Prestadores pendientes ───────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
         <Card delay={0.35}>
-          <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
+          <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
             Resoluciones
           </span>
           <div className="mt-3 overflow-auto max-h-[320px]">
@@ -560,7 +581,7 @@ export default function PagosPage() {
                   >
                     <td className="py-2 pr-3 text-theme-primary font-medium">{r.noResolucion}</td>
                     <td className="py-2 pr-3 text-theme-secondary">{r.anio}</td>
-                    <td className="py-2 pr-3 text-right text-amber-400 tabular-nums">{fmtFull(r.valorAsignado)}</td>
+                    <td className="py-2 pr-3 text-right text-gold tabular-nums">{fmtFull(r.valorAsignado)}</td>
                     <td className="py-2 pr-3 text-right text-emerald-400 tabular-nums">{fmtFull(r.valorPagado)}</td>
                     <td className={`py-2 text-right tabular-nums ${r.saldoPendiente > 0 ? "text-red-400 font-semibold" : "text-theme-secondary"}`}>
                       {fmtFull(r.saldoPendiente)}
@@ -580,7 +601,7 @@ export default function PagosPage() {
         </Card>
 
         <Card delay={0.4}>
-          <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
+          <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
             Prestadores de servicio pendiente de pago
           </span>
           <div className="h-[320px] mt-4">
@@ -597,7 +618,7 @@ export default function PagosPage() {
               padding={0.3}
               enableLabel={true}
               label={(d) => `${Math.round(Number(d.value))}M`}
-              labelTextColor="#fff"
+              labelTextColor={isDark ? "#fff" : "#1E293B"}
               enableGridX={false}
               enableGridY={false}
               axisTop={null}

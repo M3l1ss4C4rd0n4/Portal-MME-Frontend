@@ -2,126 +2,148 @@
 
 import { ResponsivePie } from "@nivo/pie";
 import SemiGauge from "@/components/ui/SemiGauge";
-import { KpiBlock } from "@/components/kpi";
 import { fmtNum, fmtCOPShort } from "@/lib/format";
-import { NIVO_SLIDER } from "@/lib/nivo-theme";
+import { getNivoTheme } from "@/lib/nivo-theme";
+import { useTheme } from "@/providers/ThemeProvider";
 import type { HomeSliderProps } from "@/types/home-slider";
 import { TopAccent, SectionBadge } from "./SlideUI";
 
+type EtapaChipProps = {
+  label: string;
+  value: number;
+  pct?: string;
+  color: string;
+};
+
+function EtapaChip({ label, value, pct, color }: EtapaChipProps) {
+  return (
+    <div className="flex flex-col items-center bg-theme-secondary border border-theme-secondary rounded-xl px-5 py-2.5 flex-1">
+      <span className="text-[10px] text-slate-400 uppercase tracking-widest mb-0.5">{label}</span>
+      <span className={`text-2xl xl:text-3xl font-bold leading-none ${color}`}>{fmtNum(value)}</span>
+      {pct && <span className="text-[11px] text-slate-500 mt-0.5">{pct}</span>}
+    </div>
+  );
+}
+
 export function SlideSupervision({ d }: { d: HomeSliderProps["supData"] }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme !== "light";
   const tot = d.nContratos || 1;
   const pct = (n: number) => `${((n / tot) * 100).toFixed(1)}%`;
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-[#060B14] overflow-hidden">
-      <TopAccent color="#06B6D4" />
-      <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/15 via-transparent to-slate-900/10 pointer-events-none" />
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[50%] h-[25%] bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
+    <div className="relative w-full h-full flex flex-col bg-theme-primary overflow-hidden">
+      <TopAccent color="#3B82F6" />
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-900/15 via-transparent to-slate-900/10 pointer-events-none" />
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[60%] h-[30%] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 w-full h-full max-w-7xl px-4 xl:px-8 py-4 overflow-y-auto flex flex-col items-center justify-center gap-5">
-        <div className="text-center">
+      <div className="relative z-10 flex flex-col h-full max-w-6xl w-full mx-auto px-6 xl:px-10 py-4 justify-evenly">
+
+        {/* Título */}
+        <div className="text-center shrink-0">
           <SectionBadge label="Supervisión" dot="#06B6D4" />
-          <p className="text-slate-500 text-base xl:text-lg">
-            Monitoreo y seguimiento de contratos activos
-          </p>
+          <p className="text-slate-500 text-sm">Monitoreo y seguimiento de contratos · 2015–2026</p>
         </div>
 
-        <div className="grid grid-cols-2 w-full max-w-3xl gap-4">
-          <KpiBlock
-            label="Usuarios contratados"
-            value={fmtNum(d.usuarios.contratados)}
-            valueClass="text-amber-400"
-            unit="beneficiarios ZNI/SIN"
-          />
-          <KpiBlock
-            label="Valor total"
-            value={fmtCOPShort(d.financiero.valorProyecto)}
-            valueClass="text-yellow-400"
-            unit="portafolio supervisado"
-          />
+        {/* KPIs principales — 2 col */}
+        <div className="grid grid-cols-2 gap-4 shrink-0 max-w-2xl mx-auto w-full">
+          <div className="bg-theme-secondary border border-theme-secondary rounded-xl px-6 py-3 text-center">
+            <p className="text-[10px] text-slate-400 uppercase tracking-widest">Usuarios contratados</p>
+            <p className="text-3xl xl:text-4xl font-bold text-gold leading-tight">{fmtNum(d.usuarios.contratados)}</p>
+            <p className="text-xs text-slate-500">beneficiarios ZNI/SIN</p>
+          </div>
+          <div className="bg-theme-secondary border border-theme-secondary rounded-xl px-6 py-3 text-center">
+            <p className="text-[10px] text-slate-400 uppercase tracking-widest">Valor total portafolio</p>
+            <p className="text-3xl xl:text-4xl font-bold text-gold leading-tight">{fmtCOPShort(d.financiero.valorProyecto)}</p>
+            <p className="text-xs text-slate-500">portafolio supervisado</p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-6 w-full divide-x divide-white/5">
-          <KpiBlock label="Contratos" value={fmtNum(d.nContratos)} valueClass="text-cyan-400" unit="total portafolio" />
-          <KpiBlock label="En Ejecución" value={fmtNum(d.enEjecucion)} valueClass="text-emerald-400" unit={pct(d.enEjecucion)} />
-          <KpiBlock label="AOM" value={fmtNum(d.enAOM)} valueClass="text-teal-400" unit={`${pct(d.enAOM)} · Op. y mant.`} />
-          <KpiBlock label="En Liquidación" value={fmtNum(d.enLiquidacion)} valueClass="text-amber-400" unit={pct(d.enLiquidacion)} />
-          <KpiBlock label="Liquidados" value={fmtNum(d.liquidados)} valueClass="text-slate-300" unit={pct(d.liquidados)} />
-          <KpiBlock label="Perdida Comp." value={fmtNum(d.perdidaCompetencia)} valueClass="text-rose-400" unit={pct(d.perdidaCompetencia)} />
+        {/* Etapas — 6 chips horizontales */}
+        <div className="flex gap-2 shrink-0">
+          <EtapaChip label="Contratos"   value={d.nContratos}         color="text-cyan-400"    />
+          <EtapaChip label="Ejecución"   value={d.enEjecucion}         color="text-emerald-400" pct={pct(d.enEjecucion)} />
+          <EtapaChip label="AOM"         value={d.enAOM}               color="text-teal-400"    pct={pct(d.enAOM)} />
+          <EtapaChip label="Liquidación" value={d.enLiquidacion}       color="text-gold"   pct={pct(d.enLiquidacion)} />
+          <EtapaChip label="Liquidados"  value={d.liquidados}           color="text-slate-300"   pct={pct(d.liquidados)} />
+          <EtapaChip label="Pérd. Comp." value={d.perdidaCompetencia}   color="text-rose-400"    pct={pct(d.perdidaCompetencia)} />
         </div>
 
-        {/* Gauges: portafolio total + solo activos + Donut */}
-        <div className="flex justify-center items-end w-full gap-4 xl:gap-8">
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-[9px] text-white/40 uppercase tracking-widest">Portafolio</span>
-            <div className="flex gap-4">
-              <SemiGauge rawValue={d.avanceFisico} label="Físico" color="success" size="lg" delay={0.3} />
-              <SemiGauge rawValue={d.avanceFinanciero} label="Financiero" color="success" size="lg" delay={0.35} />
+        {/* Sección inferior: Gauges + Donut */}
+        <div className="flex items-center justify-center gap-10 xl:gap-16">
+
+          {/* Gauges */}
+          <div className="flex flex-col items-center gap-3">
+            <span className="text-[10px] text-theme-muted uppercase tracking-widest">Avance portafolio</span>
+            <div className="flex gap-8">
+              <SemiGauge rawValue={d.avanceContrato}   label="General"    color="gold"    size="xl" delay={0.25} />
+              <SemiGauge rawValue={d.avanceFisico}     label="Físico"     color="success" size="xl" delay={0.3}  />
+              <SemiGauge rawValue={d.avanceFinanciero} label="Financiero" color="success" size="xl" delay={0.35} />
             </div>
           </div>
+
+          {/* Donut */}
           <div className="flex flex-col items-center gap-1">
-            <span className="text-[9px] text-cyan-400/60 uppercase tracking-widest">En Ejecución</span>
-            <div className="flex gap-4">
-              <SemiGauge rawValue={d.avanceFisicoActivos} label="Físico" color="gold" size="lg" delay={0.4} />
-              <SemiGauge rawValue={d.avanceFinancieroActivos} label="Financiero" color="gold" size="lg" delay={0.45} />
-            </div>
-          </div>
-          <div className="w-[340px] h-[160px] relative">
-            {d.porFondo.length > 0 ? (
-              <>
-                <ResponsivePie
-                  data={d.porFondo.slice(0, 6).map((f, i) => ({
-                    id: f.fondo,
-                    label: f.fondo,
-                    value: f.contratos,
-                    color: ["#F59E0B", "#8B5CF6", "#06B6D4", "#22C55E", "#EF4444", "#F97316"][i],
-                  }))}
-                  theme={NIVO_SLIDER}
-                  margin={{ top: 6, right: 90, bottom: 6, left: 6 }}
-                  innerRadius={0.55}
-                  padAngle={2}
-                  cornerRadius={3}
-                  activeOuterRadiusOffset={5}
-                  colors={{ datum: "data.color" }}
-                  borderWidth={0}
-                  enableArcLinkLabels={false}
-                  arcLabelsSkipAngle={12}
-                  arcLabelsTextColor="#fff"
-                  arcLabelsRadiusOffset={0.75}
-                  legends={[
-                    {
+            <span className="text-[10px] text-theme-muted uppercase tracking-widest">Por fondo</span>
+            <div className="w-[380px] h-[20vh] relative">
+              {d.porFondo.length > 0 ? (
+                <>
+                  <ResponsivePie
+                    data={d.porFondo.slice(0, 6).map((f, i) => ({
+                      id: f.fondo,
+                      label: f.fondo,
+                      value: f.contratos,
+                      color: ["#F59E0B", "#8B5CF6", "#06B6D4", "#22C55E", "#EF4444", "#F97316"][i],
+                    }))}
+                    theme={getNivoTheme(isDark)}
+                    margin={{ top: 8, right: 105, bottom: 8, left: 8 }}
+                    innerRadius={0.58}
+                    padAngle={2}
+                    cornerRadius={4}
+                    activeOuterRadiusOffset={6}
+                    colors={{ datum: "data.color" }}
+                    borderWidth={0}
+                    enableArcLinkLabels={false}
+                    arcLabelsSkipAngle={14}
+                    arcLabelsTextColor="#fff"
+                    arcLabelsRadiusOffset={0.75}
+                    legends={[{
                       anchor: "right" as const,
                       direction: "column" as const,
                       justify: false,
-                      translateX: 80,
+                      translateX: 95,
                       translateY: 0,
-                      itemsSpacing: 5,
-                      itemWidth: 80,
-                      itemHeight: 16,
-                      itemTextColor: "#94A3B8",
+                      itemsSpacing: 7,
+                      itemWidth: 90,
+                      itemHeight: 18,
+                      itemTextColor: "var(--text-secondary)",
                       itemDirection: "left-to-right" as const,
-                      symbolSize: 8,
+                      symbolSize: 9,
                       symbolShape: "circle" as const,
-                    },
-                  ]}
-                  tooltip={({ datum }) => (
-                    <div className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-xs text-slate-200">
-                      <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ background: datum.color }} />
-                      {datum.label}: <strong>{datum.value}</strong>
-                    </div>
-                  )}
-                />
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ paddingRight: 90 }}>
-                  <span className="text-xl font-bold text-white leading-none">{d.nContratos}</span>
-                  <span className="text-[9px] text-slate-400">total</span>
+                    }]}
+                    tooltip={({ datum }) => (
+                      <div className="px-2 py-1 bg-theme-secondary border border-theme-primary rounded text-xs text-theme-primary">
+                        <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ background: datum.color }} />
+                        {datum.label}: <strong>{datum.value}</strong>
+                      </div>
+                    )}
+                  />
+                  <div
+                    className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
+                    style={{ paddingRight: 105 }}
+                  >
+                    <span className="text-2xl font-bold text-theme-primary leading-none">{d.nContratos}</span>
+                    <span className="text-[9px] text-slate-400 mt-0.5">contratos</span>
+                  </div>
+                </>
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <span className="text-slate-500 text-sm">Cargando…</span>
                 </div>
-              </>
-            ) : (
-              <div className="h-full flex items-center justify-center">
-                <span className="text-slate-500 text-sm">Cargando…</span>
-              </div>
-            )}
+              )}
+            </div>
           </div>
+
         </div>
       </div>
     </div>

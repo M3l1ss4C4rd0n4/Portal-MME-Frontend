@@ -43,7 +43,7 @@ const colorVariants = {
   amber: {
     bg: "bg-amber-500/10 dark:bg-amber-500/20",
     border: "border-amber-200 dark:border-amber-500/30",
-    icon: "text-amber-600 dark:text-amber-400",
+    icon: "text-amber-600 dark:text-gold",
     glow: "group-hover:shadow-amber-500/20",
   },
   rose: {

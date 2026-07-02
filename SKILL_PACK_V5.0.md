@@ -38,7 +38,7 @@ $ pwd
 - Leer: `/home/admonctrlxm/server/AGENTS.md`
 - Build: `python -m py_compile` (por archivo) + `pytest`
 - Tests: `cd /home/admonctrlxm/server && pytest tests/ -q --tb=no`
-- Servicio: `systemctl restart api-mme`
+- Servicio: `systemctl restart portal-api.service`
 - Health: `curl http://localhost:8000/health`
 - God file: `core/container.py` (575 nodos)
 - DB: `PostgreSQLConnectionManager` de `infrastructure/`
@@ -47,7 +47,7 @@ $ pwd
 
 | Proyecto | PROHIBIDO ejecutar |
 |---|---|
-| FRONTEND | `pytest`, `python -c`, `systemctl restart api-mme` |
+| FRONTEND | `pytest`, `python -c`, `systemctl restart portal-api.service` |
 | BACKEND | `npm run build`, `npx tsc`, `pm2 restart portal-mme` |
 
 Si el agente detecta que está a punto de ejecutar un comando del proyecto equivocado: **DETENER y corregir.**
@@ -74,7 +74,7 @@ psql -d portal_energetico -c "
 cat /home/admonctrlxm/portal-direccion-mme/.knowledge/errors.md 2>/dev/null | tail -30
 
 # 4. Verificar estado de servicios (baseline rápido)
-pm2 status --no-color 2>/dev/null | grep -E "portal|api-mme"
+pm2 status --no-color 2>/dev/null | grep -E "portal"
 curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ 2>/dev/null
 ```
 
@@ -1395,7 +1395,7 @@ curl -s http://localhost:3000/ | head -1
 # Datos — Ver tabla de tamaños y métodos en Skill 9.1
 # Servicios
 pm2 status --no-color
-systemctl status api-mme --no-pager | grep "Active"
+systemctl status portal-api.service --no-pager | grep "Active"
 
 # ═══ NIVEL 2: AST ═══
 
@@ -1557,7 +1557,7 @@ pm2 restart portal-mme
 
 # Backend
 find . -type d -name __pycache__ -exec rm -rf {} +
-pm2 restart api-mme  # o systemctl restart api-mme
+systemctl restart portal-api.service
 ```
 ¿Funcionó? → SÍ: fin. NO: ir a Nivel 5
 
@@ -2439,7 +2439,7 @@ grep -n "generation_service\|GenerationService" /home/admonctrlxm/server/core/co
 | Servicio | Tipo | Puerto | Comando health | Logfile |
 |---|---|---|---|---|
 | **portal-mme** | Next.js (frontend) | 3000 | `curl http://localhost:3000/` | `pm2 logs portal-mme` |
-| **api-mme** | FastAPI (backend) | 8000 | `curl http://localhost:8000/health` | `pm2 logs api-mme` |
+| **portal-api** | FastAPI (backend, systemd) | 8000 | `curl http://localhost:8000/health` | `journalctl -u portal-api.service --no-pager -n 50` |
 | **whatsapp-bot** | FastAPI + venv | 8001 | `curl http://localhost:8001/health` | `systemctl status whatsapp-bot --no-pager` |
 | **telegram-polling** | Python polling | — | `systemctl status telegram-polling --no-pager` | `/home/admonctrlxm/server/logs/telegram.log` |
 
@@ -2447,7 +2447,7 @@ grep -n "generation_service\|GenerationService" /home/admonctrlxm/server/core/co
 
 **BASELINE RÁPIDO DE SALUD (máx 30 segundos):**
 ```bash
-echo "=== PM2 Status ===" && pm2 status --no-color | grep -E "portal|api-mme"
+echo "=== PM2 Status ===" && pm2 status --no-color | grep -E "portal"
 echo "=== Frontend Health ===" && curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ && echo ""
 echo "=== Backend Health ===" && curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health && echo ""
 echo "=== WhatsApp Bot Health ===" && systemctl is-active whatsapp-bot && echo "active" || echo "inactive"

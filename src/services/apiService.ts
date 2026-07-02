@@ -57,6 +57,10 @@ export interface SectorSnapshot {
     dailyHistGwh?: number | null;
   };
   tendencias?: Record<string, unknown> | null;
+  oniActual?: number | null;
+  oniClasificacion?: string | null;
+  oniFecha?: string | null;
+  oniProyeccionInicio?: string | null;
   fechaGeneracion?: string | null;
   fechaPrecio?: string | null;
   fechaEmbalse?: string | null;

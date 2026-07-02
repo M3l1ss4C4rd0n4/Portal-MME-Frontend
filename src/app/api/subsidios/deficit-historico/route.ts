@@ -12,7 +12,20 @@ export async function GET() {
        FROM subsidios.deficit_historico
        ORDER BY anio`
     );
-    return NextResponse.json({ data: result.rows });
+    const fechaResult = await pool.query(
+      `SELECT MAX(fecha_carga) as ultima FROM subsidios.deficit_historico`
+    );
+    const ultima = fechaResult.rows[0]?.ultima;
+    const ultimaStr = ultima
+      ? new Date(ultima).toLocaleString("es-CO", {
+          day: "2-digit", month: "2-digit", year: "numeric",
+          hour: "2-digit", minute: "2-digit",
+        })
+      : null;
+    return NextResponse.json({
+      ultima_actualizacion: ultimaStr,
+      data: result.rows,
+    });
   } catch (err) {
     console.error("[api/subsidios/deficit-historico]", err);
     return NextResponse.json(

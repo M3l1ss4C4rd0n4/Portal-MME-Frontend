@@ -20,12 +20,13 @@ function Card({ children, className = "", delay = 0 }: { children: React.ReactNo
     </motion.div>
   );
 }
-function KpiChip({ label, value, accent = false, colorClass, pct }: { label: string; value: string | number; accent?: boolean; colorClass?: string; pct?: string }) {
+function KpiChip({ label, value, accent = false, colorClass, pct, note }: { label: string; value: string | number; accent?: boolean; colorClass?: string; pct?: string; note?: string }) {
   return (
-    <div className="bg-dash-chip rounded-xl px-3 py-2.5">
-      <div className={`text-base font-bold leading-none ${accent ? "text-amber-400" : colorClass ?? "text-theme-primary"}`}>{value}</div>
+    <div className="bg-dash-chip rounded-xl px-3 py-3 hover:bg-dash-chip/80 transition-colors">
+      <div className={`text-lg font-bold leading-none ${accent ? "text-gold" : colorClass ?? "text-theme-primary"}`}>{value}</div>
       {pct && <div className="text-[9px] text-theme-muted/70 mt-0.5 leading-none">{pct}</div>}
       <div className="text-[10px] text-theme-muted mt-0.5 leading-tight">{label}</div>
+      {note && <div className="text-[8px] text-gold/50 mt-0.5 leading-tight">{note}</div>}
     </div>
   );
 }
@@ -33,13 +34,14 @@ function KpiChip({ label, value, accent = false, colorClass, pct }: { label: str
 // ─── Year Range Slider ────────────────────────────────────────────────────
 const YEAR_MIN = 2003;
 const YEAR_MAX = 2026;
+const DEFAULT_ANO_MIN = 2015;
 
 function YearRangeSlider({ anoMin, anoMax, onChange }: {
   anoMin: number; anoMax: number;
   onChange: (min: number, max: number) => void;
 }) {
   const pct = (v: number) => ((v - YEAR_MIN) / (YEAR_MAX - YEAR_MIN)) * 100;
-  const isDefault = anoMin === YEAR_MIN && anoMax === YEAR_MAX;
+  const isDefault = anoMin === DEFAULT_ANO_MIN && anoMax === YEAR_MAX;
   const TICKS = [2003, 2006, 2009, 2012, 2015, 2018, 2021, 2024, 2026];
   const trackRef = useRef<HTMLDivElement>(null);
   const [minOnTop, setMinOnTop] = useState(false);
@@ -54,19 +56,19 @@ function YearRangeSlider({ anoMin, anoMax, onChange }: {
   return (
     <div className="px-1 mb-5">
       <div className="flex items-center gap-3 mb-2">
-        <span className="text-[10px] text-amber-400/70 uppercase tracking-widest font-bold">PERÍODO</span>
-        <span className="font-mono text-amber-400 text-xs bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">{anoMin}</span>
+        <span className="text-[10px] text-gold/70 uppercase tracking-widest font-bold">PERÍODO</span>
+        <span className="font-mono text-gold text-xs bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">{anoMin}</span>
         <div className="flex-1 h-px bg-amber-500/20" />
-        <span className="font-mono text-amber-400 text-xs bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">{anoMax}</span>
+        <span className="font-mono text-gold text-xs bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">{anoMax}</span>
         {!isDefault && (
-          <button onClick={() => onChange(YEAR_MIN, YEAR_MAX)}
+          <button onClick={() => onChange(DEFAULT_ANO_MIN, YEAR_MAX)}
             className="text-[10px] text-theme-muted hover:text-red-400 transition-colors">
             ✕ Restablecer
           </button>
         )}
       </div>
       <div ref={trackRef} className="relative h-7 flex items-center mx-1" onMouseMove={handleTrackMouseMove}>
-        <div className="absolute w-full h-1.5 bg-slate-700/60 rounded-full pointer-events-none" />
+        <div className="absolute w-full h-1.5 bg-theme-tertiary rounded-full pointer-events-none" />
         <div className="absolute h-1.5 bg-amber-500/70 rounded-full pointer-events-none"
           style={{ left: `${pct(anoMin)}%`, width: `${pct(anoMax) - pct(anoMin)}%` }} />
         <div className="absolute w-3.5 h-3.5 rounded-full bg-amber-400 shadow pointer-events-none ring-2 ring-amber-400/30"
@@ -115,7 +117,7 @@ interface SupervisionData {
   nContratos: number; nProyectos: number;
   enEjecucion: number; enAOM: number; enLiquidacion: number;
   liquidados: number; perdidaCompetencia: number;
-  avanceFisico: number; avanceFinanciero: number;
+  avanceFisico: number; avanceFinanciero: number; avanceContrato: number;
   avanceFisicoActivos: number; avanceFinancieroActivos: number;
   financiero: SupervisionFinanciero;
   usuarios: SupervisionUsuarios;
@@ -138,7 +140,7 @@ const EMPTY_SANKEY = { fondo: [], estado: [], etapa: [], departamento: [], munic
 const DEFAULT: SupervisionData = {
   nContratos: 840, nProyectos: 2422,
   enEjecucion: 295, enAOM: 219, enLiquidacion: 129, liquidados: 166, perdidaCompetencia: 22,
-  avanceFisico: 87.49, avanceFinanciero: 88.43,
+  avanceFisico: 87.49, avanceFinanciero: 88.43, avanceContrato: 73.95,
   avanceFisicoActivos: 30.48, avanceFinancieroActivos: 46.97,
   financiero: EMPTY_FIN, usuarios: EMPTY_USR,
   nFotovoltaicos: 0, porTipoSolucion: [],
@@ -175,7 +177,7 @@ function SankeyFlow({
       <div className="flex gap-0 min-w-[960px]">
         <div className="flex flex-col items-center justify-center w-28 shrink-0 pr-2">
           <div className="bg-amber-500/20 border border-amber-500/50 rounded-xl px-3 py-3 text-center w-full">
-            <div className="text-amber-400 font-bold text-lg leading-none">{totalContratos}</div>
+            <div className="text-gold font-bold text-lg leading-none">{totalContratos}</div>
             <div className="text-[9px] text-theme-muted mt-1 leading-tight">N° DE<br/>CONTRATOS</div>
           </div>
         </div>
@@ -188,7 +190,7 @@ function SankeyFlow({
           return (
             <div key={key} className="flex gap-0 items-stretch">
               <div className="flex flex-col gap-1.5 w-40 shrink-0">
-                <div className="text-[9px] text-amber-400/70 font-bold uppercase tracking-widest mb-1 text-center">{label}</div>
+                <div className="text-[9px] text-gold/70 font-bold uppercase tracking-widest mb-1 text-center">{label}</div>
                 {nodes.map((node, ni) => {
                   const isActive = activeVal === node.valor;
                   const barPct = Math.max((node.n / colMax) * 100, 2);
@@ -202,7 +204,7 @@ function SankeyFlow({
                       <div className="absolute inset-y-0 left-0 rounded-l-lg opacity-20"
                         style={{ width: `${barPct}%`, background: color }} />
                       <div className="relative flex items-center justify-between gap-1">
-                        <span className={`font-medium leading-tight truncate max-w-[90px] ${isActive ? "text-amber-300" : "text-theme-primary"}`}>
+                        <span className={`font-medium leading-tight truncate max-w-[90px] ${isActive ? "text-gold" : "text-theme-primary"}`}>
                           {node.valor.length > 14 ? node.valor.slice(0, 14) + "…" : node.valor}
                         </span>
                         <span className="font-bold shrink-0" style={{ color }}>{node.n}</span>
@@ -225,7 +227,7 @@ function SankeyFlow({
         <div className="flex flex-wrap items-center gap-2 mt-3">
           {(["fondo","estado","etapa","departamento","municipio"] as (keyof SankeyFilters)[]).map(k =>
             filters[k] ? (
-              <span key={k} className="flex items-center gap-1 text-[10px] bg-amber-500/15 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/30">
+              <span key={k} className="flex items-center gap-1 text-[10px] bg-amber-500/15 text-gold px-2 py-0.5 rounded-full border border-amber-500/30">
                 {filters[k]}
                 <button onClick={() => onFilter(k, null)} className="ml-0.5 hover:text-red-400">✕</button>
               </span>
@@ -246,11 +248,12 @@ function SankeyFlow({
 export default function SupervisionPage() {
   const { resolvedTheme } = useTheme();
   const T = getNivoTheme(resolvedTheme === "dark");
+  const isDark = resolvedTheme === "dark";
   const [data, setData] = useState<SupervisionData>(DEFAULT);
   const [filters, setFilters] = useState<SankeyFilters>({
     fondo: null, estado: null, etapa: null, departamento: null, municipio: null,
   });
-  const [anoMin, setAnoMin] = useState(YEAR_MIN);
+  const [anoMin, setAnoMin] = useState(DEFAULT_ANO_MIN);
   const [anoMax, setAnoMax] = useState(YEAR_MAX);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -266,6 +269,7 @@ export default function SupervisionPage() {
     perdidaCompetencia:      Number(raw.perdidaCompetencia)      || 0,
     avanceFisico:            Number(raw.avanceFisico)            || 0,
     avanceFinanciero:        Number(raw.avanceFinanciero)        || 0,
+    avanceContrato:          Number(raw.avanceContrato)          || 0,
     avanceFisicoActivos:     Number(raw.avanceFisicoActivos)     || 0,
     avanceFinancieroActivos: Number(raw.avanceFinancieroActivos) || 0,
     financiero: {
@@ -322,7 +326,28 @@ export default function SupervisionPage() {
   }, [buildParams, parseDashboard]);
 
   useEffect(() => {
-    fetchData({ fondo: null, estado: null, etapa: null, departamento: null, municipio: null }, YEAR_MIN, YEAR_MAX);
+    // Leer parámetros de URL (para capturas Playwright con filtros)
+    const sp = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
+    const initialFilters: SankeyFilters = {
+      fondo:        sp.get("fondo")        || null,
+      estado:       sp.get("estado")       || null,
+      etapa:        sp.get("etapa")        || null,
+      departamento: sp.get("departamento") || null,
+      municipio:    sp.get("municipio")    || null,
+    };
+    const yMin = sp.has("anoMin") ? Math.max(Number(sp.get("anoMin")), YEAR_MIN) : DEFAULT_ANO_MIN;
+    const yMax = sp.has("anoMax") ? Math.min(Number(sp.get("anoMax")), YEAR_MAX) : YEAR_MAX;
+
+    // Si hay filtros en la URL, actualizar estado y forzar fetch con esos valores
+    const hasUrlFilters = [...Object.values(initialFilters)].some(Boolean) || sp.has("anoMin") || sp.has("anoMax");
+    if (hasUrlFilters) {
+      setFilters(initialFilters);
+      setAnoMin(yMin);
+      setAnoMax(yMax);
+      fetchData(initialFilters, yMin, yMax);
+    } else {
+      fetchData({ fondo: null, estado: null, etapa: null, departamento: null, municipio: null }, DEFAULT_ANO_MIN, YEAR_MAX);
+    }
   }, [fetchData]);
 
   const handleFilter = useCallback((level: keyof SankeyFilters, valor: string | null) => {
@@ -416,18 +441,33 @@ export default function SupervisionPage() {
     data: data.avancePorAnio.map(a => ({ x: String(a.anio), y: +a.avg_avance_obra.toFixed(1) })),
   }] : [];
 
-  const hasFilter = Object.values(filters).some(Boolean) || anoMin !== YEAR_MIN || anoMax !== YEAR_MAX;
+  const hasFilter = Object.values(filters).some(Boolean) || anoMin !== DEFAULT_ANO_MIN || anoMax !== YEAR_MAX;
+
+  const filterNote = (() => {
+    const parts: string[] = [];
+    if (anoMin !== YEAR_MIN || anoMax !== YEAR_MAX) parts.push(`${anoMin}–${anoMax}`);
+    if (filters.fondo) parts.push(`Fondo: ${filters.fondo}`);
+    if (filters.estado) parts.push(`Estado: ${filters.estado}`);
+    if (filters.etapa) parts.push(`Etapa: ${filters.etapa}`);
+    if (filters.departamento) parts.push(`Depto: ${filters.departamento}`);
+    if (filters.municipio) parts.push(`Mpio: ${filters.municipio}`);
+    return parts.length > 0 ? parts.join(" · ") : undefined;
+  })();
+
+  const yearNote = `${anoMin}–${anoMax}`;
 
   const canExport = !loading;
 
   return (
-    <DashboardLayout title="Supervisión de Contratos" subtitle="Estado, avance y distribución de contratos y proyectos supervisados">
+    <DashboardLayout title="Supervisión de Contratos"
+      downloadTablero="supervision" subtitle={`Estado, avance y distribución de contratos y proyectos supervisados${data.ultimaActualizacion ? "  ·  Última actualización: " + data.ultimaActualizacion : ""}`}
+      downloadParams={{ fondo: filters.fondo || '', estado: filters.estado || '', etapa: filters.etapa || '', departamento: filters.departamento || '', municipio: filters.municipio || '', anoMin: String(anoMin), anoMax: String(anoMax) }}>
 
       {/* ── Filtro general: flujo + período ── */}
       <Card delay={0.05} className="mb-5 ring-1 ring-amber-500/20">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
           <div>
-            <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
+            <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
               FLUJO DE CONTRATOS — FONDO › ESTADO › ETAPA › DEPARTAMENTO › MUNICIPIO
             </span>
             <p className="text-[10px] text-theme-muted mt-1 max-w-2xl">
@@ -439,7 +479,7 @@ export default function SupervisionPage() {
               Período {anoMin}–{anoMax}
             </span>
             {Object.values(filters).some(Boolean) && (
-              <span className="text-[10px] text-amber-400/80 bg-amber-500/10 px-2 py-1 rounded-full border border-amber-500/25">
+              <span className="text-[10px] text-gold/80 bg-amber-500/10 px-2 py-1 rounded-full border border-amber-500/25">
                 filtrado
               </span>
             )}
@@ -448,7 +488,7 @@ export default function SupervisionPage() {
               onClick={handleExportExcel}
               disabled={exporting || !canExport}
               className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl
-                bg-amber-500/15 border border-amber-500/40 text-amber-400
+                bg-amber-500/15 border border-amber-500/40 text-gold
                 hover:bg-amber-500/25 transition-colors disabled:opacity-40"
             >
               {exporting ? "Generando…" : "Exportar Excel"}
@@ -465,33 +505,34 @@ export default function SupervisionPage() {
         />
       </Card>
 
-      {/* ── KPIs + Gauges + Donut (filtrados) ── */}
+      {/* ── KPIs + Donut + Gauges (filtrados) ── */}
       <Card delay={0.08} className="mb-5">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* KPI chips — ciclo de vida completo del contrato */}
           <div>
             <div className="flex items-center gap-3 mb-3">
-              <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">INDICADORES CLAVE</span>
+              <span className="text-gold font-bold uppercase tracking-widest text-[11px]">INDICADORES CLAVE</span>
               {hasFilter && (
-                <span className="text-[10px] text-amber-400/70 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">filtrado</span>
+                <span className="text-[10px] text-gold/70 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">filtrado</span>
               )}
             </div>
+            {filterNote && <p className="text-[9px] text-gold/60 mb-2">{filterNote}</p>}
             {(() => {
               const tot = data.nContratos || 1;
               const pct = (n: number) => `${((n / tot) * 100).toFixed(1)}% del total`;
               return (
-                <div className="grid grid-cols-2 gap-2">
-                  <KpiChip label="Contratos"          value={data.nContratos.toLocaleString("es-CO")}      accent />
-                  <KpiChip label="Proyectos"          value={data.nProyectos.toLocaleString("es-CO")}      colorClass="text-slate-300" />
-                  <KpiChip label="En Ejecución"       value={data.enEjecucion.toLocaleString("es-CO")}     colorClass="text-cyan-400"    pct={pct(data.enEjecucion)} />
-                  <KpiChip label="AOM"                value={data.enAOM.toLocaleString("es-CO")}           colorClass="text-teal-400"    pct={pct(data.enAOM)} />
-                  <KpiChip label="En Liquidación"     value={data.enLiquidacion.toLocaleString("es-CO")}   colorClass="text-amber-300"   pct={pct(data.enLiquidacion)} />
-                  <KpiChip label="Liquidados"         value={data.liquidados.toLocaleString("es-CO")}      colorClass="text-emerald-400" pct={pct(data.liquidados)} />
-                  <KpiChip label="Perdida Competencia" value={data.perdidaCompetencia.toLocaleString("es-CO")} colorClass="text-rose-400" pct={pct(data.perdidaCompetencia)} />
-                  <div className="bg-dash-chip/40 rounded-xl px-3 py-2.5 border border-dashed border-theme-card/60">
+                <div className="grid grid-cols-2 gap-3">
+                  <KpiChip label="Contratos"          value={data.nContratos.toLocaleString("es-CO")}      accent note={yearNote} />
+                  <KpiChip label="Proyectos"          value={data.nProyectos.toLocaleString("es-CO")}      colorClass="text-slate-300" note={yearNote} />
+                  <KpiChip label="En Ejecución"       value={data.enEjecucion.toLocaleString("es-CO")}     colorClass="text-cyan-400"    pct={pct(data.enEjecucion)} note={yearNote} />
+                  <KpiChip label="AOM"                value={data.enAOM.toLocaleString("es-CO")}           colorClass="text-teal-400"    pct={pct(data.enAOM)} note={yearNote} />
+                  <KpiChip label="En Liquidación"     value={data.enLiquidacion.toLocaleString("es-CO")}   colorClass="text-gold"   pct={pct(data.enLiquidacion)} note={yearNote} />
+                  <KpiChip label="Liquidados"         value={data.liquidados.toLocaleString("es-CO")}      colorClass="text-emerald-400" pct={pct(data.liquidados)} note={yearNote} />
+                  <KpiChip label="Perdida Competencia" value={data.perdidaCompetencia.toLocaleString("es-CO")} colorClass="text-rose-400" pct={pct(data.perdidaCompetencia)} note={yearNote} />
+                  <div className="bg-dash-chip/40 rounded-xl px-3 py-3 border border-dashed border-theme-card/60">
                     <div className="text-[10px] text-theme-muted leading-tight">Suma ciclo</div>
-                    <div className="text-xs font-bold text-theme-secondary mt-0.5">
+                    <div className="text-sm font-bold text-theme-secondary mt-0.5">
                       {(data.enEjecucion + data.enAOM + data.enLiquidacion + data.liquidados + data.perdidaCompetencia).toLocaleString("es-CO")}
                     </div>
                   </div>
@@ -500,36 +541,19 @@ export default function SupervisionPage() {
             })()}
           </div>
 
-          {/* SemiGauges — portafolio total + solo activos */}
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">AVANCE PORTAFOLIO</span>
-              <span className="text-[9px] text-theme-muted">(todos los estados)</span>
+          {/* Donut por fondo — ahora en el centro */}
+          <div id="pie-contratos-fondo">
+            <div className="flex items-center gap-3 mb-0.5">
+              <span className="text-gold font-bold uppercase tracking-widest text-[11px]">CONTRATOS POR FONDO</span>
             </div>
-            <div className="flex justify-around mb-3">
-              <SemiGauge value={data.avanceFisico}     label="Físico"     color="success" size="md" delay={0.1} />
-              <SemiGauge value={data.avanceFinanciero} label="Financiero" color="success" size="md" delay={0.15} />
-            </div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-cyan-400 font-bold uppercase tracking-widest text-[11px]">AVANCE EN EJECUCIÓN</span>
-              <span className="text-[9px] text-theme-muted">(solo activos)</span>
-            </div>
-            <div className="flex justify-around">
-              <SemiGauge value={data.avanceFisicoActivos}     label="Físico"     color="gold" size="md" delay={0.2} />
-              <SemiGauge value={data.avanceFinancieroActivos} label="Financiero" color="gold" size="md" delay={0.25} />
-            </div>
-          </div>
-
-          {/* Donut por fondo */}
-          <div>
-            <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">CONTRATOS POR FONDO</span>
-            <div className="relative h-[190px] mt-2">
+            {filterNote && <p className="text-[9px] text-gold/60 mb-1">{filterNote}</p>}
+            <div className="relative h-[280px] mt-2">
               {fondoDonut.length > 0 ? (
                 <>
                   <ResponsivePie
                     data={fondoDonut}
                     theme={T}
-                    margin={{ top: 8, right: 92, bottom: 8, left: 8 }}
+                    margin={{ top: 12, right: 100, bottom: 12, left: 12 }}
                     innerRadius={0.55}
                     padAngle={2}
                     cornerRadius={3}
@@ -538,15 +562,15 @@ export default function SupervisionPage() {
                     borderWidth={0}
                     enableArcLinkLabels={false}
                     arcLabelsSkipAngle={14}
-                    arcLabelsTextColor="#fff"
+                    arcLabelsTextColor={isDark ? "#fff" : "#1E293B"}
                     arcLabelsRadiusOffset={0.75}
                     legends={[{
                       anchor: "right" as const, direction: "column" as const, justify: false,
                       translateX: 90, translateY: 0, itemsSpacing: 4, itemWidth: 86, itemHeight: 13,
-                      itemTextColor: "#94A3B8", itemDirection: "left-to-right" as const, symbolSize: 7, symbolShape: "circle" as const,
+                      itemTextColor: isDark ? "#94A3B8" : "#475569", itemDirection: "left-to-right" as const, symbolSize: 7, symbolShape: "circle" as const,
                     }]}
                     tooltip={({ datum }) => (
-                      <div style={{ padding: "6px 10px", background: "#1E293B", border: "1px solid #334155", borderRadius: 8, color: "#E2E8F0", fontSize: 11 }}>
+                      <div style={{ padding: "6px 10px", background: isDark ? "#1E293B" : "#FFFFFF", border: isDark ? "1px solid #334155" : "1px solid #CBD5E1", borderRadius: 8, color: isDark ? "#E2E8F0" : "#0F172A", fontSize: 11 }}>
                         <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: datum.color, marginRight: 5 }} />
                         {datum.label}: <strong>{datum.value}</strong>
                       </div>
@@ -565,6 +589,22 @@ export default function SupervisionPage() {
             </div>
           </div>
 
+          {/* SemiGauges — portafolio total — ahora a la derecha */}
+          <div className="flex flex-col justify-center">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-gold font-bold uppercase tracking-widest text-[11px]">AVANCE PORTAFOLIO</span>
+              <span className="text-[9px] text-theme-muted">(todos los estados)</span>
+            </div>
+            {filterNote && <p className="text-[9px] text-gold/60 mb-2">{filterNote}</p>}
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex justify-around w-full">
+                <SemiGauge value={data.avanceFisico}     label="Físico"     color="success" size="md" delay={0.05} />
+                <SemiGauge value={data.avanceFinanciero} label="Financiero" color="success" size="md" delay={0.1} />
+              </div>
+              <SemiGauge value={data.avanceContrato} label="General" color="gold" size="lg" delay={0.15} />
+            </div>
+          </div>
+
         </div>
       </Card>
 
@@ -572,13 +612,13 @@ export default function SupervisionPage() {
       <Card delay={0.1} className="mb-5">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div>
-            <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">PORTAFOLIO FINANCIERO</span>
-            <p className="text-[9px] text-theme-muted mt-0.5 mb-3">Suma del portafolio · {data.financiero.filasConValor.toLocaleString("es-CO")} proyectos con valor</p>
-            <div className="grid grid-cols-1 gap-2">
-              <KpiChip label="Valor total" value={fmtCOPShort(data.financiero.valorProyecto)} colorClass="text-amber-300" />
-              <KpiChip label="Valor desembolsado" value={fmtCOPShort(data.financiero.valorDesembolsado)} colorClass="text-emerald-400" />
-              <KpiChip label="Valor por desembolsar" value={fmtCOPShort(data.financiero.valorPorDesembolsar)} colorClass="text-cyan-400" />
-              <KpiChip label="% Ejecutado financiero" value={`${data.financiero.pctDesembolsado.toFixed(1)}%`} colorClass="text-slate-300" />
+            <span className="text-gold font-bold uppercase tracking-widest text-[11px]">PORTAFOLIO FINANCIERO</span>
+            <p className="text-[9px] text-theme-muted mt-0.5 mb-1">Suma del portafolio · {data.financiero.filasConValor.toLocaleString("es-CO")} proyectos con valor</p>
+            {filterNote && <p className="text-[9px] text-gold/60 mb-2">{filterNote}</p>}
+            <div className="grid grid-cols-3 gap-2">
+              <KpiChip label="Valor total" value={fmtCOPShort(data.financiero.valorProyecto)} colorClass="text-gold" note={yearNote} />
+              <KpiChip label="Valor desembolsado" value={fmtCOPShort(data.financiero.valorDesembolsado)} colorClass="text-emerald-400" note={yearNote} />
+              <KpiChip label="Valor por desembolsar" value={fmtCOPShort(data.financiero.valorPorDesembolsar)} colorClass="text-cyan-400" note={yearNote} />
             </div>
             <p className="text-[9px] text-theme-muted/70 mt-2 leading-relaxed">
               Detalle: {fmtCOP(data.financiero.valorProyecto)} · {fmtCOP(data.financiero.valorDesembolsado)} · {fmtCOP(data.financiero.valorPorDesembolsar)}
@@ -586,21 +626,23 @@ export default function SupervisionPage() {
           </div>
 
           <div>
-            <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">USUARIOS ENERGÉTICOS</span>
-            <p className="text-[9px] text-theme-muted mt-0.5 mb-3">Beneficiarios ZNI/SIN según matriz de reparto</p>
+            <span className="text-gold font-bold uppercase tracking-widest text-[11px]">USUARIOS ENERGÉTICOS</span>
+            <p className="text-[9px] text-theme-muted mt-0.5 mb-1">Beneficiarios ZNI/SIN según matriz de reparto</p>
+            {filterNote && <p className="text-[9px] text-gold/60 mb-2">{filterNote}</p>}
             <div className="grid grid-cols-2 gap-2">
-              <KpiChip label="Contratados" value={fmtNum(data.usuarios.contratados)} accent />
-              <KpiChip label="Finales" value={fmtNum(data.usuarios.finales)} colorClass="text-teal-400" />
-              <KpiChip label="Proyectos c/ usuarios cont." value={fmtNum(data.usuarios.filasContratados)} colorClass="text-slate-400" />
-              <KpiChip label="Proyectos c/ usuarios fin." value={fmtNum(data.usuarios.filasFinales)} colorClass="text-slate-400" />
+              <KpiChip label="Contratados" value={fmtNum(data.usuarios.contratados)} accent note={yearNote} />
+              <KpiChip label="Finales" value={fmtNum(data.usuarios.finales)} colorClass="text-teal-400" note={yearNote} />
+              <KpiChip label="Proyectos c/ usuarios cont." value={fmtNum(data.usuarios.filasContratados)} colorClass="text-slate-400" note={yearNote} />
+              <KpiChip label="Proyectos c/ usuarios fin." value={fmtNum(data.usuarios.filasFinales)} colorClass="text-slate-400" note={yearNote} />
             </div>
           </div>
 
           <div>
-            <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">TIPO DE SOLUCIÓN</span>
-            <p className="text-[9px] text-theme-muted mt-0.5 mb-3">
-              Parques solares/generadores: <span className="text-yellow-400 font-semibold">{data.nFotovoltaicos}</span> proyectos
+            <span className="text-gold font-bold uppercase tracking-widest text-[11px]">TIPO DE SOLUCIÓN</span>
+            <p className="text-[9px] text-theme-muted mt-0.5 mb-1">
+              Parques solares/generadores: <span className="text-gold font-semibold">{data.nFotovoltaicos}</span> proyectos
             </p>
+            {filterNote && <p className="text-[9px] text-gold/60 mb-2">{filterNote}</p>}
             <div className="space-y-2">
               {data.porTipoSolucion.map(t => (
                 <div key={t.tipo} className="flex items-center justify-between bg-dash-chip rounded-lg px-3 py-2">
@@ -616,7 +658,10 @@ export default function SupervisionPage() {
       {/* ── Evolución avance (filtrada) ── */}
       {avanceLine.length > 0 && (
         <Card delay={0.12}>
-          <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">EVOLUCIÓN DEL AVANCE DE OBRA PROMEDIO (%)</span>
+          <div className="flex items-center gap-3 mb-0.5">
+            <span className="text-gold font-bold uppercase tracking-widest text-[11px]">EVOLUCIÓN DEL AVANCE DE OBRA PROMEDIO (%)</span>
+          </div>
+          {filterNote && <p className="text-[9px] text-gold/60 mb-2">{filterNote}</p>}
           <div className="h-[220px] mt-4">
             <ResponsiveLine
               data={avanceLine}
@@ -641,7 +686,7 @@ export default function SupervisionPage() {
               areaOpacity={0.12}
               useMesh
               tooltip={({ point }) => (
-                <div style={{ padding: "8px 12px", background: "#1E293B", border: "1px solid #334155", borderRadius: 8, color: "#E2E8F0", fontSize: 12 }}>
+                <div style={{ padding: "8px 12px", background: isDark ? "#1E293B" : "#FFFFFF", border: isDark ? "1px solid #334155" : "1px solid #CBD5E1", borderRadius: 8, color: isDark ? "#E2E8F0" : "#0F172A", fontSize: 12 }}>
                   Año {point.data.xFormatted}: <strong style={{ color: "#22C55E" }}>{point.data.yFormatted}%</strong>
                 </div>
               )}

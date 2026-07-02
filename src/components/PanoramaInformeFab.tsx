@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 
 /** Icono rayo estilo logo Panorama Energético */
 function LightningIcon({ className }: { className?: string }) {
@@ -24,6 +24,46 @@ function LightningIcon({ className }: { className?: string }) {
   );
 }
 
+function ProgressRing({
+  progress,
+  size = 28,
+  stroke = 3,
+  color = '#2A2826',
+}: {
+  progress: number;
+  size?: number;
+  stroke?: number;
+  color?: string;
+}) {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const dash = Math.max(0, Math.min(1, progress / 100)) * c;
+  return (
+    <svg width={size} height={size} className="-rotate-90" aria-hidden="true">
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke={color}
+        strokeWidth={stroke}
+        opacity={0.2}
+      />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke={color}
+        strokeWidth={stroke}
+        strokeDasharray={`${dash} ${c}`}
+        strokeLinecap="round"
+        style={{ transition: 'stroke-dasharray 200ms linear' }}
+      />
+    </svg>
+  );
+}
+
 interface PanoramaInformeFabProps {
   /** Evita que el contenedor padre capture el evento de arrastre */
   onPointerDown?: (e: React.PointerEvent) => void;
@@ -31,13 +71,42 @@ interface PanoramaInformeFabProps {
 
 export default function PanoramaInformeFab({ onPointerDown }: PanoramaInformeFabProps) {
   const [downloading, setDownloading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  // Precarga el PDF en caché del backend tan pronto se monta el componente
+  useEffect(() => {
+    const prefetch = () => {
+      try {
+        fetch(`/api/informe-diario/?_=${Date.now()}`, {
+          method: 'HEAD',
+          cache: 'no-store',
+          signal: AbortSignal.timeout(30_000),
+        }).catch(() => {});
+      } catch {
+        // ignore
+      }
+    };
+    prefetch();
+    const t = setTimeout(prefetch, 2_000);
+    return () => clearTimeout(t);
+  }, []);
 
   const handleDownload = useCallback(async () => {
     if (downloading) return;
 
     setDownloading(true);
     setError(null);
+    setProgress(0);
+
+    // Simula avance visual mientras el backend responde (SharePoint ~2-10s)
+    const progressTimer = setInterval(() => {
+      setProgress((p) => {
+        if (p >= 85) return p;
+        const step = p < 30 ? 4 : p < 60 ? 2 : 0.8;
+        return Math.min(85, p + step);
+      });
+    }, 250);
 
     try {
       const res = await fetch(`/api/informe-diario/?_=${Date.now()}`, {
@@ -49,6 +118,9 @@ export default function PanoramaInformeFab({ onPointerDown }: PanoramaInformeFab
       }
 
       const blob = await res.blob();
+      clearInterval(progressTimer);
+      setProgress(100);
+
       const disposition = res.headers.get('Content-Disposition') ?? '';
       const match = disposition.match(/filename="?([^";\n]+)"?/i);
       const filename = match?.[1] ?? 'InformeDiario.pdf';
@@ -61,7 +133,11 @@ export default function PanoramaInformeFab({ onPointerDown }: PanoramaInformeFab
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
+
+      setTimeout(() => setProgress(0), 400);
     } catch {
+      clearInterval(progressTimer);
+      setProgress(0);
       setError('Error al descargar (SharePoint lento)');
       setTimeout(() => setError(null), 5000);
     } finally {
@@ -72,10 +148,6 @@ export default function PanoramaInformeFab({ onPointerDown }: PanoramaInformeFab
   return (
     <button
       type="button"
-      onPointerDown={(e) => {
-        e.stopPropagation();
-        onPointerDown?.(e);
-      }}
       onClick={(e) => {
         e.stopPropagation();
         handleDownload();
@@ -97,26 +169,7 @@ export default function PanoramaInformeFab({ onPointerDown }: PanoramaInformeFab
       title={error ?? 'Descargar boletín energético (Panorama Energético)'}
     >
       {downloading ? (
-        <svg
-          className="w-6 h-6 animate-spin text-[#2A2826]"
-          viewBox="0 0 24 24"
-          fill="none"
-          aria-hidden="true"
-        >
-          <circle
-            className="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="3"
-          />
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-          />
-        </svg>
+        <ProgressRing progress={progress} size={28} stroke={3} color="#2A2826" />
       ) : (
         <LightningIcon className="w-5 h-7 text-[#2A2826] pointer-events-none" />
       )}

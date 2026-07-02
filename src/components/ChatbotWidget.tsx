@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import PanoramaInformeFab from './PanoramaInformeFab';
 import ResumenEjecutivoFab from './ResumenEjecutivoFab';
+import InformeEmpalmeFab from './InformeEmpalmeFab';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface BotBtn {
@@ -104,7 +105,7 @@ function renderMarkdown(text: string): React.ReactNode {
   return text.split('\n').map((line, i) => {
     if (line === '') return <div key={i} className="h-1.5" />;
     if (line.startsWith('## '))
-      return <div key={i} className="font-bold text-xs text-amber-400 mt-1.5 mb-0.5">{line.slice(3)}</div>;
+      return <div key={i} className="font-bold text-xs text-gold mt-1.5 mb-0.5">{line.slice(3)}</div>;
     const parts = line.split(/\*\*(.*?)\*\*/g);
     const rendered = parts.map((p, j) =>
       j % 2 === 1 ? <strong key={j} className="font-semibold">{p}</strong> : <span key={j}>{p}</span>
@@ -116,7 +117,7 @@ function renderMarkdown(text: string): React.ReactNode {
 }
 
 const COLOR_BY_INDICADOR: Record<string, string> = {
-  'Generación Total del Sistema': 'text-yellow-400',
+  'Generación Total del Sistema': 'text-gold',
   'Precio de Bolsa Nacional':     'text-green-400',
   'Porcentaje de Embalses':       'text-blue-400',
 };
@@ -156,7 +157,9 @@ function PredCards({ data }: { data: Record<string, any> }) {
   const preds = (data.predicciones ?? []) as Array<{
     indicador: string; emoji: string; valor_predicho: number; unidad: string;
     tendencia: string; variacion_pct: string; nivel_confianza: string;
-    resumen?: { promedio_periodo?: number; minimo_periodo?: number; maximo_periodo?: number; };
+    resumen?: { promedio_periodo?: number; minimo_periodo?: number; maximo_periodo?: number;
+      rango_confianza?: { inferior: number; superior: number; };
+    };
   }>;
   const horizonte = (data.horizonte_titulo as string) ?? '';
   if (!preds.length) return <div className="text-slate-400 text-xs mt-1">Sin datos de predicciones</div>;
@@ -166,17 +169,28 @@ function PredCards({ data }: { data: Record<string, any> }) {
       {preds.map((p, i) => {
         const color = COLOR_BY_INDICADOR[p.indicador] ?? 'text-violet-300';
         const confiable = p.nivel_confianza === 'CONFIABLE';
+        const rango = p.resumen?.rango_confianza;
         return (
           <div key={i} className="bg-slate-800/70 rounded-xl px-3 py-2">
             <div className="flex items-center justify-between">
               <div className="text-[10px] text-slate-400 truncate">{p.emoji} {p.indicador}</div>
               <span className={`text-[9px] px-1.5 py-0.5 rounded-full shrink-0 ml-1 ${
-                confiable ? 'bg-green-900/50 text-green-400' : 'bg-amber-900/50 text-amber-400'
+                confiable ? 'bg-green-900/50 text-green-400' : 'bg-amber-900/50 text-gold'
               }`}>{confiable ? '✓ Confiable' : '⚠ Aproximado'}</span>
             </div>
             <div className={`font-bold text-sm mt-0.5 ${color}`}>
               {fmt(p.valor_predicho)} <span className="font-normal text-xs text-slate-400">{p.unidad}</span>
             </div>
+            {/* Intervalo de confianza */}
+            {rango && (
+              <div className="mt-1 text-[10px] text-slate-400">
+                <span className="text-slate-500">Intervalo IC 95%:</span>{' '}
+                <span className="text-emerald-400 font-medium">{fmt(rango.inferior)}</span>
+                <span className="text-slate-600 mx-1">—</span>
+                <span className="text-emerald-400 font-medium">{fmt(rango.superior)}</span>
+                <span className="text-slate-500 ml-1">{p.unidad}</span>
+              </div>
+            )}
             <div className="flex gap-2 mt-0.5">
               {p.tendencia && <span className="text-[9px] text-slate-500">{p.tendencia}</span>}
               {p.variacion_pct && <span className="text-[9px] text-slate-500">{p.variacion_pct}</span>}
@@ -204,7 +218,7 @@ function AnomalyList({ data }: { data: Record<string, any> }) {
         const cls = sev === 'critico' || sev === 'crítico' || sev === 'critical'
           ? 'border-red-500 bg-red-950/30 text-red-300'
           : sev === 'alerta' || sev === 'warning'
-            ? 'border-amber-500 bg-amber-950/30 text-amber-300'
+            ? 'border-amber-500 bg-amber-950/30 text-gold'
             : 'border-blue-500 bg-blue-950/30 text-blue-300';
         return (
           <div key={i} className={`rounded-lg px-3 py-2 border-l-2 ${cls}`}>
@@ -261,7 +275,7 @@ function KpiCards({ data }: { data: Record<string, any> }) {
           <span className="text-base shrink-0">{k.emoji}</span>
           <div className="flex-1 min-w-0">
             <div className="text-[10px] text-slate-400 truncate">{k.label}</div>
-            <div className="font-bold text-sm text-amber-300/90">
+            <div className="font-bold text-sm text-gold/90">
               {k.valor}{k.unidad ? ` ${k.unidad}` : ''}
             </div>
           </div>
@@ -388,7 +402,6 @@ export default function ChatbotWidget() {
       return clamped;
     });
 
-    if (!dragRef.current.moved) setIsOpen(o => !o);
   }, []);
 
   // ── Panel placement (opposite quadrant of button) ───────
@@ -709,6 +722,9 @@ export default function ChatbotWidget() {
 
       {/* ── FAB Stack (informe + chatbot) ── */}
       <div
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
         style={{
           position: 'fixed',
           left: btnPos.x,
@@ -719,14 +735,16 @@ export default function ChatbotWidget() {
         }}
         className="flex flex-col items-center gap-2.5"
       >
+        <InformeEmpalmeFab />
         <ResumenEjecutivoFab />
         <PanoramaInformeFab />
 
         <button
+          type="button"
+          onClick={() => {
+            if (!dragRef.current.moved) setIsOpen(o => !o);
+          }}
           style={{ touchAction: 'none', userSelect: 'none' }}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
           className={[
             'w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-transform relative',
             'bg-gradient-to-br from-violet-600 to-indigo-700',

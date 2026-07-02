@@ -99,6 +99,10 @@ export interface HomeSliderProps {
     fechaAportes?: string | null;
     ultimaActualizacion?: string | null;
     ultimaEjecucionETL?: string | null;
+    oniActual?: number | null;
+    oniClasificacion?: string | null;
+    oniFecha?: string | null;
+    oniProyeccionInicio?: string | null;
   };
   sectorDetalle?: {
     generacionPorFuente: Array<{ id: string; label: string; value: number; color: string; generacionGwh: number }>;
@@ -140,6 +144,7 @@ export interface HomeSliderProps {
     perdidaCompetencia: number;
     avanceFisico: number;
     avanceFinanciero: number;
+    avanceContrato: number;
     avanceFisicoActivos: number;
     avanceFinancieroActivos: number;
     financiero: {

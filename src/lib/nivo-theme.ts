@@ -3,7 +3,7 @@
 
 export const NIVO_DARK = {
   background: "transparent" as const,
-  text: { fill: "#94A3B8", fontSize: 10 },
+  text: { fill: "#CBD5E1", fontSize: 10 },
   tooltip: {
     container: {
       background: "#1E293B",
@@ -18,7 +18,7 @@ export const NIVO_DARK = {
     domain: { line: { stroke: "rgba(255,255,255,0.08)" } },
     ticks: {
       line: { stroke: "transparent" },
-      text: { fill: "#F1F5F9", fontSize: 10 },
+      text: { fill: "#E2E8F0", fontSize: 10 },
     },
     legend: { text: { fill: "#94A3B8", fontSize: 10 } },
   },
@@ -26,7 +26,7 @@ export const NIVO_DARK = {
 
 export const NIVO_LIGHT = {
   background: "transparent" as const,
-  text: { fill: "#475569", fontSize: 10 },
+  text: { fill: "#334155", fontSize: 10 },
   tooltip: {
     container: {
       background: "#FFFFFF",
@@ -41,7 +41,7 @@ export const NIVO_LIGHT = {
     domain: { line: { stroke: "#CBD5E1" } },
     ticks: {
       line: { stroke: "#CBD5E1" },
-      text: { fill: "#94A3B8", fontSize: 10 },
+      text: { fill: "#334155", fontSize: 10 },
     },
     legend: { text: { fill: "#475569", fontSize: 10 } },
   },
@@ -55,6 +55,8 @@ export const NIVO_LIGHT = {
 export function getNivoTheme(isDark: boolean) {
   return isDark ? NIVO_DARK : NIVO_LIGHT;
 }
+
+export type NivoTheme = ReturnType<typeof getNivoTheme>;
 
 /** Tema oscuro para sliders y cards del home — cuadrícula tenue, ejes blancos. */
 export const NIVO_SLIDER = {

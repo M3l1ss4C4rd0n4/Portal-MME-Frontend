@@ -9,6 +9,7 @@ import { ResponsivePie } from "@nivo/pie";
 import { ResponsiveBar } from "@nivo/bar";
 import CapacidadEmbalseChart from "@/components/charts/CapacidadEmbalseChart";
 import { Zap, Droplets, TrendingUp, AlertTriangle, Waves, Database } from "lucide-react";
+import PdfDownloadButton from "@/components/PdfDownloadButton";
 import { useTheme } from "@/providers/ThemeProvider";
 
 import { TrendBadge, TrendArrow, getTrendColor } from "@/components/ui/TrendBadge";
@@ -216,11 +217,7 @@ export default function GestionSectorPage() {
         if (aportes && typeof aportes === "object") {
           actualGwh = Number(aportes.actualGwh ?? 0);
           historicoGwh = Number(aportes.historicoGwh ?? 0);
-          const hsin = aportes.hsinPct != null ? Number(aportes.hsinPct) : null;
-          const pct = aportes.pct != null ? Number(aportes.pct) : null;
-          if (hsin != null) aportesPct = hsin;
-          else if (pct != null) aportesPct = pct;
-          else if (historicoGwh > 0) aportesPct = (actualGwh / historicoGwh) * 100;
+          if (historicoGwh > 0) aportesPct = (actualGwh / historicoGwh) * 100;
         } else if (typeof aportes === "number") {
           aportesPct = aportes;
         }
@@ -334,6 +331,7 @@ export default function GestionSectorPage() {
             <span className="text-[10px] text-emerald-400 font-medium">
               {loading ? "Cargando…" : "Datos reales de BD"}
             </span>
+            <PdfDownloadButton tablero="energia" />
           </div>
         </div>
       </div>
@@ -354,7 +352,7 @@ export default function GestionSectorPage() {
           <div className="bg-dash-chip rounded-xl p-4 border border-white/5">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-bold tracking-widest text-theme-muted uppercase">Generación Total</span>
-              <Zap className="w-4 h-4 text-amber-400" />
+              <Zap className="w-4 h-4 text-gold" />
             </div>
             <div className="flex items-baseline gap-1">
               <span
@@ -376,11 +374,11 @@ export default function GestionSectorPage() {
           <div className="bg-dash-chip rounded-xl p-4 border border-white/5">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-bold tracking-widest text-theme-muted uppercase">Precio de Bolsa</span>
-              <TrendingUp className="w-4 h-4 text-amber-400" />
+              <TrendingUp className="w-4 h-4 text-gold" />
             </div>
             <div className="flex items-baseline gap-1">
               <span
-                className="text-2xl font-bold text-amber-400"
+                className="text-2xl font-bold text-gold"
                 style={sectorSnapshot.tendencias?.precio?.label !== "S/D" && sectorSnapshot.tendencias?.precio ? { color: getTrendColor(sectorSnapshot.tendencias.precio, "precio") } : undefined}
               >${sectorSnapshot.precioBolsa.toFixed(2)}</span>
               <TrendArrow tendencia={sectorSnapshot.tendencias?.precio} metrica="precio" />
@@ -438,8 +436,9 @@ export default function GestionSectorPage() {
               <Waves className="w-4 h-4 text-cyan-400" />
             </div>
             {(() => {
-              const delta = sectorSnapshot.aportesHidricosPct - 100;
-              const col = delta >= 0 ? "#22C55E" : delta >= -10 ? "#06B6D4" : "#EF4444";
+              const pct = sectorSnapshot.aportesHidricosPct;
+              const delta = pct - 100;
+              const col = pct >= 100 ? "#22C55E" : pct >= 80 ? "#06B6D4" : "#EF4444";
               return (
                 <>
                   <div className="flex items-baseline gap-1.5">
@@ -447,16 +446,18 @@ export default function GestionSectorPage() {
                       className="text-2xl font-bold"
                       style={{ color: sectorSnapshot.tendencias?.aportes?.label !== "S/D" && sectorSnapshot.tendencias?.aportes ? getTrendColor(sectorSnapshot.tendencias.aportes, "aportes") : col }}
                     >
-                      {delta >= 0 ? "+" : ""}{delta.toFixed(1)}%
+                      {pct.toFixed(1)}%
                     </span>
                     <TrendArrow tendencia={sectorSnapshot.tendencias?.aportes} metrica="aportes" />
-                    <span className="text-[10px] text-theme-muted">vs hist.</span>
                   </div>
                   <p className="text-[9px] text-theme-muted mt-1">
                     {sectorSnapshot.aportesActualGwh > 0
                       ? `${sectorSnapshot.aportesActualGwh.toFixed(1)} / ${sectorSnapshot.aportesHistoricoGwh.toFixed(1)} GWh hist.`
                       : "Aportes energía · XM"}
                     {sectorSnapshot.fechaAportes ? ` · ${sectorSnapshot.fechaAportes}` : ""}
+                  </p>
+                  <p className="text-[9px] text-theme-muted mt-0.5">
+                    {delta >= 0 ? "+" : ""}{delta.toFixed(1)}% vs histórico
                   </p>
                   <div className="mt-1.5">
                     <TrendBadge tendencia={sectorSnapshot.tendencias?.aportes} metrica="aportes" size="md" />
@@ -479,7 +480,7 @@ export default function GestionSectorPage() {
           >
             <div className="flex items-start justify-between mb-4">
               <div>
-                <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
+                <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
                   Estado de Embalses por Departamento
                 </span>
                 <p className="text-[10px] text-theme-muted mt-0.5">
@@ -499,9 +500,12 @@ export default function GestionSectorPage() {
                   size={280}
                   mapColor="#1E3A5F"
                   strokeColor="#0F172A"
-                  strokeWidth={0.6}
+                  strokeWidth={1.5}
                   hoverColor="#F97316"
                   selectColor="#F59E0B"
+                  hints={true}
+                  hintTextColor="#E2E8F0"
+                  hintBackgroundColor="#0F172A"
                   cityColors={embalseSemaforoColors}
                   onSelect={(name: string | null) => {
                     if (!name) { setEmbalseDepto(null); return; }
@@ -522,7 +526,7 @@ export default function GestionSectorPage() {
                       </p>
                       <button
                         onClick={() => setEmbalseDepto(null)}
-                        className="text-[9px] text-theme-muted hover:text-amber-400 transition-colors"
+                        className="text-[9px] text-theme-muted hover:text-gold transition-colors"
                       >
                         Cerrar
                       </button>
@@ -602,43 +606,45 @@ export default function GestionSectorPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-dash-chip rounded-xl p-5 border border-white/5"
+            className="bg-dash-chip rounded-xl p-5 border border-white/5 flex flex-col"
           >
             <div className="mb-3">
-              <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
+              <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
                 Generación por Fuente
               </span>
               <p className="text-[10px] text-theme-muted mt-0.5">Últimos 7 días · promedio diario</p>
             </div>
 
-            <div className="relative h-[200px]">
-              <ResponsivePie
-                data={sectorDetalle.generacionPorFuente}
-                theme={T}
-                margin={{ top: 6, right: 6, bottom: 6, left: 6 }}
-                innerRadius={0.65}
-                padAngle={2}
-                cornerRadius={3}
-                activeOuterRadiusOffset={6}
-                colors={{ datum: "data.color" }}
-                borderWidth={0}
-                enableArcLinkLabels={true}
-                arcLinkLabelsSkipAngle={10}
-                arcLinkLabelsTextColor="#94A3B8"
-                arcLinkLabelsThickness={1}
-                arcLinkLabelsColor={{ from: "color" }}
-                arcLabelsSkipAngle={15}
-                arcLabelsTextColor="#fff"
-                arcLabelsRadiusOffset={0.75}
-                tooltip={({ datum }) => (
-                  <div className="nt">
-                    <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ background: datum.color }} />
-                    {datum.label}: <strong>{datum.value}%</strong>
-                    <br />
-                    <span className="text-theme-muted text-[10px]">{datum.data.generacionGwh?.toFixed(1)} GWh</span>
-                  </div>
-                )}
-              />
+            <div className="relative flex-1 min-h-0">
+              <div className="absolute inset-0">
+                <ResponsivePie
+                  data={sectorDetalle.generacionPorFuente}
+                  theme={T}
+                  margin={{ top: 6, right: 6, bottom: 6, left: 6 }}
+                  innerRadius={0.65}
+                  padAngle={2}
+                  cornerRadius={3}
+                  activeOuterRadiusOffset={6}
+                  colors={{ datum: "data.color" }}
+                  borderWidth={0}
+                  enableArcLinkLabels={true}
+                  arcLinkLabelsSkipAngle={10}
+                  arcLinkLabelsTextColor="#94A3B8"
+                  arcLinkLabelsThickness={1}
+                  arcLinkLabelsColor={{ from: "color" }}
+                  arcLabelsSkipAngle={15}
+                  arcLabelsTextColor="#fff"
+                  arcLabelsRadiusOffset={0.75}
+                  tooltip={({ datum }) => (
+                    <div className="nt">
+                      <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ background: datum.color }} />
+                      {datum.label}: <strong>{datum.value}%</strong>
+                      <br />
+                      <span className="text-theme-muted text-[10px]">{datum.data.generacionGwh?.toFixed(1)} GWh</span>
+                    </div>
+                  )}
+                />
+              </div>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <span className="text-xl font-bold text-theme-primary leading-none">
                   {sectorSnapshot.generacionGwh.toFixed(1)}
@@ -668,10 +674,10 @@ export default function GestionSectorPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="bg-dash-chip rounded-xl p-5 border border-white/5"
+            className="bg-dash-chip rounded-xl p-5 border border-white/5 flex flex-col"
           >
             <div className="mb-3">
-              <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
+              <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
                 Precio de Bolsa · Histórico
               </span>
               <p className="text-[10px] text-theme-muted mt-0.5">
@@ -687,60 +693,62 @@ export default function GestionSectorPage() {
               </p>
             </div>
 
-            <div className="h-[220px]">
-              <ResponsiveLine
-                data={sectorDetalle.precioBolsaSeries}
-                theme={T}
-                margin={{ top: 10, right: 10, bottom: 40, left: 45 }}
-                xScale={{ type: "point" }}
-                yScale={{ type: "linear", min: "auto", max: "auto" }}
-                curve="catmullRom"
-                enablePoints={false}
-                enableGridX={false}
-                axisTop={null}
-                axisRight={null}
-                axisBottom={{
-                  tickSize: 0,
-                  tickPadding: 10,
-                  tickRotation: -45,
-                  tickValues: "every 3 days",
-                  format: (value) => {
+            <div className="relative flex-1 min-h-0">
+              <div className="absolute inset-0">
+                <ResponsiveLine
+                  data={sectorDetalle.precioBolsaSeries}
+                  theme={T}
+                  margin={{ top: 10, right: 10, bottom: 40, left: 45 }}
+                  xScale={{ type: "point" }}
+                  yScale={{ type: "linear", min: "auto", max: "auto" }}
+                  curve="catmullRom"
+                  enablePoints={false}
+                  enableGridX={false}
+                  axisTop={null}
+                  axisRight={null}
+                  axisBottom={{
+                    tickSize: 0,
+                    tickPadding: 10,
+                    tickRotation: -45,
+                    tickValues: "every 3 days",
+                    format: (value) => {
+                      const dataPoint = sectorDetalle.precioBolsaSeries[0]?.data.find(
+                        (d) => d.x === value
+                      );
+                      if (dataPoint?.fecha) {
+                        return String(new Date(dataPoint.fecha).getDate());
+                      }
+                      return value;
+                    },
+                  }}
+                  axisLeft={{ tickSize: 0, tickValues: 5, tickPadding: 8 }}
+                  colors={["#F59E0B"]}
+                  lineWidth={2.5}
+                  enableArea
+                  areaOpacity={0.15}
+                  useMesh
+                  tooltip={({ point }) => {
                     const dataPoint = sectorDetalle.precioBolsaSeries[0]?.data.find(
-                      (d) => d.x === value
+                      (d) => d.x === point.data.x
                     );
-                    if (dataPoint?.fecha) {
-                      return String(new Date(dataPoint.fecha).getDate());
-                    }
-                    return value;
-                  },
-                }}
-                axisLeft={{ tickSize: 0, tickValues: 5, tickPadding: 8 }}
-                colors={["#F59E0B"]}
-                lineWidth={2.5}
-                enableArea
-                areaOpacity={0.15}
-                useMesh
-                tooltip={({ point }) => {
-                  const dataPoint = sectorDetalle.precioBolsaSeries[0]?.data.find(
-                    (d) => d.x === point.data.x
-                  );
-                  const fecha = dataPoint?.fecha
-                    ? new Date(dataPoint.fecha).toLocaleDateString("es-CO", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })
-                    : point.data.xFormatted;
-                  return (
-                    <div className="nt">
-                      <div className="text-theme-muted mb-0.5">{fecha}</div>
-                      <div className="text-amber-400 font-bold">
-                        ${Number(point.data.y).toFixed(2)} COP/kWh
+                    const fecha = dataPoint?.fecha
+                      ? new Date(dataPoint.fecha).toLocaleDateString("es-CO", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })
+                      : point.data.xFormatted;
+                    return (
+                      <div className="nt">
+                        <div className="text-theme-muted mb-0.5">{fecha}</div>
+                        <div className="text-gold font-bold">
+                          ${Number(point.data.y).toFixed(2)} COP/kWh
+                        </div>
                       </div>
-                    </div>
-                  );
-                }}
-              />
+                    );
+                  }}
+                />
+              </div>
             </div>
           </motion.div>
 
@@ -752,7 +760,7 @@ export default function GestionSectorPage() {
             className="bg-dash-chip rounded-xl p-5 border border-white/5"
           >
             <div className="mb-3">
-              <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
+              <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
                 Capacidad de Embalses
               </span>
               <p className="text-[10px] text-theme-muted mt-0.5">
@@ -786,7 +794,7 @@ export default function GestionSectorPage() {
         >
           <div className="flex items-start justify-between mb-4">
             <div>
-              <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
+              <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
                 Detalle de Embalses
               </span>
               <p className="text-[10px] text-theme-muted mt-0.5">
@@ -795,7 +803,7 @@ export default function GestionSectorPage() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] text-theme-muted">
-                Promedio nacional: <strong className="text-amber-400">{sectorSnapshot.pctEmbalses.toFixed(2)}%</strong>
+                Promedio nacional: <strong className="text-gold">{sectorSnapshot.pctEmbalses.toFixed(2)}%</strong>
               </span>
             </div>
           </div>
@@ -894,7 +902,7 @@ export default function GestionSectorPage() {
             className="mt-6 bg-dash-chip rounded-xl p-5 border border-white/5"
           >
             <div className="mb-4">
-              <span className="text-amber-400 font-bold uppercase tracking-widest text-[11px]">
+              <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
                 Aportes Hídricos por Departamento
               </span>
               <p className="text-[10px] text-theme-muted mt-0.5">
