@@ -13,7 +13,7 @@ interface NewsItem {
   fecha?: string;
 }
 
-const SLIDE_INTERVAL_MS = 90000; // 1.5 minutos (90 segundos) por slide
+export const SLIDE_INTERVAL_MS = 50000; // 50 segundos por slide
 
 export interface UseHomeSliderReturn {
   current: number;
@@ -75,8 +75,8 @@ export function useHomeSlider(extraSlidesCount: number = 0): UseHomeSliderReturn
     return () => clearInterval(timer);
   }, []);
 
-  // Total slides: 7 KPI + news + hydrocarbon news + extra sections
-  const totalSlides = 7 + news.length + hydroNews.length + extraSlidesCount;
+  // Total slides: 8 KPI + news + hydrocarbon news + extra sections
+  const totalSlides = 8 + news.length + hydroNews.length + extraSlidesCount;
 
   const goTo = useCallback(
     (idx: number, dir: number) => {

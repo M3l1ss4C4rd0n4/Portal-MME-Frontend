@@ -11,7 +11,7 @@ import { useTheme } from "@/providers/ThemeProvider";
 
 import SemiGauge from "@/components/ui/SemiGauge";
 import HomeSlider from "@/components/HomeSlider";
-import type { TermicaSliderData } from "@/types/home-slider";
+import type { TermicaSliderData, HomeSliderProps } from "@/types/home-slider";
 import type { MetricaTendencia } from "@/components/ui/TrendBadge";
 import { homeDashboardData } from "@/mocks/home-data";
 import {
@@ -344,6 +344,7 @@ export default function Home() {
     nContratos: 0,
     avanceGeneral: 0,
     avanceFinanciero: 0,
+    avanceFisico: 0,
     nUsuarios: 295911,
     nCEs: 2297,
     inversionTotal: 914360289397,
@@ -387,6 +388,8 @@ export default function Home() {
   const [subDeficitFssri, setSubDeficitFssri] = useState(0);
   const [subDeficitSeries, setSubDeficitSeries] = useState<Array<{x: string; y: number}>>([]);
   const [subBarData, setSubBarData] = useState<Array<{anio: string; Subsidios: number; Contribuciones: number}>>([]);
+  const [hidroPresuData, setHidroPresuData] = useState<HomeSliderProps["hidroPresuData"]>({ resumen: null, proyectos: [] });
+  const [hidroProdData, setHidroProdData] = useState<HomeSliderProps["hidroProdData"]>({ produccionDiaria: [], top5: [], commodities: {}, brecha: null });
   const [valData, setValData] = useState<{
     vf: number; vp: number; vi: number; viSp: number; otros: number; ultimaAct: string;
     porFondo: Record<string, { vf: number; vp: number; vi: number; viSp: number }>;
@@ -407,7 +410,9 @@ export default function Home() {
       fetch('/api/cu-evolucion').then(r => r.json()).catch(() => null),
       fetch('/api/subsidios/validaciones').then(r => r.json()).catch(() => null),
       fetch('/api/fenoge').then(r => r.json()).catch(() => null),
-    ]).then(([s, sd, tm, p, c, o, sp, sb, sbh, cu, cue, val, fen]) => {
+      fetch('/api/hidrocarburos/presupuesto').then(r => r.json()).catch(() => null),
+      fetch('/api/hidrocarburos/produccion').then(r => r.json()).catch(() => null),
+    ]).then(([s, sd, tm, p, c, o, sp, sb, sbh, cu, cue, val, fen, hp, hpr]) => {
       if (s) setSectorData({
         generacionGwh: Number(s.generacionGwh ?? 0),
         precioBolsa: Number(s.precioBolsa ?? 0),
@@ -526,6 +531,7 @@ export default function Home() {
         nContratos: Number(o.nContratos ?? 0),
         avanceGeneral: Number(o.avanceGeneral ?? 0),
         avanceFinanciero: Number(o.avanceFinanciero ?? 0),
+        avanceFisico: Number(o.avanceFisico ?? 0),
         // Valores fijos de Contratos OR (no existen en BD, vienen de PowerBI)
         nUsuarios: 295911,
         nCEs: 2297,
@@ -660,6 +666,17 @@ export default function Home() {
           setFenMunicipios(rekeyed);
         }
       }
+      if (hp && !hp.error) {
+        setHidroPresuData({ resumen: hp.resumen ?? null, proyectos: hp.proyectos ?? [] });
+      }
+      if (hpr && !hpr.error) {
+        setHidroProdData({
+          produccionDiaria: hpr.produccionDiaria ?? [],
+          top5: hpr.top5 ?? [],
+          commodities: hpr.commodities ?? {},
+          brecha: hpr.brecha ?? null,
+        });
+      }
     });
   }, []);
 
@@ -677,8 +694,9 @@ export default function Home() {
     : contratosSupervisionDonut;
 
   const avanceORChart = [
-    { avance: 'Av. General', valor: orData.avanceGeneral },
+    { avance: 'Av. Documental', valor: orData.avanceGeneral },
     { avance: 'Av. Financiero', valor: orData.avanceFinanciero },
+    { avance: 'Av. Físico', valor: orData.avanceFisico },
   ];
 
   const subsidiosResChart = [
@@ -756,6 +774,8 @@ export default function Home() {
         deficitFssri={subDeficitFssri}
         deficitSeries={subDeficitSeries}
         subBarData={subBarData}
+        hidroPresuData={hidroPresuData}
+        hidroProdData={hidroProdData}
       />
 
       <main className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 pt-5">
@@ -1206,7 +1226,8 @@ export default function Home() {
             </div>
             <div className="flex justify-around mb-5">
               <SemiGauge value={orData.avanceFinanciero} label="Avance Financiero" color="gold" size="md" delay={0.22} />
-              <SemiGauge value={orData.avanceGeneral} label="Avance General" color="white" size="md" delay={0.27} />
+              <SemiGauge value={orData.avanceFisico} label="Avance Físico" color="warning" size="md" delay={0.25} />
+              <SemiGauge value={orData.avanceGeneral} label="Avance Documental" color="white" size="md" delay={0.27} />
             </div>
             <div>
               <p className="text-[10px] text-theme-muted uppercase tracking-wider mb-2">Comparativo avances (%)</p>
@@ -1220,7 +1241,7 @@ export default function Home() {
                   padding={0.35}
                   valueScale={{ type: "linear", max: 100 }}
                   indexScale={{ type: "band", round: true }}
-                  colors={["#F59E0B", "#8B5CF6"]}
+                  colors={["#F59E0B", "#8B5CF6", "#10B981"]}
                   colorBy="indexValue"
                   borderRadius={5}
                   enableLabel

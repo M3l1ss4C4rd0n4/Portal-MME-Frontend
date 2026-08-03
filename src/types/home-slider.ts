@@ -55,6 +55,8 @@ export interface TermicaSliderData {
       variacion: number | null;
       tendencia: MetricaTendencia;
     };
+    /** Precio Escasez Inferior (PEI, Res. CREG 101 066/2024 Art. 4) — umbral inferior para la condición crítica */
+    pei: number | null;
     mayor: "escasez" | "ppp";
   };
   plantas: Array<{
@@ -83,6 +85,7 @@ export interface HomeSliderProps {
     pctEmbalses: number;
     embalseGwh?: number | null;
     capacidadEmbalseGwh?: number | null;
+    capacidadInstaladaMw?: number | null;
     aportesHidricos?: AportesHidricosSnapshot;
     umbralesRegulatorios?: UmbralesRegulatorios | null;
     estadoSin?: string | null;
@@ -167,4 +170,45 @@ export interface HomeSliderProps {
   deficitFssri?: number;
   deficitSeries?: Array<{ x: string; y: number }>;
   subBarData?: Array<{ anio: string; Subsidios: number; Contribuciones: number }>;
+  hidroPresuData?: {
+    resumen: {
+      fecha_actualizacion: string | null;
+      apropiacion_vigente: number;
+      compromisos: number;
+      obligaciones: number;
+      por_comprometer: number;
+      pct_compromisos: number;
+      pct_obligaciones: number;
+    } | null;
+    proyectos: Array<{
+      proyecto: string;
+      apropiacion_vigente: number;
+      compromisos: number;
+      obligaciones: number;
+      por_comprometer: number;
+      pct_compromisos: number;
+      pct_obligacion: number;
+    }>;
+  };
+  hidroProdData?: {
+    produccionDiaria: Array<{
+      fecha: string;
+      petroleo_bbl: number;
+      gas_fiscalizado_mpc: number;
+      gas_comercializado_mpc: number;
+    }>;
+    top5: Array<{ mes: string; categoria: string; nombre: string; valor: number; unidad: string }>;
+    commodities: Record<
+      string,
+      {
+        valorUsd: number | null;
+        variacionAbs: number | null;
+        variacionPct: number | null;
+        fecha: string | null;
+        fechaCarga: string | null;
+        historico: Array<{ fecha: string; valor: number }>;
+      }
+    >;
+    brecha?: { mpcd: number; pct: number | null } | null;
+  };
 }

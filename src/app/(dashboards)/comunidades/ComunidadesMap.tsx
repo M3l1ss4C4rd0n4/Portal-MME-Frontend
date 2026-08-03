@@ -1,9 +1,18 @@
 "use client";
 import "leaflet/dist/leaflet.css";
 import { useMemo } from "react";
-import { MapContainer, GeoJSON, CircleMarker, Popup, ZoomControl, Pane, Marker } from "react-leaflet";
+import { MapContainer, CircleMarker, Popup, ZoomControl, Marker } from "react-leaflet";
 import L from "leaflet";
-import type { LatLngBoundsExpression } from "leaflet";
+import {
+  COL_BOUNDS,
+  SAN_ANDRES_KEY,
+  SA_LNG_OFFSET,
+  shiftGeometryLng,
+  applyJitter,
+  computeDeptCentroids,
+  MAP_TOOLTIP_STYLES,
+} from "@/components/maps/mapUtils";
+import DepartmentGeoJsonLayer from "@/components/maps/DepartmentGeoJsonLayer";
 
 export interface CePunto {
   nombre: string;
@@ -16,8 +25,9 @@ export interface CePunto {
   estado_actual?: string;
   tipo_ce?: string;
   fuentes_energia?: string;
+  etnia?: string;
+  ejecutor?: string;
   inversion_estimada?: number | null;
-  inversion_final?: number | null;
 }
 
 const ZONA_DOT: Record<string, string> = {
@@ -41,33 +51,26 @@ interface DeptAvg {
   sumBenef: number;
 }
 
+// Nota: #F59E0B (ámbar) está reservado para la leyenda de departamentos
+// (sombreado "Alta" + selección) — no reutilizar aquí para evitar que un
+// punto y un departamento del mismo color se confundan visualmente.
 const ESTADO_DOT: Record<string, string> = {
-  "Operación":    "#22C55E",
-  "Inicial":      "#F59E0B",
-  "Sin registrar": "#64748B",
-  "Desistida":    "#EF4444",
+  "OPERACIÓN":          "#22C55E",
+  "INICIAL":            "#F97316",
+  "INICIAL - PRÓRROGA": "#3B82F6",
+  "SIN REGISTRAR":      "#64748B",
+  "TRÁMITE":            "#64748B",
 };
-
-// Bounds para Colombia continental + inset San Andrés
-const COL_BOUNDS: LatLngBoundsExpression = [[-4.2, -80.5], [13.6, -66.8]];
-
-// San Andrés real: ~12.9°N, -81.6°W → se traslada +3.2° lng para inset cerca de la costa caribe
-const SAN_ANDRES_KEY = "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CATALINA";
-const SA_LNG_OFFSET  = 3.2;
-
-// Desplaza todos los pares [lng, lat] de una geometría GeoJSON
-function shiftGeometryLng(geom: any, offset: number): void {
-  if (!geom) return;
-  if (geom.type === "Point") {
-    geom.coordinates[0] += offset;
-  } else if (geom.type === "MultiPoint" || geom.type === "LineString") {
-    for (const c of geom.coordinates) c[0] += offset;
-  } else if (geom.type === "MultiLineString" || geom.type === "Polygon") {
-    for (const ring of geom.coordinates) for (const c of ring) c[0] += offset;
-  } else if (geom.type === "MultiPolygon") {
-    for (const poly of geom.coordinates) for (const ring of poly) for (const c of ring) c[0] += offset;
-  }
-}
+const ESTADO_FALLBACK = "#A78BFA"; // sin estado_actual registrado
+// "TRÁMITE" comparte color con "SIN REGISTRAR" (mismo concepto, ver ESTADO_DOT)
+// por eso ambos usan la misma etiqueta — evita dos entradas grises distintas en la leyenda.
+const ESTADO_LABELS: Record<string, string> = {
+  "OPERACIÓN":          "Operación",
+  "INICIAL":            "Inicial",
+  "INICIAL - PRÓRROGA": "Inicial - Prórroga",
+  "SIN REGISTRAR":      "Sin registrar",
+  "TRÁMITE":            "Sin registrar",
+};
 
 interface Props {
   geoData: object | null;
@@ -78,55 +81,6 @@ interface Props {
   onSelectDept: (dept: string | null) => void;
   porDepartamento: DptoRow[];
   deptAvgs: Record<string, DeptAvg>;
-}
-
-function computeDeptCentroids(geoData: any): Array<{ name: string; lat: number; lng: number }> {
-  if (!geoData?.features) return [];
-  const labels: Array<{ name: string; lat: number; lng: number }> = [];
-  for (const feat of geoData.features) {
-    const name = feat?.properties?.NOMBRE_DPT ?? "";
-    if (!name || !feat.geometry) continue;
-    let minLat = Infinity, maxLat = -Infinity;
-    let minLng = Infinity, maxLng = -Infinity;
-    const extract = (geom: any) => {
-      if (!geom) return;
-      if (geom.type === "Point") {
-        minLat = Math.min(minLat, geom.coordinates[1]);
-        maxLat = Math.max(maxLat, geom.coordinates[1]);
-        minLng = Math.min(minLng, geom.coordinates[0]);
-        maxLng = Math.max(maxLng, geom.coordinates[0]);
-      } else if (geom.type === "MultiPoint" || geom.type === "LineString") {
-        for (const c of geom.coordinates) extract({ type: "Point", coordinates: c });
-      } else if (geom.type === "MultiLineString" || geom.type === "Polygon") {
-        for (const ring of geom.coordinates) extract({ type: "LineString", coordinates: ring });
-      } else if (geom.type === "MultiPolygon") {
-        for (const poly of geom.coordinates) for (const ring of poly) extract({ type: "LineString", coordinates: ring });
-      }
-    };
-    extract(feat.geometry);
-    if (minLat !== Infinity) labels.push({ name, lat: (minLat + maxLat) / 2, lng: (minLng + maxLng) / 2 });
-  }
-  return labels;
-}
-
-// Jitter determinístico para puntos que comparten coordenadas exactas
-function applyJitter(puntos: CePunto[]): (CePunto & { jLat: number; jLng: number })[] {
-  const countMap = new Map<string, number>();
-  const idxMap   = new Map<string, number>();
-  for (const p of puntos) {
-    const k = `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`;
-    countMap.set(k, (countMap.get(k) ?? 0) + 1);
-  }
-  return puntos.map((p) => {
-    const k = `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`;
-    const n = countMap.get(k) ?? 1;
-    const i = idxMap.get(k) ?? 0;
-    idxMap.set(k, i + 1);
-    if (n === 1) return { ...p, jLat: p.lat, jLng: p.lng };
-    const angle = (i / n) * 2 * Math.PI;
-    const r = 0.012; // ~1.3 km
-    return { ...p, jLat: p.lat + r * Math.sin(angle), jLng: p.lng + r * Math.cos(angle) };
-  });
 }
 
 export default function ComunidadesMap({ geoData, puntos, selectedDept, isDark, deptColors, onSelectDept, porDepartamento, deptAvgs }: Props) {
@@ -154,42 +108,25 @@ export default function ComunidadesMap({ geoData, puntos, selectedDept, isDark, 
 
   const deptLabels = useMemo(() => computeDeptCentroids(transformedGeoData), [transformedGeoData]);
 
-  const tooltipStyles = `
-    .dept-tooltip {
-      background: #0F172A !important;
-      color: #E2E8F0 !important;
-      border: 1px solid rgba(100, 116, 139, 0.4) !important;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.35) !important;
-      font-family: inherit !important;
-      font-size: 12px !important;
-      line-height: 1.7 !important;
-      padding: 8px 12px !important;
-      border-radius: 8px !important;
-      font-weight: 400 !important;
+  // Leyenda de estado: solo muestra los colores que realmente aparecen entre
+  // los puntos visibles — evita listar estados que no existen en la fuente actual.
+  const estadoLegendItems = useMemo(() => {
+    const coloresPresentes = new Set(
+      puntos.map(p => ESTADO_DOT[p.estado_actual ?? ""] ?? ESTADO_FALLBACK)
+    );
+    const items: { label: string; c: string }[] = [];
+    const usados = new Set<string>();
+    for (const [estado, color] of Object.entries(ESTADO_DOT)) {
+      if (coloresPresentes.has(color) && !usados.has(color)) {
+        items.push({ label: ESTADO_LABELS[estado] ?? estado, c: color });
+        usados.add(color);
+      }
     }
-    .dept-tooltip::before {
-      border-top-color: rgba(100, 116, 139, 0.4) !important;
+    if (coloresPresentes.has(ESTADO_FALLBACK)) {
+      items.push({ label: "Sin estado", c: ESTADO_FALLBACK });
     }
-    .dept-label-icon {
-      background: none !important;
-      border: none !important;
-    }
-    .dept-label-text {
-      font-size: 10px;
-      font-weight: 700;
-      color: #fff;
-      text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.5);
-      white-space: nowrap;
-      pointer-events: none;
-      font-family: inherit;
-      line-height: 1.2;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
-  `;
+    return items;
+  }, [puntos]);
 
   if (!transformedGeoData) {
     return (
@@ -212,10 +149,9 @@ export default function ComunidadesMap({ geoData, puntos, selectedDept, isDark, 
     { label: "Baja (<20)", c: "#7C3A0A" },
     { label: "Sin datos", c: isDark ? "#152840" : "#CBD5E1" },
   ];
-
   return (
     <div style={{ position: "relative", height: "100%", width: "100%" }}>
-      <style>{tooltipStyles}</style>
+      <style>{MAP_TOOLTIP_STYLES}</style>
       <MapContainer
       bounds={COL_BOUNDS}
       boundsOptions={{ padding: [8, 8] }}
@@ -226,59 +162,16 @@ export default function ComunidadesMap({ geoData, puntos, selectedDept, isDark, 
       style={{ height: "100%", width: "100%", background: bgColor, borderRadius: "0.5rem" }}
     >
       <ZoomControl position="bottomright" />
-      <style>{tooltipStyles}</style>
-      <Pane name="departments" style={{ zIndex: 350 }}>
-        <GeoJSON
-        key={`geo-${selectedDept ?? "all"}-${String(isDark)}-${Object.keys(deptColors).length}`}
-        data={transformedGeoData as any}
-        style={(feature?: any) => {
-          const rawName: string = feature?.properties?.NOMBRE_DPT ?? "";
-          const nombre = rawName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
-          const isSelected = selectedDept != null && nombre === selectedDept.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
-          const dataColor  = deptColors[nombre];
-          return {
-            fillColor:   isSelected ? "#F59E0B" : (dataColor ?? fillBase),
-            fillOpacity: isSelected ? 0.7 : (dataColor ? 0.6 : (isDark ? 0.85 : 0.9)),
-            color:       isSelected ? "#F59E0B" : strokeCol,
-            weight:      isSelected ? 2.5 : 2,
-          };
-        }}
-        onEachFeature={(feature: any, layer: any) => {
-          const rawName: string = feature?.properties?.NOMBRE_DPT ?? "";
-          const nombre = rawName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
-          const normSelected = selectedDept?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
-          const dataColor = deptColors[nombre];
-          const baseOpacity = dataColor ? 0.6 : (isDark ? 0.85 : 0.9);
-          layer.on("click", () => onSelectDept(normSelected === nombre ? null : nombre));
-          layer.on("mouseover", (e: any) => {
-            if (nombre !== normSelected) e.target.setStyle({ fillOpacity: baseOpacity - 0.2 });
-          });
-          layer.on("mouseout", (e: any) => {
-            if (nombre !== normSelected) e.target.setStyle({ fillOpacity: baseOpacity });
-          });
-          // Tooltip con info del departamento al hacer hover
-          const deptInfo = porDepartamento.find(d =>
-            d.departamentoGeo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase() === nombre
-          );
-          if (!deptInfo) return;
-          const deptAvg = deptAvgs[nombre];
-          const nomFormateado = rawName
-            .split(" ")
-            .map((w: string) => w[0] + w.slice(1).toLowerCase())
-            .join(" ");
-          const tooltipLines = [
-            `<strong style="font-size:13px">${nomFormateado}</strong>`,
-            `CEs: <strong>${deptInfo.count}</strong>`,
-            `Capacidad: <strong>${Math.round(deptInfo.capacidad).toLocaleString("es-CO")} kWp</strong>`,
-            `Inversión: <strong>$${Math.round(deptInfo.inversion).toLocaleString("es-CO")}</strong>`,
-          ];
-          if (deptAvg?.avgInv != null) {
-            tooltipLines.push(`Prom. inversión/CE: <strong>$${Math.round(deptAvg.avgInv).toLocaleString("es-CO")}</strong>`);
-          }
-          layer.bindTooltip(tooltipLines.join("<br/>"), { sticky: true, direction: "top", className: "dept-tooltip" });
-        }}
-        />
-      </Pane>
+      <style>{MAP_TOOLTIP_STYLES}</style>
+      <DepartmentGeoJsonLayer
+        transformedGeoData={transformedGeoData}
+        selectedDept={selectedDept}
+        isDark={isDark}
+        deptColors={deptColors}
+        onSelectDept={onSelectDept}
+        porDepartamento={porDepartamento}
+        deptAvgs={deptAvgs}
+      />
       {/* Etiquetas de nombre de departamento */}
       {deptLabels.map((label) => (
         <Marker
@@ -293,7 +186,7 @@ export default function ComunidadesMap({ geoData, puntos, selectedDept, isDark, 
         />
       ))}
       {jittered.map((p, idx) => {
-        const dotColor = ESTADO_DOT[p.estado_actual ?? ""] ?? "#A78BFA";
+        const dotColor = ESTADO_DOT[p.estado_actual ?? ""] ?? ESTADO_FALLBACK;
         const zonaColor = ZONA_DOT[p.zona] ?? "#475569";
         return (
           <CircleMarker
@@ -318,6 +211,12 @@ export default function ComunidadesMap({ geoData, puntos, selectedDept, isDark, 
                 {p.fuentes_energia && (
                   <><br /><span style={{ fontSize: 11 }}>Fuente: <strong>{p.fuentes_energia}</strong></span></>
                 )}
+                {p.etnia && (
+                  <><br /><span style={{ fontSize: 11 }}>Etnia: <strong>{p.etnia}</strong></span></>
+                )}
+                {p.ejecutor && (
+                  <><br /><span style={{ fontSize: 11 }}>Ejecutor: <strong>{p.ejecutor}</strong></span></>
+                )}
                 <br /><span style={{ fontSize: 11 }}>Zona: </span><strong style={{ color: zonaColor, fontSize: 11 }}>{p.zona}</strong>
                 {p.capacidad != null && (
                   <><br /><span style={{ fontSize: 11 }}>Capacidad: <strong>{p.capacidad} kWp</strong></span></>
@@ -339,39 +238,81 @@ export default function ComunidadesMap({ geoData, puntos, selectedDept, isDark, 
       bottom: 12,
       left: 12,
       zIndex: 1000,
-      background: isDark ? "rgba(15, 23, 42, 0.85)" : "rgba(255, 255, 255, 0.85)",
-      backdropFilter: "blur(4px)",
-      borderRadius: 8,
-      padding: "6px 10px",
       display: "flex",
-      flexDirection: "column",
-      gap: 3,
-      border: `1px solid ${isDark ? "rgba(71, 85, 105, 0.4)" : "rgba(203, 213, 225, 0.6)"}`,
-      fontSize: 10,
-      lineHeight: 1.4,
+      flexDirection: "row",
+      gap: 8,
       pointerEvents: "none",
     }}>
-      <span style={{
-        fontWeight: 600,
-        fontSize: 9,
-        textTransform: "uppercase",
-        letterSpacing: "0.5px",
-        color: isDark ? "#94A3B8" : "#64748B",
-        marginBottom: 2,
-      }}>CEs por dpto.</span>
-      {LEGEND_ITEMS.map(({ label, c }) => (
-        <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+      <div style={{
+        background: isDark ? "rgba(15, 23, 42, 0.85)" : "rgba(255, 255, 255, 0.85)",
+        backdropFilter: "blur(4px)",
+        borderRadius: 8,
+        padding: "6px 10px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 3,
+        border: `1px solid ${isDark ? "rgba(71, 85, 105, 0.4)" : "rgba(203, 213, 225, 0.6)"}`,
+        fontSize: 10,
+        lineHeight: 1.4,
+      }}>
+        <span style={{
+          fontWeight: 600,
+          fontSize: 9,
+          textTransform: "uppercase",
+          letterSpacing: "0.5px",
+          color: isDark ? "#94A3B8" : "#64748B",
+          marginBottom: 2,
+        }}>CEs por dpto.</span>
+        {LEGEND_ITEMS.map(({ label, c }) => (
+          <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <span style={{
+              width: 10,
+              height: 10,
+              borderRadius: 2,
+              background: c,
+              flexShrink: 0,
+              border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.06)",
+            }} />
+            <span style={{ color: isDark ? "#CBD5E1" : "#334155" }}>{label}</span>
+          </div>
+        ))}
+      </div>
+      {estadoLegendItems.length > 0 && (
+        <div style={{
+          background: isDark ? "rgba(15, 23, 42, 0.85)" : "rgba(255, 255, 255, 0.85)",
+          backdropFilter: "blur(4px)",
+          borderRadius: 8,
+          padding: "6px 10px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 3,
+          border: `1px solid ${isDark ? "rgba(71, 85, 105, 0.4)" : "rgba(203, 213, 225, 0.6)"}`,
+          fontSize: 10,
+          lineHeight: 1.4,
+        }}>
           <span style={{
-            width: 10,
-            height: 10,
-            borderRadius: 2,
-            background: c,
-            flexShrink: 0,
-            border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.06)",
-          }} />
-          <span style={{ color: isDark ? "#CBD5E1" : "#334155" }}>{label}</span>
+            fontWeight: 600,
+            fontSize: 9,
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+            color: isDark ? "#94A3B8" : "#64748B",
+            marginBottom: 2,
+          }}>Estado (punto)</span>
+          {estadoLegendItems.map(({ label, c }) => (
+            <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                background: c,
+                flexShrink: 0,
+                border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.06)",
+              }} />
+              <span style={{ color: isDark ? "#CBD5E1" : "#334155" }}>{label}</span>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   </div>
   );

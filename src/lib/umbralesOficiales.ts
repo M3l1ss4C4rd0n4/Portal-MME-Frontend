@@ -159,17 +159,7 @@ export const PRECIO_ESCASEZ_PE_REF_2026_01 = 590.56;  // COP/kWh
 export const PRECIO_ESCASEZ_PES_REF_2026_01 = 830.34; // COP/kWh
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 4. CAPACIDAD OFICIAL DEL SIN
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Capacidad útil de reserva del SIN (CNO 634): ≈ 17 000 GWh. */
-export const CAPACIDAD_UTIL_RESERVA_SIN_GWH = 17_000;
-
-/** Capacidad efectiva neta instalada del SIN (XM dic-2025): 21 028.56 MW. */
-export const CAPACIDAD_EFECTIVA_NETA_SIN_MW = 21_028.56;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 5. CLASIFICACIONES VISUALES DERIVADAS DE LA NORMATIVA
+// 4. CLASIFICACIONES VISUALES DERIVADAS DE LA NORMATIVA
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface EstadoVisual {

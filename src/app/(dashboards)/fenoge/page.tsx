@@ -9,6 +9,8 @@ import * as XLSX from "xlsx";
 import { useTheme } from "@/providers/ThemeProvider";
 import DashboardLayout from "@/components/DashboardLayout";
 import { getNivoTheme } from "@/lib/nivo-theme";
+import { useGeoFilter } from "@/context/GeoFilterContext";
+import { fetchDepartamentos } from "@/services/apiService";
 import type { FenogePunto } from "./FenogeCEMap";
 
 const FenogeCEMap = dynamic(() => import("./FenogeCEMap"), {
@@ -167,6 +169,46 @@ export default function FenogePage() {
   const [segContrato, setSegContrato]     = useState<string>("TODOS");
   const [segComunidad, setSegComunidad]   = useState<string>("TODOS");
 
+  // Filtro de departamento compartido entre dashboards (Fase 3). Mapeo
+  // nombre-normalizado <-> código DANE, para traducir entre el código que
+  // usa el contexto y el nombre que ya usa el filtro local de esta página.
+  const { codigoDaneDepartamento, setCodigoDaneDepartamento } = useGeoFilter();
+  const [deptCodeByName, setDeptCodeByName] = useState<Record<string, string>>({});
+  const [deptNameByCode, setDeptNameByCode] = useState<Record<string, string>>({});
+
+  function normDeptKey(name: string): string {
+    return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+  }
+
+  useEffect(() => {
+    fetchDepartamentos()
+      .then((data) => {
+        const codeByName: Record<string, string> = {};
+        const nameByCode: Record<string, string> = {};
+        for (const d of data.departamentos) {
+          const key = normDeptKey(d.nombre_departamento);
+          codeByName[key] = d.codigo_dane_departamento;
+          nameByCode[d.codigo_dane_departamento] = key;
+        }
+        setDeptCodeByName(codeByName);
+        setDeptNameByCode(nameByCode);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Selecciona/limpia el departamento localmente y sincroniza el código DANE
+  // con el contexto compartido, para que otros dashboards que lo adopten
+  // (ej. Vista Departamental, Comunidades) hereden la misma selección.
+  function handleSelectDept(depto: string | null) {
+    setSelectedDept(depto);
+    if (depto === null) {
+      setCodigoDaneDepartamento(null);
+      return;
+    }
+    const codigo = deptCodeByName[normDeptKey(depto)];
+    if (codigo) setCodigoDaneDepartamento(codigo);
+  }
+
   // Leer parámetros de URL (para capturas Playwright con filtros)
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
@@ -176,6 +218,21 @@ export default function FenogePage() {
     if (sp.has("contrato"))    setSegContrato(sp.get("contrato")!);
     if (sp.has("comunidad"))   setSegComunidad(sp.get("comunidad")!);
   }, []);
+
+  // Heredar el departamento del contexto compartido si esta página se abre sin
+  // filtro propio (ni URL) y otro dashboard ya dejó una selección activa.
+  // Busca el valor real de departamentoGeo (no el nombre normalizado del
+  // DANE) para no romper el filtro exacto `===` usado en toda la página.
+  useEffect(() => {
+    if (selectedDept !== null || !codigoDaneDepartamento) return;
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.has("departamento")) return;
+    const nombreNormalizado = deptNameByCode[codigoDaneDepartamento];
+    if (!nombreNormalizado) return;
+    const match = mapa.porDepartamento.find(d => normDeptKey(d.departamentoGeo) === nombreNormalizado);
+    if (match) setSelectedDept(match.departamentoGeo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [codigoDaneDepartamento, deptNameByCode, mapa.porDepartamento]);
 
   useEffect(() => {
     fetch("/departamentos_colombia.geojson").then(r => r.json()).then(setGeoData).catch(() => {});
@@ -485,7 +542,7 @@ export default function FenogePage() {
               </span>
             )}
             {(selectedDept || selectedFase !== "TODOS") && (
-              <button onClick={() => { setSelectedDept(null); setSelectedFase("TODOS"); }}
+              <button onClick={() => { handleSelectDept(null); setSelectedFase("TODOS"); }}
                 className="text-[10px] text-theme-muted hover:text-red-400 transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10">
                 ✕ Limpiar filtros
               </button>
@@ -511,7 +568,7 @@ export default function FenogePage() {
           <div className="flex items-center justify-between mb-2">
             <span className="text-gold font-bold uppercase tracking-widest text-[11px]">CES — MAPA DE UBICACIÓN</span>
             {selectedDept && (
-              <button onClick={() => setSelectedDept(null)} className="text-[10px] text-theme-muted hover:text-gold transition-colors">← Ver todos</button>
+              <button onClick={() => handleSelectDept(null)} className="text-[10px] text-theme-muted hover:text-gold transition-colors">← Ver todos</button>
             )}
           </div>
           <div className="h-[380px]">
@@ -521,7 +578,7 @@ export default function FenogePage() {
               selectedDept={selectedDept}
               isDark={isDark}
               deptColors={deptColors}
-              onSelectDept={setSelectedDept}
+              onSelectDept={handleSelectDept}
               porDepartamento={mapa.porDepartamento}
               deptAvgs={mapa.deptAvgs}
             />
@@ -701,7 +758,7 @@ export default function FenogePage() {
           </div>
           <div className="flex items-center gap-2">
             {selectedDept && (
-              <button onClick={() => setSelectedDept(null)} className="text-[10px] text-theme-muted hover:text-gold transition-colors">← Ver todos</button>
+              <button onClick={() => handleSelectDept(null)} className="text-[10px] text-theme-muted hover:text-gold transition-colors">← Ver todos</button>
             )}
             <button
               onClick={() => {
@@ -778,7 +835,7 @@ export default function FenogePage() {
                 {tableData.sort((a,b) => b.count-a.count).map((d) => (
                   <motion.tr key={d.departamentoGeo}
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                    onClick={() => setSelectedDept(prev => prev === d.departamentoGeo ? null : d.departamentoGeo)}
+                    onClick={() => handleSelectDept(selectedDept === d.departamentoGeo ? null : d.departamentoGeo)}
                     className={`text-theme-secondary transition-colors cursor-pointer ${selectedDept === d.departamentoGeo ? "bg-amber-500/10" : "hover:bg-dash-chip"}`}>
                     <td className="py-2.5 pr-4 font-medium text-theme-primary">
                       {d.departamentoGeo.split(" ").map(w => w[0]+w.slice(1).toLowerCase()).join(" ")}

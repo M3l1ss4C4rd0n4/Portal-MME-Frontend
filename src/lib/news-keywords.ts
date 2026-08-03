@@ -37,7 +37,13 @@ export const ENERGY_KEYWORDS = [
   "hurto de energía",
 ];
 
+// Nota: unión de los dos tiers usados en el backend (ver
+// server/domain/services/news_keywords.py, fuente de verdad para el orden
+// de prioridad). Este filtro del frontend solo actúa como red de seguridad
+// final sobre el pool que ya devuelve el backend ordenado — no reordena,
+// así que basta con reconocer ambos tiers, no con separarlos aquí también.
 export const HYDRO_KEYWORDS = [
+  // Tier 1 — petróleo/gas genuino
   "petróleo", "petroleo", "gas", "combustible", "gasolina", "acpm",
   "gas natural", "glp", "oleoducto", "gasoducto", "exploración",
   "exploracion", "refinación", "refinacion", "barril", "brent", "wti",
@@ -46,24 +52,39 @@ export const HYDRO_KEYWORDS = [
   "regalías petroleras", "regalias petroleras",
   "diésel", "diesel", "fuel oil", "gas licuado", "gnl", "lng",
   "shale", "fracking", "offshore",
-  "precio del crudo", "crudo colombiano", "producción petrolera",
+  "crudo", "precio del crudo", "crudo colombiano", "producción petrolera",
   "derivado del petróleo", "derivado del petroleo",
   "petroquímica", "petroquimica", "estación de servicio",
   "gasolinera", "gasocentro", "grifo",
+  "anh",
+  // Tier 2 — minería (relleno en el backend)
   "carbón", "carbon mineral", "minería", "mineria",
   "niquel", "litio", "cobre",
   "drummond", "cerrejón", "cerrejon", "prodeco",
   "exportación de carbón", "puerto de carbón",
 ];
 
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Coincidencia por límite de palabra (Unicode-aware, respeta tildes) — un
+ * `includes()` plano hace que keywords cortas como "gas" matcheen dentro de
+ * nombres propios como "Promigas", clasificando mal noticias no relacionadas.
+ */
+function matchesWholeWord(text: string, keyword: string): boolean {
+  const pattern = new RegExp(`(?<![\\p{L}\\p{N}])${escapeRegExp(keyword)}(?![\\p{L}\\p{N}])`, "iu");
+  return pattern.test(text);
+}
+
 export function countKeywordHits(
   text: string,
   keywords: string[]
 ): number {
-  const lower = text.toLowerCase();
   let count = 0;
   for (const kw of keywords) {
-    if (lower.includes(kw)) count++;
+    if (matchesWholeWord(text, kw)) count++;
   }
   return count;
 }

@@ -12,6 +12,8 @@ interface KpiBlockProps {
   date?: string | null;
   valueClass?: string;
   large?: boolean;
+  /** Clase de tamaño de fuente para la etiqueta — usar en tarjetas angostas con etiquetas largas */
+  labelSizeClass?: string;
   chipLabel?: string;
   chipColor?: string;
   tendencia?: MetricaTendencia | null;
@@ -22,24 +24,37 @@ interface KpiBlockProps {
 
 export function KpiBlock({
   label, value, unit, date, valueClass = "text-gold", large = false,
+  labelSizeClass = "text-lg xl:text-xl 2xl:text-2xl",
   chipLabel, chipColor, tendencia, metrica, tooltip,
 }: KpiBlockProps) {
   const strLen = typeof value === "string" || typeof value === "number" ? String(value).length : 12;
   let fontClass: string;
 
-  if (strLen <= 8) {
-    fontClass = "text-4xl xl:text-5xl 2xl:text-6xl";
-  } else if (strLen <= 12) {
-    fontClass = "text-3xl xl:text-4xl 2xl:text-5xl";
-  } else if (strLen <= 18) {
-    fontClass = "text-2xl xl:text-3xl 2xl:text-4xl";
+  if (large) {
+    if (strLen <= 8) {
+      fontClass = "text-4xl xl:text-5xl 2xl:text-6xl";
+    } else if (strLen <= 12) {
+      fontClass = "text-3xl xl:text-4xl 2xl:text-5xl";
+    } else if (strLen <= 18) {
+      fontClass = "text-2xl xl:text-3xl 2xl:text-4xl";
+    } else {
+      fontClass = "text-lg xl:text-xl 2xl:text-2xl";
+    }
   } else {
-    fontClass = "text-lg xl:text-xl 2xl:text-2xl";
+    if (strLen <= 8) {
+      fontClass = "text-3xl xl:text-4xl 2xl:text-5xl";
+    } else if (strLen <= 12) {
+      fontClass = "text-2xl xl:text-3xl 2xl:text-4xl";
+    } else if (strLen <= 18) {
+      fontClass = "text-xl xl:text-2xl 2xl:text-3xl";
+    } else {
+      fontClass = "text-lg xl:text-xl 2xl:text-2xl";
+    }
   }
 
   return (
-    <div className="flex flex-col items-center justify-center text-center gap-0.5 px-4">
-      <p className="text-slate-400 text-lg xl:text-xl 2xl:text-2xl uppercase tracking-[0.2em] font-medium inline-flex items-center gap-0.5">
+    <div className="flex flex-col items-center justify-center text-center gap-0.5 px-1 w-full min-w-0">
+      <p className={`text-slate-400 ${labelSizeClass} uppercase tracking-[0.2em] font-medium flex flex-wrap items-center justify-center gap-0.5 [overflow-wrap:anywhere] text-center w-full min-w-0`}>
         {label}
         {tooltip && <InfoTooltip content={tooltip} />}
       </p>

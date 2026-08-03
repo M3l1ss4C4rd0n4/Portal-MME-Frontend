@@ -9,14 +9,21 @@ import { ResponsiveBar, type BarCustomLayerProps } from "@nivo/bar";
 import SemiGauge from "@/components/ui/SemiGauge";
 import { TrendBadge, TrendArrow, getTrendColor } from "@/components/ui/TrendBadge";
 import type { MetricaTendencia } from "@/components/ui/TrendBadge";
-import { useHomeSlider } from "@/hooks/useHomeSlider";
+import { useHomeSlider, SLIDE_INTERVAL_MS } from "@/hooks/useHomeSlider";
 import { fmtCortePresupuesto } from "@/lib/format";
 import { getNivoTheme } from "@/lib/nivo-theme";
 import { useTheme } from "@/providers/ThemeProvider";
 import SlideRedesX, { ALL_X_ACCOUNTS } from "@/components/SlideRedesX";
 import CapacidadEmbalseChart, { type CapacidadEmbalseData } from "@/components/charts/CapacidadEmbalseChart";
+import PredictionLineChart from "@/components/predictions/PredictionLineChart";
+import PredictionKpiBlock from "@/components/predictions/PredictionKpiBlock";
+import type { PredictionPoint } from "@/types/predictions";
+import { fmtShortDate } from "@/types/predictions";
 import InformesDiariosSlider from "@/components/InformesDiariosSlider";
+import { TopAccent, SectionBadge, CategoryTag } from "@/components/slides/SlideUI";
 import { SlideSupervision } from "@/components/slides/SlideSupervision";
+import { SlideHidrocarburosPresupuesto } from "@/components/slides/SlideHidrocarburosPresupuesto";
+import { SlideHidrocarburosProduccion } from "@/components/slides/SlideHidrocarburosProduccion";
 import type { TermicaSliderData } from "@/types/home-slider";
 // Marco regulatorio oficial — Resolución CREG 026/2014, 209/2020, 101 066/2024
 import {
@@ -57,6 +64,7 @@ export interface HomeSliderProps {
     pctEmbalses: number;
     embalseGwh?: number | null;
     capacidadEmbalseGwh?: number | null;
+    capacidadInstaladaMw?: number | null;
     aportesHidricos?: {
       actualGwh: number;
       historicoGwh: number;
@@ -122,6 +130,7 @@ export interface HomeSliderProps {
     nContratos: number;
     avanceGeneral: number;
     avanceFinanciero: number;
+    avanceFisico: number;
     nUsuarios: number;
     nCEs: number;
     inversionTotal: number;
@@ -160,10 +169,48 @@ export interface HomeSliderProps {
   deficitFssri?: number;
   deficitSeries?: Array<{ x: string; y: number }>;
   subBarData?: Array<{ anio: string; Subsidios: number; Contribuciones: number }>;
+  hidroPresuData?: {
+    resumen: {
+      fecha_actualizacion: string | null;
+      apropiacion_vigente: number;
+      compromisos: number;
+      obligaciones: number;
+      por_comprometer: number;
+      pct_compromisos: number;
+      pct_obligaciones: number;
+    } | null;
+    proyectos: Array<{
+      proyecto: string;
+      apropiacion_vigente: number;
+      compromisos: number;
+      obligaciones: number;
+      por_comprometer: number;
+      pct_compromisos: number;
+      pct_obligacion: number;
+    }>;
+  };
+  hidroProdData?: {
+    produccionDiaria: Array<{
+      fecha: string;
+      petroleo_bbl: number;
+      gas_fiscalizado_mpc: number;
+      gas_comercializado_mpc: number;
+    }>;
+    top5: Array<{ mes: string; categoria: string; nombre: string; valor: number; unidad: string }>;
+    commodities: Record<
+      string,
+      {
+        valorUsd: number | null;
+        variacionAbs: number | null;
+        variacionPct: number | null;
+        fecha: string | null;
+        fechaCarga: string | null;
+        historico: Array<{ fecha: string; valor: number }>;
+      }
+    >;
+    brecha?: { mpcd: number; pct: number | null } | null;
+  };
 }
-
-// ─── Config ────────────────────────────────────────────────────────────────────
-const SLIDE_INTERVAL_MS = 90000; // 1.5 minutos (90 segundos) por slide
 
 // ─── Formatters ────────────────────────────────────────────────────────────────
 
@@ -241,7 +288,7 @@ function KpiBlock({
   }
 
   return (
-    <div className="flex flex-col items-center justify-center text-center gap-0.5 px-2">
+    <div className="flex flex-col items-center justify-center text-center gap-0.5 px-2 py-2 bg-theme-secondary border border-card-energia rounded-xl">
       <p className="text-theme-muted text-lg xl:text-xl 2xl:text-2xl uppercase tracking-[0.2em] font-medium">
         {label}
       </p>
@@ -262,40 +309,6 @@ function KpiBlock({
       )}
       <TrendBadge tendencia={tendencia} metrica={metrica} title={trendTitle} />
       {chipLabel && chipColor && <StatusChip label={chipLabel} color={chipColor} title={chipTitle} />}
-    </div>
-  );
-}
-
-// ─── Slide decoration helpers ──────────────────────────────────────────────────
-function TopAccent({ color }: { color: string }) {
-  return (
-    <div
-      className="absolute top-0 inset-x-0 h-1"
-      style={{
-        background: `linear-gradient(90deg, transparent, ${color}99, transparent)`,
-      }}
-    />
-  );
-}
-
-function SectionBadge({
-  label,
-  pulse = false,
-  dot = "#F59E0B",
-}: {
-  label: string;
-  pulse?: boolean;
-  dot?: string;
-}) {
-  return (
-    <div className="flex items-center justify-center gap-3 mb-2">
-      <span
-        className={`w-3.5 h-3.5 rounded-full ${pulse ? "animate-pulse" : ""}`}
-        style={{ backgroundColor: dot }}
-      />
-      <span className="text-gold font-black tracking-[0.3em] text-xl xl:text-2xl 2xl:text-3xl uppercase">
-        {label}
-      </span>
     </div>
   );
 }
@@ -353,8 +366,11 @@ function estadoPrecio(
 const _GEN_PRIO: Record<string, number> = {
   "TECHO REGULATORIO": 4, "CRISIS ENERGÉTICA": 4, "CRÍTICO": 4,
   "RIESGO — DESABASTECIMIENTO": 4, "CRÍTICO HISTÓRICO — SEQUÍA": 4,
+  "DÉFICIT SEVERO": 4,
   "ALTA PRESIÓN": 3, "ALERTA": 3,
+  "ALERTA — BAJO SENDA": 3, "DÉFICIT HÍDRICO": 3,
   "ESTRÉS MODERADO": 2, "ALERTA MEDIA": 2,
+  "SOBRE SENDA": 2,
   "VIGILANCIA": 1, "VIGILANCIA CREG": 1,
 };
 function _prio(label: string) { return _GEN_PRIO[label] ?? 0; }
@@ -395,112 +411,101 @@ function estadoGeneracion(
   return all[0] ?? { label: "CONTEXTUAL", color: "#64748B" };
 }
 
-/**
- * Parámetros para el diagnóstico holístico del SIN.
- */
-interface DiagnosticoParams {
+interface DiagnosticoReservasParams {
   reservasPct: number;
   aportesPct: number | null;
-  precio: number;
-  preciosReg: {
-    pei?: number;
-    pe?: number;
-    pes?: number;
-    indiceNe?: string;
-    indiceHsin?: string;
-    indicePbp?: string;
-    condicionSistema?: string;
-  } | null | undefined;
-  generacionGwh: number;
-  fuentes: Array<{ id: string; value: number; generacionGwh: number }> | undefined;
-  tendencias: {
-    embalses?: MetricaTendencia | null;
-    precio?: MetricaTendencia | null;
-    generacion?: MetricaTendencia | null;
-    aportes?: MetricaTendencia | null;
-  } | null | undefined;
   estados: {
     reservas: { label: string; color: string };
     aportes: { label: string; color: string } | null;
-    precio: { label: string; color: string };
-    generacion: { label: string; color: string };
   };
   oniActual: number | null;
   oniClasificacion: string | null;
   oniProyeccionInicio: string | null;
+  /** Resumen de la proyección de embalses, si ya se cargó desde /api/predicciones/ */
+  prediccion?: { picoPct: number; picoFecha: string; meta80Fecha?: string } | null;
 }
 
 /**
- * Diagnóstico narrativo del SIN — integra todos los indicadores + clima ONI.
- * Busca ser conciso, causal y proyectivo, no repetitivo de las fichas.
+ * Diagnóstico narrativo de reservas y aportes hídricos — usa las mismas
+ * clasificaciones oficiales (`estados`) que ya se muestran en los chips,
+ * para que el encabezado nunca contradiga lo que ve el usuario al lado.
  * Marco regulatorio: Estatuto CREG 026/2014 + Res. CREG 209/2020 + ONI NOAA CPC.
  */
-function diagnosticoSIN(params: DiagnosticoParams): string {
-  const {
-    reservasPct, aportesPct, precio, preciosReg,
-    fuentes, oniActual, oniClasificacion, oniProyeccionInicio,
-  } = params;
+function diagnosticoReservas(p: DiagnosticoReservasParams): string {
+  const severidad = Math.max(_prio(p.estados.reservas.label), p.estados.aportes ? _prio(p.estados.aportes.label) : 0);
 
-  const hidro = fuentes?.find(f => f.id === "HIDRAULICA");
-  const termica = fuentes?.find(f => f.id === "TERMICA");
-  const hidroPct = hidro?.value ?? null;
-  const termicaPct = termica?.value ?? null;
+  let texto = severidad >= 3
+    ? "Las reservas hídricas y los aportes del sistema presentan estrés. "
+    : severidad === 2
+    ? "Las reservas hídricas y los aportes del sistema están en vigilancia. "
+    : "Las reservas hídricas y los aportes del sistema están en condiciones normales. ";
 
-  // ── Oración 1: Encabezado (una línea, sin repetir números) ──────────
-  let texto = "";
-
-  if (reservasPct >= 70 && (aportesPct ?? 100) >= 60 && precio < (preciosReg?.pe ?? 591)) {
-    texto += "El sector energético se encuentra en condiciones normales. ";
-  } else if (reservasPct < 50 || (aportesPct ?? 100) < 40 || precio >= (preciosReg?.pe ?? 591)) {
-    texto += "El sector energético presenta condiciones de estrés. ";
+  if (p.aportesPct != null && p.aportesPct < 90 && p.reservasPct >= 70) {
+    texto += `Aunque los aportes hídricos están por debajo de lo normal (${p.aportesPct.toFixed(0)}%), los embalses aún se mantienen estables al ${p.reservasPct.toFixed(0)}%. `;
+  } else if (p.aportesPct != null && p.aportesPct >= 90) {
+    texto += `Los aportes hídricos están en nivel normal, sosteniendo los embalses al ${p.reservasPct.toFixed(0)}%. `;
   } else {
-    texto += "El sector energético está en vigilancia. ";
+    texto += `Embalses al ${p.reservasPct.toFixed(0)}%. `;
   }
 
-  // ── Oración 2: Relación causal embalses–aportes ─────────────────────
-  if (aportesPct != null && aportesPct < 90 && reservasPct >= 70) {
-    texto += `Aunque los aportes hídricos están por debajo de lo normal (${aportesPct.toFixed(0)}%), los embalses aún se mantienen estables al ${reservasPct.toFixed(0)}%. `;
-  } else if (aportesPct != null && aportesPct >= 90) {
-    texto += `Los aportes hídricos están en nivel normal, sosteniendo los embalses al ${reservasPct.toFixed(0)}%. `;
-  } else {
-    texto += `Embalses al ${reservasPct.toFixed(0)}%. `;
-  }
-
-  // ── Oración 3: Proyección ENSO (valor agregado) ────────────────────
-  if (oniActual != null && oniClasificacion) {
-    if (oniClasificacion === "EL_NIÑO") {
-      texto += `El Fenómeno de El Niño está activo (ONI ${oniActual.toFixed(2)}°C), reduciendo las lluvias y presionando el sistema. `;
-    } else if (oniClasificacion === "LA_NIÑA") {
-      texto += `El Fenómeno de La Niña está activo (ONI ${oniActual.toFixed(2)}°C), aumentando las lluvias y favoreciendo los aportes. `;
-    } else if (oniProyeccionInicio) {
-      texto += `El ENSO aún es neutral (ONI ${oniActual.toFixed(2)}°C), pero la tendencia de calentamiento proyecta que El Niño comenzaría aproximadamente en ${oniProyeccionInicio}. `;
+  if (p.oniActual != null && p.oniClasificacion) {
+    if (p.oniClasificacion === "EL_NIÑO") {
+      texto += `El Fenómeno de El Niño está activo (ONI ${p.oniActual.toFixed(2)}°C), reduciendo las lluvias y presionando el sistema. `;
+    } else if (p.oniClasificacion === "LA_NIÑA") {
+      texto += `El Fenómeno de La Niña está activo (ONI ${p.oniActual.toFixed(2)}°C), aumentando las lluvias y favoreciendo los aportes. `;
+    } else if (p.oniProyeccionInicio) {
+      texto += `El ENSO aún es neutral (ONI ${p.oniActual.toFixed(2)}°C), pero la tendencia de calentamiento proyecta que El Niño comenzaría aproximadamente en ${p.oniProyeccionInicio}. `;
     } else {
-      texto += `El ENSO se mantiene neutral (ONI ${oniActual.toFixed(2)}°C), sin presión climática adicional en el horizonte. `;
+      texto += `El ENSO se mantiene neutral (ONI ${p.oniActual.toFixed(2)}°C), sin presión climática adicional en el horizonte. `;
     }
   }
 
-  // ── Oración 4: Generación y precio (solo lo relevante) ─────────────
+  if (p.prediccion) {
+    texto += `Se proyecta un pico de ${p.prediccion.picoPct.toFixed(1)}% el ${fmtShortDate(p.prediccion.picoFecha)}` +
+      (p.prediccion.meta80Fecha
+        ? `, superando la meta del 80% a partir del ${fmtShortDate(p.prediccion.meta80Fecha)}. `
+        : `, sin alcanzar la meta del 80% en el horizonte proyectado. `);
+    texto += `La ventana de mayor riesgo energético se ubica entre diciembre de 2026 y marzo de 2027. `;
+  }
+
+  return texto.trim();
+}
+
+interface DiagnosticoPrecioParams {
+  precio: number;
+  preciosReg: { pe?: number } | null | undefined;
+  fuentes: Array<{ id: string; value: number }> | undefined;
+  estados: {
+    precio: { label: string; color: string };
+    generacion: { label: string; color: string };
+  };
+}
+
+/**
+ * Diagnóstico narrativo de precio de bolsa y generación — misma lógica de
+ * reutilizar `estados` ya clasificados para mantener coherencia con los chips.
+ */
+function diagnosticoPrecio(p: DiagnosticoPrecioParams): string {
+  const severidad = Math.max(_prio(p.estados.precio.label), _prio(p.estados.generacion.label));
+  const pe = p.preciosReg?.pe ?? PRECIO_ESCASEZ_PE_REF_2026_01;
+  const hidroPct = p.fuentes?.find(f => f.id === "HIDRAULICA")?.value ?? null;
+  const termicaPct = p.fuentes?.find(f => f.id === "TERMICA")?.value ?? null;
+
+  let texto = severidad >= 3
+    ? "El precio de bolsa y la generación presentan estrés. "
+    : severidad === 2
+    ? "El precio de bolsa y la generación están en vigilancia. "
+    : "El precio de bolsa y la generación están en condiciones normales. ";
+
   if (hidroPct != null && termicaPct != null) {
     texto += `La generación hidráulica cubre el ${hidroPct.toFixed(1)}% de la demanda, y la térmica el ${termicaPct.toFixed(1)}%. `;
   }
 
-  const pe = preciosReg?.pe ?? PRECIO_ESCASEZ_PE_REF_2026_01;
-  if (precio < pe) {
-    texto += `El precio de bolsa ($ ${precio.toFixed(0)} COP/kWh) ha aumentado pero no llega al precio de escasez de $ ${Math.round(pe).toLocaleString('es-CO')}. `;
-  } else {
-    texto += `El precio de bolsa ($ ${precio.toFixed(0)} COP/kWh) ya superó el precio de escasez de $ ${Math.round(pe).toLocaleString('es-CO')}. `;
-  }
+  texto += p.precio < pe
+    ? `El precio de bolsa ($ ${p.precio.toFixed(0)} COP/kWh) ha aumentado pero no llega al precio de escasez de $ ${Math.round(pe).toLocaleString('es-CO')}. `
+    : `El precio de bolsa ($ ${p.precio.toFixed(0)} COP/kWh) ya superó el precio de escasez de $ ${Math.round(pe).toLocaleString('es-CO')}. `;
 
-  // ── Oración 5: Cierre ──────────────────────────────────────────────
-  if (reservasPct >= 70 && (aportesPct ?? 100) >= 60 && precio < pe) {
-    texto += `Sin novedades — operación normal del SIN.`;
-  } else if (reservasPct < 50 || precio >= pe) {
-    texto += `Se requieren medidas preventivas — monitoreo continuo.`;
-  } else {
-    texto += `Seguimiento recomendado — evolución en próximos días.`;
-  }
-
-  return texto;
+  return texto.trim();
 }
 
 // ─── StatusChip: sub-ficha de estado ──────────────────────────────────────────
@@ -523,7 +528,7 @@ function HydroKpiBlock({
   gwh, gwhRef, gwhRefLabel,
   dailyGwh, dailyHistGwh,
   date, chipLabel, chipColor, tendencia, metrica,
-  valueTitle, chipTitle, trendTitle, gwhTitle,
+  valueTitle, chipTitle, trendTitle, gwhTitle, dailyTitle,
 }: {
   label: string;
   pct: number;
@@ -546,14 +551,26 @@ function HydroKpiBlock({
   trendTitle?: string;
   /** Tooltip nativo sobre la línea de GWh */
   gwhTitle?: string;
+  /** Tooltip nativo sobre la línea diaria (dailyGwh/date) */
+  dailyTitle?: string;
 }) {
   const fmt = (v: number) => v.toLocaleString("es-CO", { maximumFractionDigits: 1 });
   const fontClass = "text-3xl xl:text-4xl 2xl:text-5xl";
   return (
-    <div className="flex flex-col items-center justify-center text-center gap-0.5 px-2">
+    <div className="flex flex-col items-center justify-center text-center gap-0.5 px-2 py-2 bg-theme-secondary border border-card-energia rounded-xl">
       <p className="text-slate-400 text-base xl:text-lg 2xl:text-xl uppercase tracking-[0.18em] font-medium">
         {label}
       </p>
+      {gwh != null ? (
+        <p className="text-slate-300 text-sm xl:text-base font-semibold" title={gwhTitle}>
+          {fmt(gwh)} GWh
+          {gwhRef != null && (
+            <span className="text-slate-500 font-normal"> · {gwhRefLabel ?? "ref."} {fmt(gwhRef)} GWh</span>
+          )}
+        </p>
+      ) : (
+        <p className="text-sm xl:text-base font-semibold invisible select-none" aria-hidden="true">·</p>
+      )}
       <div
         className={`inline-flex items-center gap-2 ${fontClass} font-black leading-none ${pctColor}`}
         style={tendencia && tendencia.label !== "S/D" ? { color: getTrendColor(tendencia, metrica ?? "valor") } : undefined}
@@ -562,23 +579,15 @@ function HydroKpiBlock({
         {pct.toFixed(2)}%
         <TrendArrow tendencia={tendencia} metrica={metrica} trendTitle={trendTitle} />
       </div>
-      {gwh != null && (
-        <p className="text-slate-300 text-xs xl:text-sm font-semibold mt-0.5" title={gwhTitle}>
-          {fmt(gwh)} GWh
-          {gwhRef != null && (
-            <span className="text-slate-500 font-normal"> · {gwhRefLabel ?? "ref."} {fmt(gwhRef)} GWh</span>
-          )}
-        </p>
-      )}
       {dailyGwh != null ? (
-        <p className="text-slate-500 text-[10px] xl:text-xs">
+        <p className="text-slate-500 text-[10px] xl:text-xs mt-0.5" title={dailyTitle}>
           {date ?? "hoy"}: {fmt(dailyGwh)} GWh
           {dailyHistGwh != null && (
             <span className="text-slate-600"> · media {fmt(dailyHistGwh)} GWh</span>
           )}
         </p>
       ) : (
-        date && <p className="text-slate-500 text-[10px] xl:text-xs">{date}</p>
+        date && <p className="text-slate-500 text-[10px] xl:text-xs mt-0.5" title={dailyTitle}>{date}</p>
       )}
       <TrendBadge tendencia={tendencia} metrica={metrica} title={trendTitle} />
       {chipLabel && chipColor && <StatusChip label={chipLabel} color={chipColor} title={chipTitle} />}
@@ -666,10 +675,15 @@ function DualGaugeSparklines({ embalsesPct, aportesPct, sparklines }: {
   );
 }
 
-// ─── Slide 1: Gestión del Sector ───────────────────────────────────────────────
-function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; detalle?: HomeSliderProps["sectorDetalle"] }) {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme !== "light";
+// ─── Slide 1a: Reservas y Embalses ─────────────────────────────────────────────
+interface EmbalsesPrediccionData {
+  prediccion: PredictionPoint[];
+  pico: { fecha: string; valor: number; dias_desde_hoy: number } | null;
+  mape: number;
+  confianza: number;
+}
+
+function SlideReservasEmbalses({ d }: { d: HomeSliderProps["sectorData"] }) {
   const [embalseData, setEmbalseData] = useState<CapacidadEmbalseData | null>(null);
   useEffect(() => {
     fetch("/api/embalses/capacidad-historica")
@@ -678,36 +692,38 @@ function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; 
       .catch(() => undefined);
   }, []);
 
-  const hasDetalle = !!detalle && detalle.generacionPorFuente.length > 0;
-  const hasPrecioSeries = !!detalle && detalle.precioBolsaSeries.length > 0 && detalle.precioBolsaSeries[0].data.length > 0;
+  const [predData, setPredData] = useState<EmbalsesPrediccionData | null>(null);
+  useEffect(() => {
+    fetch("/api/predicciones/")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.error) return;
+        setPredData(json.embalses);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const threshold80Date = predData?.prediccion.find((p) => p.valor >= 80)?.fecha;
+  const climaPico = predData?.prediccion.find((p) => p.fecha === predData.pico?.fecha);
+  const climaMeta = threshold80Date ? predData?.prediccion.find((p) => p.fecha === threshold80Date) : undefined;
+
   const aportes = d.aportesHidricos;
-  const preciosReg = d.umbralesRegulatorios;
   const aportesPct = aportes?.hsinPct ?? aportes?.pct ?? (
     aportes && aportes.historicoGwh > 0 ? (aportes.actualGwh / aportes.historicoGwh) * 100 : null
   );
 
   const stRes = estadoReservas(d.pctEmbalses);
   const stAp  = aportesPct !== null ? estadoAportes(aportesPct) : null;
-  const stPr  = estadoPrecio(d.precioBolsa, preciosReg ?? undefined);
-  const stGen = estadoGeneracion(
-    detalle?.generacionPorFuente,
-    d.generacionGwh,
-    aportes?.dailyActualGwh,
-    d.precioBolsa,
-    preciosReg ?? undefined,
-  );
-  const diagnostico = diagnosticoSIN({
+  const diagnostico = diagnosticoReservas({
     reservasPct: d.pctEmbalses,
     aportesPct,
-    precio: d.precioBolsa,
-    preciosReg: d.umbralesRegulatorios,
-    generacionGwh: d.generacionGwh,
-    fuentes: detalle?.generacionPorFuente,
-    tendencias: d.tendencias,
-    estados: { reservas: stRes, aportes: stAp, precio: stPr, generacion: stGen },
+    estados: { reservas: stRes, aportes: stAp },
     oniActual: d.oniActual ?? null,
     oniClasificacion: d.oniClasificacion ?? null,
     oniProyeccionInicio: d.oniProyeccionInicio ?? null,
+    prediccion: predData?.pico
+      ? { picoPct: predData.pico.valor, picoFecha: predData.pico.fecha, meta80Fecha: threshold80Date }
+      : null,
   });
 
   const aportesColor = aportesPct === null ? "text-slate-400"
@@ -715,109 +731,20 @@ function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; 
     : aportesPct >= HSIN_UMBRAL_DEFICIT_SEVERO ? "text-gold"
     : "text-red-400";
 
-  // ─── Tooltips nativos (title) para cada valor ────────────────────────────
-  const pei = preciosReg?.pei ?? PRECIO_ESCASEZ_PEI_REF_2026_01;
-  const pe  = preciosReg?.pe  ?? PRECIO_ESCASEZ_PE_REF_2026_01;
-  const pes = preciosReg?.pes ?? PRECIO_ESCASEZ_PES_REF_2026_01;
-
-  const sendaPct = obtenerSendaReferencia();
-  const ne = clasificarIndiceNE(d.pctEmbalses);
+  // Preferir la senda/índice NE que ya calcula el backend (server/core/umbrales_oficiales.py,
+  // con vía a datos en vivo); recalcular localmente solo si el backend no la envió.
+  const sendaPct = d.umbralesRegulatorios?.sendaReferenciaPct ?? obtenerSendaReferencia();
+  const neNivel = d.umbralesRegulatorios?.indiceNe ?? clasificarIndiceNE(d.pctEmbalses).nivel;
 
   // Variables auxiliares para tendencias
-  const chPrecio = d.tendencias?.precio?.cambio7d;
-  const chGeneracion = d.tendencias?.generacion?.cambio7d;
   const chEmbalses = d.tendencias?.embalses?.cambio7d;
   const chAportes = d.tendencias?.aportes?.cambio7d;
-
-  // ─── Precio de Bolsa ──────────────────────────────────────────────────────
-  const tPrecioValor =
-    `Este es el precio al que se vendió la energía hoy en el mercado mayorista colombiano: ` +
-    `$${d.precioBolsa.toFixed(2)} por cada kilovatio-hora. ` +
-    `Es un promedio de todas las ofertas que fueron aceptadas en la bolsa de energía. ` +
-    `El operador del mercado, XM, publica este dato todos los días.`;
-
-  const tPrecioChip =
-    `${stPr.label}. El precio de hoy, $${d.precioBolsa.toFixed(2)}, se encuentra en un nivel ` +
-    (d.precioBolsa < pei
-      ? `cómodo, por debajo del piso mínimo de $${pei.toFixed(0)}. Esto significa que generar energía es barato y no hay presión en el mercado.`
-      : d.precioBolsa < pe
-      ? `medio: supera el piso mínimo del precio de escasez inferior, $${pei.toFixed(0)}, pero todavía no alcanza el umbral del precio de escasez de $${pe.toFixed(0)}. El mercado está en vigilancia.`
-      : d.precioBolsa < pes
-      ? `alto: ya superó el precio de escasez de $${pe.toFixed(0)}. Cuando el precio llega a este nivel, se considera que hay estrés en el mercado y se activan medidas de seguimiento.`
-      : `crítico: superó el precio de escasez superior de $${pes.toFixed(0)}. Este es el escenario más delicado. La energía es muy cara y hay riesgo de desabastecimiento.`);
-
-  const tPrecioTrend =
-    chPrecio != null
-      ? `El precio ${chPrecio > 0 ? 'subió' : 'bajó'} ${Math.abs(chPrecio).toFixed(1)}% con respecto al promedio de los últimos 7 días. ` +
-        (chPrecio > 0 ? 'Cuando el precio sube, hay más presión en el mercado y la energía se vuelve más costosa.' : 'Cuando el precio baja, es una buena noticia: la energía se está volviendo más barata.')
-      : `Se compara el precio de hoy con el promedio de la última semana para ver si está subiendo o bajando.`;
-
-  // ─── Energía Generada ────────────────────────────────────────────────────
-  const tGeneracionValor =
-    `Hoy se generaron ${d.generacionGwh.toFixed(2)} gigavatios-hora en todo el Sistema Interconectado Nacional. ` +
-    `Esto es la suma de toda la electricidad que produjeron las plantas hidráulicas, térmicas, solares y eólicas del país. ` +
-    `Para referencia, un día típico Colombia consume entre 200 y 250 GWh. La capacidad instalada total del sistema es de 21.029 megavatios.`;
-
-  // ─── Función auxiliar para tooltip de generación ────────────────────────
-  function buildTGeneracionChip(): string {
-    const fuentes = detalle?.generacionPorFuente;
-    const hidroPct = fuentes?.find(f => f.id === "HIDRAULICA")?.value;
-    const termicaPct = fuentes?.find(f => f.id === "TERMICA")?.value;
-    const dailyAportes = aportes?.dailyActualGwh;
-    const indiceI2 = hidroPct != null && dailyAportes && dailyAportes > 0
-      ? estadoI2Hidro((hidroPct / 100) * d.generacionGwh / dailyAportes).label
-      : null;
-    const indiceI3 = termicaPct != null ? estadoI3Termica(termicaPct).label : null;
-
-    let detalle2 = `${stGen.label}. El estado de la generación se calcula tomando el peor resultado de tres indicadores:\n\n`;
-    
-    detalle2 += `1. Precio de bolsa (I1): ${stPr.label}. El precio de hoy es $${d.precioBolsa.toFixed(2)} COP/kWh. `;
-    if (d.precioBolsa < pei) detalle2 += `Está por debajo del precio de escasez inferior ($${pei.toFixed(0)}), nivel cómodo.`;
-    else if (d.precioBolsa < pe) detalle2 += `Supera el piso de $${pei.toFixed(0)} pero no llega al precio de escasez de $${pe.toFixed(0)}.`;
-    else if (d.precioBolsa < pes) detalle2 += `Ya superó el precio de escasez de $${pe.toFixed(0)}. Hay estrés en el mercado.`;
-    else detalle2 += `Superó el precio de escasez superior de $${pes.toFixed(0)}. Nivel crítico.`;
-    
-    detalle2 += `\n\n2. Sostenibilidad hidráulica (I2): ${indiceI2 ?? 'sin datos'}. `;
-    if (hidroPct != null && dailyAportes && dailyAportes > 0) {
-      const ratio = (hidroPct / 100) * d.generacionGwh / dailyAportes;
-      detalle2 += `Mide qué tanta generación hidráulica (${hidroPct.toFixed(1)}% del total, ${((hidroPct/100)*d.generacionGwh).toFixed(1)} GWh) hay frente al agua que está llegando a los embalses (${dailyAportes.toFixed(1)} GWh hoy). `;
-      detalle2 += `El resultado es un ratio de ${ratio.toFixed(2)}. `;
-      if (ratio <= 1.0) detalle2 += `Como es menor o igual a 1.0, se considera sostenible: hay más agua llegando de la que se está usando.`;
-      else if (ratio <= 1.2) detalle2 += `Como está entre 1.0 y 1.2, se considera en vigilancia: se está usando un poco más de agua de la que está llegando.`;
-      else if (ratio <= 1.5) detalle2 += `Como está entre 1.2 y 1.5, se considera en alerta: se está usando bastante más agua de la que está llegando.`;
-      else detalle2 += `Como es mayor a 1.5, se considera crítico: se está usando mucha más agua de la que está llegando a los embalses.`;
-    } else {
-      detalle2 += `No hay suficientes datos de generación hidráulica o de aportes para calcular este indicador.`;
-    }
-    
-    detalle2 += `\n\n3. Estrés térmico (I3): ${indiceI3 ?? 'sin datos'}. `;
-    if (termicaPct != null) {
-      detalle2 += `Hoy las plantas térmicas generaron el ${termicaPct.toFixed(1)}% del total. `;
-      if (termicaPct <= 15) detalle2 += `Como es 15% o menos, se considera sostenible: el sistema no depende de las térmicas.`;
-      else if (termicaPct <= 25) detalle2 += `Como está entre 15% y 25%, se considera normal.`;
-      else if (termicaPct <= 35) detalle2 += `Como está entre 25% y 35%, se considera en alerta media: hay una dependencia creciente de las térmicas.`;
-      else detalle2 += `Como es mayor a 35%, se considera crítico: el sistema depende demasiado de las térmicas, lo cual es costoso y menos eficiente.`;
-    } else {
-      detalle2 += `No hay datos de generación térmica para este día.`;
-    }
-    
-    detalle2 += `\n\nDe los tres indicadores, el peor es "${stGen.label}", y ese es el estado que se muestra.`;
-    return detalle2;
-  }
-
-  const tGeneracionChip = buildTGeneracionChip();
-
-  const tGeneracionTrend =
-    chGeneracion != null
-      ? `La generación ${chGeneracion > 0 ? 'aumentó' : 'disminuyó'} ${Math.abs(chGeneracion).toFixed(1)}% con respecto al promedio de los últimos 7 días. ` +
-        (chGeneracion > 0 ? 'Puede ser por mayor demanda o por buenas condiciones de generación.' : 'Puede ser por menor demanda o por dificultades en la generación.')
-      : `Se compara la generación de hoy con el promedio de la última semana.`;
 
   // ─── Reservas Hídricas ───────────────────────────────────────────────────
   const tReservasValor =
     `Los embalses del país están al ${d.pctEmbalses.toFixed(1)}% de su capacidad total. ` +
     `Esto significa que, de toda el agua que pueden almacenar las represas para generar electricidad, hoy tenemos ocupado ese porcentaje. ` +
-    `La capacidad total de todos los embalses equivale a unos 17.000 gigavatios-hora de energía potencial. ` +
+    `La capacidad total de todos los embalses equivale a unos ${d.capacidadEmbalseGwh?.toLocaleString('es-CO', {maximumFractionDigits:0}) ?? '17.000'} gigavatios-hora de energía potencial. ` +
     `El dato lo publica XM todos los días.`;
 
   const tReservasGwh =
@@ -827,9 +754,9 @@ function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; 
 
   const tReservasChip =
     `${stRes.label}. ` +
-    (ne.nivel === 'SUPERIOR'
+    (neNivel === 'SUPERIOR'
       ? `Los embalses están en muy buen nivel, por encima de la senda de referencia que establece la CREG (${sendaPct.toFixed(1)}% para este mes). Esto significa que hay agua suficiente y el sistema está tranquilo.`
-      : ne.nivel === 'ALERTA'
+      : neNivel === 'ALERTA'
       ? `Los embalses están por debajo de la senda de referencia que fija la CREG (${sendaPct.toFixed(1)}%). Todavía no es crítico, pero hay que vigilar de cerca la evolución en los próximos días.`
       : `Los embalses están en un nivel inferior al esperado para esta época del año. La senda de referencia de la CREG es de ${sendaPct.toFixed(1)}%. Esta situación puede activar medidas de seguimiento especial.`);
 
@@ -838,6 +765,9 @@ function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; 
       ? `Los embalses ${chEmbalses > 0 ? 'subieron' : 'bajaron'} ${Math.abs(chEmbalses).toFixed(1)} puntos porcentuales con respecto a hace 7 días. ` +
         (chEmbalses > 0 ? 'Están recuperándose, lo cual es una buena noticia para el sistema.' : 'Están perdiendo agua, lo cual puede ser preocupante si la tendencia continúa.')
       : `Compara el nivel de los embalses hoy con el de hace una semana.`;
+
+  const tReservasDaily =
+    `Fecha del dato más reciente de embalses reportado por XM${d.fechaEmbalse ? ` (${d.fechaEmbalse})` : ''}.`;
 
   // ─── Aportes Hídricos ────────────────────────────────────────────────────
   const tAportesValor =
@@ -868,6 +798,12 @@ function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; 
         (chAportes > 0 ? 'Los ríos están trayendo más agua que la semana pasada.' : 'Los ríos están trayendo menos agua que la semana pasada.')
       : `Compara el indicador de aportes de hoy con el de hace una semana.`;
 
+  const tAportesDaily =
+    aportes?.dailyActualGwh != null
+      ? `Este es el aporte de agua a los embalses en el último día con información completa${d.fechaAportes ? ` (${d.fechaAportes})` : ''}: ${aportes.dailyActualGwh.toLocaleString('es-CO', {maximumFractionDigits:1})} GWh, frente a un promedio histórico de ${aportes.dailyHistGwh?.toLocaleString('es-CO', {maximumFractionDigits:1}) ?? '—'} GWh para ese mismo día del año. ` +
+        `A diferencia del dato de arriba (que suma todo lo acumulado desde el 1 de enero), este es el aporte de un solo día — sirve para ver si en las últimas horas está lloviendo más o menos de lo normal.`
+      : undefined;
+
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center bg-theme-primary overflow-hidden">
       <TopAccent color="#3B82F6" />
@@ -877,7 +813,7 @@ function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; 
       <div className="relative z-10 flex flex-col items-center w-full max-w-7xl px-6 xl:px-8 gap-2 xl:gap-4">
         {/* Header con diagnóstico dinámico */}
         <div className="text-center">
-          <SectionBadge label="Gestión del Sector" pulse dot="#EF4444" />
+          <SectionBadge label="Gestión del Sector" pulse dot="#EF4444" titleColorClass="text-title-energia" category="energia" />
           <p className="text-theme-secondary text-xs xl:text-sm font-medium">{diagnostico}</p>
           <p className="text-slate-600 text-[10px] xl:text-xs mt-0.5">
             {d.ultimaEjecucionETL
@@ -888,36 +824,8 @@ function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; 
           </p>
         </div>
 
-        {/* KPIs — 4 columnas */}
-        <div className="grid grid-cols-4 w-full divide-x divide-theme-primary/20">
-          <KpiBlock
-            label="Precio de Bolsa (PPP)"
-            value={`$${d.precioBolsa.toFixed(2)}`}
-            unit="COP/kWh"
-            date={d.fechaPrecio}
-            valueClass="text-gold"
-            chipLabel={stPr.label}
-            chipColor={stPr.color}
-            tendencia={d.tendencias?.precio}
-            metrica="precio"
-            valueTitle={tPrecioValor}
-            chipTitle={tPrecioChip}
-            trendTitle={tPrecioTrend}
-          />
-          <KpiBlock
-            label="Energía Generada"
-            value={d.generacionGwh.toFixed(2)}
-            unit="GWh"
-            date={d.fechaGeneracion}
-            valueClass="text-blue-400"
-            chipLabel={stGen.label}
-            chipColor={stGen.color}
-            tendencia={d.tendencias?.generacion}
-            metrica="generacion"
-            valueTitle={tGeneracionValor}
-            chipTitle={tGeneracionChip}
-            trendTitle={tGeneracionTrend}
-          />
+        {/* KPIs — 3 columnas */}
+        <div className="grid grid-cols-3 w-full gap-3">
           <HydroKpiBlock
             label="Reservas Hídricas"
             pct={d.pctEmbalses}
@@ -934,6 +842,7 @@ function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; 
             gwhTitle={tReservasGwh}
             chipTitle={tReservasChip}
             trendTitle={tReservasTrend}
+            dailyTitle={tReservasDaily}
           />
           {aportesPct !== null && stAp ? (
             <HydroKpiBlock
@@ -954,22 +863,243 @@ function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; 
               gwhTitle={tAportesGwh}
               chipTitle={tAportesChip}
               trendTitle={tAportesTrend}
+              dailyTitle={tAportesDaily}
             />
           ) : (
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center bg-theme-secondary border border-card-energia rounded-xl px-2 py-2">
               <p className="text-slate-600 text-sm">Sin datos</p>
+            </div>
+          )}
+          {predData ? (
+            <PredictionKpiBlock
+              pico={predData.pico}
+              metaFecha={threshold80Date ?? null}
+              mape={predData.mape}
+              confianza={predData.confianza}
+              climaPico={climaPico}
+              climaMeta={climaMeta}
+            />
+          ) : (
+            <div className="flex items-center justify-center bg-theme-secondary border border-card-energia rounded-xl px-2 py-2">
+              <p className="text-slate-600 text-sm">Cargando predicción…</p>
             </div>
           )}
         </div>
 
-        {/* Gráficos — 3 columnas: Precio | Generación | Aportes */}
+        {/* Gráficos — 2 columnas: Capacidad Embalse | Proyección de Embalses */}
+        <div className="grid grid-cols-1 md:grid-cols-2 w-full gap-2 xl:gap-3">
+          {/* Hidrología: Capacidad Embalse SIN (gráfico de área histórico) */}
+          <div className="flex flex-col">
+            <p className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Capacidad Embalse</p>
+            {embalseData ? (
+              <CapacidadEmbalseChart data={embalseData} height={220} />
+            ) : (
+              <div className="flex items-center justify-center h-[22vh] min-h-[140px] max-h-[220px] text-slate-600 text-xs">
+                Cargando embalses…
+              </div>
+            )}
+          </div>
+
+          {/* Predicción: Proyección de Embalses (modelo ENSEMBLE_SECTOR) */}
+          <div className="flex flex-col">
+            <p className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Proyección de Embalses</p>
+            {predData && predData.prediccion.length > 0 ? (
+              <PredictionLineChart
+                data={predData.prediccion}
+                height={220}
+                peakDate={predData.pico?.fecha}
+                threshold80Date={threshold80Date}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-[22vh] min-h-[140px] max-h-[220px] text-slate-600 text-xs">
+                Cargando predicción…
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Slide 1b: Precio y Generación ─────────────────────────────────────────────
+function SlidePrecioGeneracion({ d, detalle }: { d: HomeSliderProps["sectorData"]; detalle?: HomeSliderProps["sectorDetalle"] }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme !== "light";
+
+  const hasDetalle = !!detalle && detalle.generacionPorFuente.length > 0;
+  const hasPrecioSeries = !!detalle && detalle.precioBolsaSeries.length > 0 && detalle.precioBolsaSeries[0].data.length > 0;
+  const aportes = d.aportesHidricos;
+  const preciosReg = d.umbralesRegulatorios;
+
+  const stPr  = estadoPrecio(d.precioBolsa, preciosReg ?? undefined);
+  const stGen = estadoGeneracion(
+    detalle?.generacionPorFuente,
+    d.generacionGwh,
+    aportes?.dailyActualGwh,
+    d.precioBolsa,
+    preciosReg ?? undefined,
+  );
+  const diagnostico = diagnosticoPrecio({
+    precio: d.precioBolsa,
+    preciosReg: d.umbralesRegulatorios,
+    fuentes: detalle?.generacionPorFuente,
+    estados: { precio: stPr, generacion: stGen },
+  });
+
+  // ─── Tooltips nativos (title) para cada valor ────────────────────────────
+  const pei = preciosReg?.pei ?? PRECIO_ESCASEZ_PEI_REF_2026_01;
+  const pe  = preciosReg?.pe  ?? PRECIO_ESCASEZ_PE_REF_2026_01;
+  const pes = preciosReg?.pes ?? PRECIO_ESCASEZ_PES_REF_2026_01;
+
+  // Variables auxiliares para tendencias
+  const chPrecio = d.tendencias?.precio?.cambio7d;
+  const chGeneracion = d.tendencias?.generacion?.cambio7d;
+
+  // ─── Precio de Bolsa ──────────────────────────────────────────────────────
+  const tPrecioValor =
+    `Este es el precio al que se vendió la energía hoy en el mercado mayorista colombiano: ` +
+    `$${d.precioBolsa.toFixed(2)} por cada kilovatio-hora. ` +
+    `Es un promedio de todas las ofertas que fueron aceptadas en la bolsa de energía. ` +
+    `El operador del mercado, XM, publica este dato todos los días.`;
+
+  const tPrecioChip =
+    `${stPr.label}. El precio de hoy, $${d.precioBolsa.toFixed(2)}, se encuentra en un nivel ` +
+    (d.precioBolsa < pei
+      ? `cómodo, por debajo del piso mínimo de $${pei.toFixed(0)}. Esto significa que generar energía es barato y no hay presión en el mercado.`
+      : d.precioBolsa < pe
+      ? `medio: supera el piso mínimo del precio de escasez inferior, $${pei.toFixed(0)}, pero todavía no alcanza el umbral del precio de escasez de $${pe.toFixed(0)}. El mercado está en vigilancia.`
+      : d.precioBolsa < pes
+      ? `alto: ya superó el precio de escasez de $${pe.toFixed(0)}. Cuando el precio llega a este nivel, se considera que hay estrés en el mercado y se activan medidas de seguimiento.`
+      : `crítico: superó el precio de escasez superior de $${pes.toFixed(0)}. Este es el escenario más delicado. La energía es muy cara y hay riesgo de desabastecimiento.`);
+
+  const tPrecioTrend =
+    chPrecio != null
+      ? `El precio ${chPrecio > 0 ? 'subió' : 'bajó'} ${Math.abs(chPrecio).toFixed(1)}% con respecto al promedio de los últimos 7 días. ` +
+        (chPrecio > 0 ? 'Cuando el precio sube, hay más presión en el mercado y la energía se vuelve más costosa.' : 'Cuando el precio baja, es una buena noticia: la energía se está volviendo más barata.')
+      : `Se compara el precio de hoy con el promedio de la última semana para ver si está subiendo o bajando.`;
+
+  // ─── Energía Generada ────────────────────────────────────────────────────
+  const tGeneracionValor =
+    `Hoy se generaron ${d.generacionGwh.toFixed(2)} gigavatios-hora en todo el Sistema Interconectado Nacional. ` +
+    `Esto es la suma de toda la electricidad que produjeron las plantas hidráulicas, térmicas, solares y eólicas del país. ` +
+    `Para referencia, un día típico Colombia consume entre 200 y 250 GWh. La capacidad instalada total del sistema es de ${d.capacidadInstaladaMw?.toLocaleString('es-CO', {maximumFractionDigits:0}) ?? '21.029'} megavatios.`;
+
+  // ─── Función auxiliar para tooltip de generación ────────────────────────
+  function buildTGeneracionChip(): string {
+    const fuentes = detalle?.generacionPorFuente;
+    const hidroPct = fuentes?.find(f => f.id === "HIDRAULICA")?.value;
+    const termicaPct = fuentes?.find(f => f.id === "TERMICA")?.value;
+    const dailyAportes = aportes?.dailyActualGwh;
+    const indiceI2 = hidroPct != null && dailyAportes && dailyAportes > 0
+      ? estadoI2Hidro((hidroPct / 100) * d.generacionGwh / dailyAportes).label
+      : null;
+    const indiceI3 = termicaPct != null ? estadoI3Termica(termicaPct).label : null;
+
+    let detalle2 = `${stGen.label}. El estado de la generación se calcula tomando el peor resultado de tres indicadores:\n\n`;
+
+    detalle2 += `1. Precio de bolsa (I1): ${stPr.label}. El precio de hoy es $${d.precioBolsa.toFixed(2)} COP/kWh. `;
+    if (d.precioBolsa < pei) detalle2 += `Está por debajo del precio de escasez inferior ($${pei.toFixed(0)}), nivel cómodo.`;
+    else if (d.precioBolsa < pe) detalle2 += `Supera el piso de $${pei.toFixed(0)} pero no llega al precio de escasez de $${pe.toFixed(0)}.`;
+    else if (d.precioBolsa < pes) detalle2 += `Ya superó el precio de escasez de $${pe.toFixed(0)}. Hay estrés en el mercado.`;
+    else detalle2 += `Superó el precio de escasez superior de $${pes.toFixed(0)}. Nivel crítico.`;
+
+    detalle2 += `\n\n2. Sostenibilidad hidráulica (I2): ${indiceI2 ?? 'sin datos'}. `;
+    if (hidroPct != null && dailyAportes && dailyAportes > 0) {
+      const ratio = (hidroPct / 100) * d.generacionGwh / dailyAportes;
+      detalle2 += `Mide qué tanta generación hidráulica (${hidroPct.toFixed(1)}% del total, ${((hidroPct/100)*d.generacionGwh).toFixed(1)} GWh) hay frente al agua que está llegando a los embalses (${dailyAportes.toFixed(1)} GWh hoy). `;
+      detalle2 += `El resultado es un ratio de ${ratio.toFixed(2)}. `;
+      if (ratio <= 1.0) detalle2 += `Como es menor o igual a 1.0, se considera sostenible: hay más agua llegando de la que se está usando.`;
+      else if (ratio <= 1.2) detalle2 += `Como está entre 1.0 y 1.2, se considera en vigilancia: se está usando un poco más de agua de la que está llegando.`;
+      else if (ratio <= 1.5) detalle2 += `Como está entre 1.2 y 1.5, se considera en alerta: se está usando bastante más agua de la que está llegando.`;
+      else detalle2 += `Como es mayor a 1.5, se considera crítico: se está usando mucha más agua de la que está llegando a los embalses.`;
+    } else {
+      detalle2 += `No hay suficientes datos de generación hidráulica o de aportes para calcular este indicador.`;
+    }
+
+    detalle2 += `\n\n3. Estrés térmico (I3): ${indiceI3 ?? 'sin datos'}. `;
+    if (termicaPct != null) {
+      detalle2 += `Hoy las plantas térmicas generaron el ${termicaPct.toFixed(1)}% del total. `;
+      if (termicaPct <= 15) detalle2 += `Como es 15% o menos, se considera sostenible: el sistema no depende de las térmicas.`;
+      else if (termicaPct <= 25) detalle2 += `Como está entre 15% y 25%, se considera normal.`;
+      else if (termicaPct <= 35) detalle2 += `Como está entre 25% y 35%, se considera en alerta media: hay una dependencia creciente de las térmicas.`;
+      else detalle2 += `Como es mayor a 35%, se considera crítico: el sistema depende demasiado de las térmicas, lo cual es costoso y menos eficiente.`;
+    } else {
+      detalle2 += `No hay datos de generación térmica para este día.`;
+    }
+
+    detalle2 += `\n\nDe los tres indicadores, el peor es "${stGen.label}", y ese es el estado que se muestra.`;
+    return detalle2;
+  }
+
+  const tGeneracionChip = buildTGeneracionChip();
+
+  const tGeneracionTrend =
+    chGeneracion != null
+      ? `La generación ${chGeneracion > 0 ? 'aumentó' : 'disminuyó'} ${Math.abs(chGeneracion).toFixed(1)}% con respecto al promedio de los últimos 7 días. ` +
+        (chGeneracion > 0 ? 'Puede ser por mayor demanda o por buenas condiciones de generación.' : 'Puede ser por menor demanda o por dificultades en la generación.')
+      : `Se compara la generación de hoy con el promedio de la última semana.`;
+
+  return (
+    <div className="relative w-full h-full flex flex-col items-center justify-center bg-theme-primary overflow-hidden">
+      <TopAccent color="#3B82F6" />
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-blue-900/10 pointer-events-none" />
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[60%] h-[30%] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="relative z-10 flex flex-col items-center w-full max-w-7xl px-6 xl:px-8 gap-2 xl:gap-4">
+        {/* Header con diagnóstico dinámico */}
+        <div className="text-center">
+          <SectionBadge label="Gestión del Sector" pulse dot="#EF4444" titleColorClass="text-title-energia" category="energia" />
+          <p className="text-theme-secondary text-xs xl:text-sm font-medium">{diagnostico}</p>
+          <p className="text-slate-600 text-[10px] xl:text-xs mt-0.5">
+            {d.ultimaEjecucionETL
+              ? `ETL sector energético · última ejecución: ${d.ultimaEjecucionETL}`
+              : d.ultimaActualizacion
+              ? `Datos en tiempo real de XM · últimos datos: ${d.ultimaActualizacion}`
+              : "Datos en tiempo real de XM"}
+          </p>
+        </div>
+
+        {/* KPIs — 2 columnas */}
+        <div className="grid grid-cols-2 w-full gap-3">
+          <KpiBlock
+            label="Precio de Bolsa (PPP)"
+            value={`$${d.precioBolsa.toFixed(2)}`}
+            unit="COP/kWh"
+            date={d.fechaPrecio}
+            valueClass="text-gold"
+            chipLabel={stPr.label}
+            chipColor={stPr.color}
+            tendencia={d.tendencias?.precio}
+            metrica="precio"
+            valueTitle={tPrecioValor}
+            chipTitle={tPrecioChip}
+            trendTitle={tPrecioTrend}
+          />
+          <KpiBlock
+            label="Energía Generada"
+            value={d.generacionGwh.toFixed(2)}
+            unit="GWh"
+            date={d.fechaGeneracion}
+            valueClass="text-cyan-400"
+            chipLabel={stGen.label}
+            chipColor={stGen.color}
+            tendencia={d.tendencias?.generacion}
+            metrica="generacion"
+            valueTitle={tGeneracionValor}
+            chipTitle={tGeneracionChip}
+            trendTitle={tGeneracionTrend}
+          />
+        </div>
+
+        {/* Gráficos — 2 columnas: Precio | Generación */}
         {hasDetalle && (
-          <div className="grid grid-cols-1 md:grid-cols-[3fr_3fr_4fr] w-full gap-2 xl:gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 w-full gap-2 xl:gap-3">
             {/* Precio de Bolsa (PPP) - Línea */}
             {hasPrecioSeries && (
               <div className="flex flex-col">
                 <p className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Precio de Bolsa (PPP) · Tendencia</p>
-                <div className="h-[16vh] min-h-[90px] max-h-[160px]">
+                <div className="h-[20vh] min-h-[110px] max-h-[200px]">
                   <ResponsiveLine
                     data={detalle!.precioBolsaSeries}
                     theme={getNivoTheme(isDark)}
@@ -1021,7 +1151,7 @@ function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; 
             {/* Generación por Fuente - Donut */}
             <div className="flex flex-col items-center">
               <p className="text-[10px] text-theme-muted uppercase tracking-wider mb-1 self-start">Generación por Fuente</p>
-              <div className="relative h-[12vh] min-h-[70px] max-h-[120px] w-full">
+              <div className="relative h-[16vh] min-h-[90px] max-h-[160px] w-full">
                 <ResponsivePie
                   data={detalle!.generacionPorFuente}
                   theme={getNivoTheme(isDark)}
@@ -1059,18 +1189,6 @@ function SlideGestionSector({ d, detalle }: { d: HomeSliderProps["sectorData"]; 
                 ))}
               </div>
             </div>
-
-            {/* Hidrología: Capacidad Embalse SIN (gráfico de área histórico) */}
-            <div className="flex flex-col">
-              <p className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Capacidad Embalse</p>
-              {embalseData ? (
-                <CapacidadEmbalseChart data={embalseData} height={220} />
-              ) : (
-                <div className="flex items-center justify-center h-[22vh] min-h-[140px] max-h-[220px] text-slate-600 text-xs">
-                  Cargando embalses…
-                </div>
-              )}
-            </div>
           </div>
         )}
       </div>
@@ -1083,12 +1201,24 @@ function SlideGeneracionTermica({ d }: { d: TermicaSliderData }) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme !== "light";
   const stTerm = estadoI3Termica(d.generacionTermica.participacionPct);
-  const stEsc  = estadoPrecio(d.precios.escasez.valor);
   const stPPP  = estadoPrecio(d.precios.ppp.valor);
   const pct    = d.generacionTermica.participacionPct;
-  const pei    = PRECIO_ESCASEZ_PEI_REF_2026_01;
-  const pe     = PRECIO_ESCASEZ_PE_REF_2026_01;
-  const pes    = PRECIO_ESCASEZ_PES_REF_2026_01;
+  // PES (precio de escasez superior) ya viene en vivo en d.precios.escasez.valor
+  // (Res. CREG 101 066/2024 Art. 3). PEI (precio de escasez inferior, Art. 4)
+  // viene en vivo en d.precios.pei; "pe" ya no es un umbral CREG independiente
+  // desde 2024, se mantiene como punto medio solo para la escala visual de 4 tramos.
+  const pes    = d.precios.escasez.valor;
+  const pei    = d.precios.pei ?? PRECIO_ESCASEZ_PEI_REF_2026_01;
+  const pe     = (pei + pes) / 2;
+  // Condición Crítica (Art. 1, Res. CREG 101 066/2024): se activa cuando el
+  // precio de bolsa supera alguno de los precios de escasez vigentes.
+  const pppVsPei = d.precios.ppp.valor > pei;
+  const pppVsPes = d.precios.ppp.valor > pes;
+  const stEsc = pppVsPes
+    ? { label: "ACTIVACIÓN TOTAL", color: "#EF4444" }
+    : pppVsPei
+    ? { label: "ACTIVACIÓN PARCIAL", color: "#F59E0B" }
+    : { label: "SIN ACTIVACIÓN", color: "#22C55E" };
 
   // ── Diagnóstico dinámico ────────────────────────────────────────────────────
   function buildDiagnostico(): string {
@@ -1109,20 +1239,12 @@ function SlideGeneracionTermica({ d }: { d: TermicaSliderData }) {
     texto += `Las plantas térmicas cubren el ${pct.toFixed(1)}% de la generación total del SIN hoy. `;
 
     if (pppActual < escActual) {
-      texto += `El PPP diario ($${pppActual.toFixed(0)} COP/kWh) está por debajo del precio de escasez ($${escActual.toFixed(0)} COP/kWh), lo que indica que no se han activado los mecanismos de cargo por confiabilidad. `;
+      texto += `El PPP diario ($${pppActual.toFixed(0)} COP/kWh) está por debajo del precio de escasez superior ($${escActual.toFixed(0)} COP/kWh), lo que indica que no se han activado los mecanismos de cargo por confiabilidad. `;
     } else {
-      texto += `El PPP diario ($${pppActual.toFixed(0)} COP/kWh) superó el precio de escasez ($${escActual.toFixed(0)} COP/kWh), señal de estrés en el mercado energético. `;
+      texto += `El PPP diario ($${pppActual.toFixed(0)} COP/kWh) superó el precio de escasez superior ($${escActual.toFixed(0)} COP/kWh), señal de estrés en el mercado energético. `;
     }
 
-    if (pct <= 25 && pppActual < escActual) {
-      texto += "Operación dentro de los parámetros normales del SIN.";
-    } else if (pct > 35 || pppActual >= escActual) {
-      texto += "Se recomienda monitoreo continuo de la situación.";
-    } else {
-      texto += "Seguimiento recomendado para los próximos días.";
-    }
-
-    return texto;
+    return texto.trim();
   }
 
   const diagnostico = buildDiagnostico();
@@ -1152,46 +1274,46 @@ function SlideGeneracionTermica({ d }: { d: TermicaSliderData }) {
           : 'Una reducción es positiva: el sistema está dependiendo menos de combustibles fósiles.')
       : 'Compara la generación térmica de hoy con el promedio de la última semana.';
 
-  // ── Tooltip strings — Precio de Escasez ────────────────────────────────────
-  const tEscasezValor =
-    `El precio de escasez actual es $${d.precios.escasez.valor.toFixed(2)} COP/kWh (publicado por la CREG, se actualiza cada mes). ` +
-    `Cuando el PPP diario supera este valor, los generadores cobran el cargo por confiabilidad a este precio. ` +
-    `La escala de clasificación usa tres umbrales regulatorios: ` +
-    `piso inferior $${pei.toFixed(0)}, umbral principal $${pe.toFixed(0)}, umbral superior $${pes.toFixed(0)} COP/kWh.`;
-
+  // ── Tooltip strings — Precio de Escasez (PES) ──────────────────────────────
   const escVal = d.precios.escasez.valor;
+  const pppVal = d.precios.ppp.valor;
+  const tEscasezValor =
+    `El precio de escasez superior (PES) vigente es $${escVal.toFixed(2)} COP/kWh — es el techo regulatorio ` +
+    `que la Resolución CREG 101 066/2024 (Art. 3) fija para las compras en bolsa de las plantas térmicas de gas ` +
+    `y combustibles líquidos, calculado con la metodología de la Resolución CREG 140/2017. También existe un ` +
+    `precio de escasez inferior (PEI) de $${pei.toFixed(2)} COP/kWh (Art. 4), que aplica a las plantas con ` +
+    `renovables o carbón. Cuando el precio de bolsa supera alguno de estos dos precios, se activa la Condición ` +
+    `Crítica del Cargo por Confiabilidad.`;
+
   const tEscasezChip =
-    escVal < pei
-      ? `BAJO (< $${pei.toFixed(0)} COP/kWh). El precio de escasez actual de $${escVal.toFixed(0)} ` +
-        `está por debajo del piso de la escala regulatoria ($${pei.toFixed(0)} COP/kWh). ` +
-        `El mercado opera en condición cómoda.`
-      : escVal < pe
-      ? `VIGILANCIA ($${pei.toFixed(0)} – $${pe.toFixed(0)} COP/kWh). El precio de escasez de $${escVal.toFixed(0)} ` +
-        `está entre el piso y el umbral principal. El PPP diario se acerca al rango de activación del cargo por confiabilidad.`
-      : escVal < pes
-      ? `ALTA PRESIÓN ($${pe.toFixed(0)} – $${pes.toFixed(0)} COP/kWh). El precio de escasez de $${escVal.toFixed(0)} ` +
-        `superó el umbral principal ($${pe.toFixed(0)} COP/kWh). Si el PPP diario supera este valor, ` +
-        `los generadores cobran el cargo por confiabilidad.`
-      : `TECHO REGULATORIO (> $${pes.toFixed(0)} COP/kWh). El precio de escasez de $${escVal.toFixed(0)} ` +
-        `superó el umbral superior ($${pes.toFixed(0)} COP/kWh), el nivel más alto de la escala regulatoria. ` +
-        `La energía está en su momento más costoso del período.`;
+    pppVsPes
+      ? `ACTIVACIÓN TOTAL. El precio de bolsa (${pppVal.toFixed(0)}) superó el precio de escasez superior ` +
+        `($${pes.toFixed(0)}) — se hacen exigibles las Obligaciones de Energía Firme de todas las plantas, ` +
+        `incluidas las de gas y líquidos, y la demanda paga como techo el precio de escasez superior, no el precio de ` +
+        `bolsa negociado (Res. CREG 101 066/2024, Art. 55).`
+      : pppVsPei
+      ? `ACTIVACIÓN PARCIAL. El precio de bolsa (${pppVal.toFixed(0)}) superó el precio de escasez inferior ` +
+        `($${pei.toFixed(0)}) pero no el superior ($${pes.toFixed(0)}) — solo se activan las Obligaciones de ` +
+        `Energía Firme de las plantas con renovables o carbón (Res. CREG 101 066/2024, Art. 4).`
+      : `SIN ACTIVACIÓN. El precio de bolsa (${pppVal.toFixed(0)}) está por debajo del precio de escasez ` +
+        `inferior ($${pei.toFixed(0)}) — no se ha activado ningún mecanismo del Cargo por Confiabilidad; ` +
+        `la demanda paga el precio de bolsa.`;
 
   const tEscasezTrend =
     d.precios.escasez.tendencia?.cambio7d != null
-      ? `El precio de escasez ${d.precios.escasez.tendencia.cambio7d > 0 ? 'subió' : 'bajó'} ${Math.abs(d.precios.escasez.tendencia.cambio7d).toFixed(1)}% con respecto al promedio de los últimos 7 días.`
-      : 'Variación del precio de escasez respecto al promedio de la última semana.';
+      ? `El precio de escasez superior (PES) ${d.precios.escasez.tendencia.cambio7d > 0 ? 'subió' : 'bajó'} ${Math.abs(d.precios.escasez.tendencia.cambio7d).toFixed(1)}% con respecto al promedio de los últimos 7 días.`
+      : 'Variación del precio de escasez superior (PES) respecto al promedio de la última semana.';
 
   // ── Tooltip strings — PPP Diario ────────────────────────────────────────────
   const escActual = d.precios.escasez.valor;
   const tPPPValor =
     `El PPP diario de hoy es $${d.precios.ppp.valor.toFixed(2)} COP/kWh. ` +
     `Es el precio promedio ponderado al que se negoció la energía en la bolsa colombiana hoy. ` +
-    `La referencia clave es el precio de escasez actual ($${escActual.toFixed(0)} COP/kWh): ` +
+    `La referencia clave es el precio de escasez superior (PES) actual ($${escActual.toFixed(0)} COP/kWh): ` +
     (d.precios.ppp.valor < escActual
       ? `el PPP está por debajo, por lo que no se activó el cargo por confiabilidad.`
       : `el PPP ya lo superó — los generadores están cobrando el cargo por confiabilidad.`);
 
-  const pppVal = d.precios.ppp.valor;
   const tPPPChip =
     pppVal < pei
       ? `BAJO (< $${pei.toFixed(0)} COP/kWh). El PPP de $${pppVal.toFixed(0)} está por debajo del piso de ` +
@@ -1204,16 +1326,16 @@ function SlideGeneracionTermica({ d }: { d: TermicaSliderData }) {
       ? `ALTA PRESIÓN ($${pe.toFixed(0)} – $${pes.toFixed(0)} COP/kWh). El PPP de $${pppVal.toFixed(0)} ` +
         `superó el umbral principal ($${pe.toFixed(0)} COP/kWh). ` +
         (pppVal < escActual
-          ? `Sin embargo, está por debajo del precio de escasez vigente ($${escActual.toFixed(0)} COP/kWh), ` +
+          ? `Sin embargo, está por debajo del precio de escasez superior (PES) vigente ($${escActual.toFixed(0)} COP/kWh), ` +
             `por lo que el cargo por confiabilidad no se activó hoy.`
-          : `Además supera el precio de escasez vigente ($${escActual.toFixed(0)} COP/kWh), ` +
+          : `Además supera el precio de escasez superior (PES) vigente ($${escActual.toFixed(0)} COP/kWh), ` +
             `por lo que el cargo por confiabilidad se activó hoy.`)
       : `TECHO REGULATORIO (> $${pes.toFixed(0)} COP/kWh). El PPP de $${pppVal.toFixed(0)} ` +
         `superó el umbral superior ($${pes.toFixed(0)} COP/kWh). ` +
         (pppVal < escActual
-          ? `Está por debajo del precio de escasez vigente ($${escActual.toFixed(0)} COP/kWh) — ` +
+          ? `Está por debajo del precio de escasez superior (PES) vigente ($${escActual.toFixed(0)} COP/kWh) — ` +
             `el cargo por confiabilidad no se activó.`
-          : `También superó el precio de escasez vigente ($${escActual.toFixed(0)} COP/kWh) — ` +
+          : `También superó el precio de escasez superior (PES) vigente ($${escActual.toFixed(0)} COP/kWh) — ` +
             `los generadores cobran cargo por confiabilidad.`);
 
   const tPPPTrend =
@@ -1251,17 +1373,18 @@ function SlideGeneracionTermica({ d }: { d: TermicaSliderData }) {
 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center bg-theme-primary overflow-hidden">
-      <TopAccent color="#EF4444" />
-      <div className="absolute inset-0 bg-gradient-to-br from-red-900/10 via-transparent to-slate-900/10 pointer-events-none" />
+      <TopAccent color="#3B82F6" />
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-900/15 via-transparent to-slate-900/10 pointer-events-none" />
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[50%] h-[25%] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative z-10 flex flex-col items-center w-full max-w-7xl px-6 xl:px-8 gap-2 xl:gap-4">
         <div className="text-center">
-          <SectionBadge label="Generación Térmica" pulse dot="#EF4444" />
+          <SectionBadge label="Generación Térmica" pulse dot="#EF4444" titleColorClass="text-title-energia" category="energia" />
           <p className="text-theme-secondary text-xs xl:text-sm font-medium">{diagnostico}</p>
           <p className="text-slate-600 text-[10px] xl:text-xs mt-0.5">Datos XM · sector_energetico</p>
         </div>
 
-        <div className="grid grid-cols-4 w-full divide-x divide-theme-primary/20">
+        <div className="grid grid-cols-4 w-full gap-2">
           <KpiBlock
             label="Energía Térmica"
             value={d.generacionTermica.gwh.toFixed(2)}
@@ -1277,13 +1400,13 @@ function SlideGeneracionTermica({ d }: { d: TermicaSliderData }) {
             trendTitle={tTermicaTrend}
           />
 
-          {/* Precio Escasez */}
+          {/* Precio Escasez Superior (PES) */}
           <div
-            className={`flex flex-col items-center justify-center text-center gap-0.5 px-2 transition-opacity duration-300 ${
+            className={`flex flex-col items-center justify-center text-center gap-0.5 px-2 py-2 bg-theme-secondary border border-card-energia rounded-xl transition-opacity duration-300 ${
               d.precios.mayor === "escasez" ? "opacity-100" : "opacity-40"
             }`}
           >
-            <p className="text-theme-muted text-lg xl:text-xl 2xl:text-2xl uppercase tracking-[0.2em] font-medium">Precio Escasez</p>
+            <p className="text-theme-muted text-lg xl:text-xl 2xl:text-2xl uppercase tracking-[0.2em] font-medium">Precio Escasez Superior (PES)</p>
             <div
               className="inline-flex items-center gap-2 font-black text-3xl xl:text-4xl leading-none text-theme-primary"
               title={tEscasezValor}
@@ -1305,7 +1428,7 @@ function SlideGeneracionTermica({ d }: { d: TermicaSliderData }) {
 
           {/* PPP Diario */}
           <div
-            className={`flex flex-col items-center justify-center text-center gap-0.5 px-2 transition-opacity duration-300 ${
+            className={`flex flex-col items-center justify-center text-center gap-0.5 px-2 py-2 bg-theme-secondary border border-card-energia rounded-xl transition-opacity duration-300 ${
               d.precios.mayor === "ppp" ? "opacity-100" : "opacity-40"
             }`}
           >
@@ -1516,7 +1639,7 @@ function SlidePresupuesto({ d }: { d: HomeSliderProps["presuData"] }) {
 
       <div className="relative z-10 w-full h-full max-w-7xl px-4 xl:px-8 py-3 overflow-y-auto flex flex-col items-center justify-center gap-3">
         <div className="text-center">
-          <SectionBadge label="Ejecución Presupuestal 2026" dot="#F59E0B" />
+          <SectionBadge label="Ejecución Presupuestal 2026" dot="#3B82F6" titleColorClass="text-title-energia" category="energia" />
           <p className="text-theme-muted text-base xl:text-lg">
             Ejecución de proyectos DEE — corte {fmtCortePresupuesto(d.ultimaActualizacion)}
           </p>
@@ -1527,7 +1650,7 @@ function SlidePresupuesto({ d }: { d: HomeSliderProps["presuData"] }) {
           <p className="text-theme-muted text-lg xl:text-xl uppercase tracking-[0.2em] font-medium mb-1">
             Apropiación Pptal DEE
           </p>
-          <div className="text-4xl xl:text-5xl 2xl:text-6xl font-black text-gold leading-none">
+          <div className="text-4xl xl:text-5xl 2xl:text-6xl font-black text-emerald-400 leading-none">
             {fmtFull(apropiacion)}
           </div>
         </div>
@@ -1536,14 +1659,14 @@ function SlidePresupuesto({ d }: { d: HomeSliderProps["presuData"] }) {
         <div className="w-full max-w-4xl">
           <div className="h-4 xl:h-5 bg-theme-tertiary rounded-full overflow-hidden flex">
             <div
-              className="h-full bg-gradient-to-r from-red-700 to-red-500 transition-all duration-1000 relative group cursor-pointer shrink-0"
+              className="h-full bg-gradient-to-r from-blue-700 to-blue-500 transition-all duration-1000 relative group cursor-pointer shrink-0"
               style={{ width: `${pct_obligado}%` }}
               title={`Obligado (legalizado): ${pct_obligado.toFixed(2)}%`}
             >
               <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
             <div
-              className="h-full bg-gradient-to-r from-amber-600 to-amber-400 transition-all duration-1000 relative group cursor-pointer shrink-0"
+              className="h-full bg-gradient-to-r from-violet-600 to-violet-400 transition-all duration-1000 relative group cursor-pointer shrink-0"
               style={{ width: `${pctCompNoObl}%` }}
               title={`Comprometido restante (aún no obligado): ${pctCompNoObl.toFixed(2)}%\nTotal comprometido: ${pct_comprometido.toFixed(2)}%`}
             >
@@ -1558,7 +1681,7 @@ function SlidePresupuesto({ d }: { d: HomeSliderProps["presuData"] }) {
             </div>
           </div>
           <div className="flex justify-between mt-2 text-sm xl:text-base">
-            <span className="text-gold font-semibold">
+            <span className="text-emerald-400 font-semibold">
               {pct_comprometido.toFixed(2)}% Comp. ({pct_obligado.toFixed(1)}% obl.)
             </span>
             <span className="text-slate-500">
@@ -1603,13 +1726,13 @@ function SlideComunidades({ d, depts }: { d: HomeSliderProps["cemData"]; depts?:
 
       <div className="relative z-10 w-full h-full max-w-7xl px-4 xl:px-8 py-3 overflow-y-auto flex flex-col items-center justify-center gap-3">
         <div className="text-center">
-          <SectionBadge label="Comunidades Energéticas" dot="#10B981" />
+          <SectionBadge label="Comunidades Energéticas" dot="#3B82F6" titleColorClass="text-title-energia" category="energia" />
           <p className="text-theme-muted text-base xl:text-lg">
             Transición energética · Acceso a energía limpia
           </p>
         </div>
 
-        <div className="grid grid-cols-3 w-full divide-x divide-theme-primary/20">
+        <div className="grid grid-cols-3 w-full gap-3">
           <KpiBlock
             label="CE Implementadas"
             value={fmtNum(d.implementadas)}
@@ -1620,7 +1743,7 @@ function SlideComunidades({ d, depts }: { d: HomeSliderProps["cemData"]; depts?:
             label="Inversión Estimada"
             value={fmtFull(d.inversionEstimada)}
             unit="En proyectos activos"
-            valueClass="text-gold"
+            valueClass="text-violet-400"
           />
           <KpiBlock
             label="Capacidad Instalada"
@@ -1692,13 +1815,13 @@ function SlideContratosOR({ d }: { d: HomeSliderProps["orData"] }) {
 
       <div className="relative z-10 w-full h-full max-w-7xl px-4 xl:px-8 py-3 overflow-y-auto flex flex-col items-center justify-center gap-3">
         <div className="text-center">
-          <SectionBadge label="Contratos OR 2025" dot="#8B5CF6" />
+          <SectionBadge label="Contratos OR 2025" dot="#3B82F6" titleColorClass="text-title-energia" category="energia" />
           <p className="text-theme-muted text-base xl:text-lg">
             Obras de Reconexión · Energía Rural Colombiana
           </p>
         </div>
 
-        <div className="grid grid-cols-3 w-full divide-x divide-theme-primary/20">
+        <div className="grid grid-cols-3 w-full gap-3">
           <KpiBlock
             label="Contratos Activos"
             value={fmtNum(d.nContratos)}
@@ -1708,20 +1831,21 @@ function SlideContratosOR({ d }: { d: HomeSliderProps["orData"] }) {
             label="Usuarios Beneficiados"
             value={fmtNum(d.nUsuarios)}
             unit="hogares"
-            valueClass="text-gold"
+            valueClass="text-teal-400"
           />
           <KpiBlock
             label="N° Comunidades"
             value={fmtNum(d.nCEs)}
             unit="CEs beneficiadas"
-            valueClass="text-blue-400"
+            valueClass="text-emerald-400"
           />
         </div>
 
         {/* SemiGauges */}
         <div className="flex justify-around w-full max-w-3xl">
           <SemiGauge rawValue={d.avanceFinanciero} label="Avance Financiero" color="gold" size="xl" delay={0.3} />
-          <SemiGauge rawValue={d.avanceGeneral} label="Avance General" color="success" size="xl" delay={0.4} />
+          <SemiGauge rawValue={d.avanceFisico} label="Avance Físico" color="warning" size="xl" delay={0.35} />
+          <SemiGauge rawValue={d.avanceGeneral} label="Avance Documental" color="success" size="xl" delay={0.4} />
         </div>
       </div>
     </div>
@@ -1778,14 +1902,14 @@ function SlideSubsidios({ d, deficitFssri, deficitSeries, subBarData }: { d: Hom
 
       <div className="relative z-10 w-full h-full max-w-7xl px-4 xl:px-8 py-3 overflow-y-auto flex flex-col items-center justify-center gap-3">
         <div className="text-center">
-          <SectionBadge label="Subsidios Energéticos" dot="#EF4444" />
+          <SectionBadge label="Subsidios Energéticos" dot="#3B82F6" titleColorClass="text-title-energia" category="energia" />
           <p className="text-theme-muted text-base xl:text-lg">
             Seguimiento a la deuda del fondo de subsidios — corte {d.ultimaActualizacion ?? "1 de abril 2026"}
           </p>
         </div>
 
         {/* Fila superior: APROPIADO 2026, ASIGNADO 2026, DISPONIBLE 2026 */}
-        <div className="grid grid-cols-3 w-full divide-x divide-theme-primary/20">
+        <div className="grid grid-cols-3 w-full gap-3">
           <KpiBlock
             label="APROPIADO 2026"
             value={fmtFull(totalApropiado)}
@@ -1804,15 +1928,15 @@ function SlideSubsidios({ d, deficitFssri, deficitSeries, subBarData }: { d: Hom
         </div>
 
         {/* Fila inferior: RESOLUCIONES 2026 y PENDIENTE DE PAGO 2026 */}
-        <div className="grid grid-cols-2 w-full divide-x divide-theme-primary/20">
+        <div className="grid grid-cols-2 w-full gap-3">
           <KpiBlock
             label="RESOLUCIONES 2026"
             value={fmtNum(d.anio2026.resoluciones)}
             unit="expedidas"
-            valueClass="text-gold"
+            valueClass="text-cyan-400"
           />
           {/* KPI Pendiente de pago 2026 con barra de porcentaje integrada - mismo estilo que KpiBlock */}
-          <div className="flex flex-col items-center justify-center text-center gap-0.5 px-4">
+          <div className="flex flex-col items-center justify-center text-center gap-0.5 px-2 py-2 bg-theme-secondary border border-card-energia rounded-xl">
             <p className="text-theme-muted text-lg xl:text-xl 2xl:text-2xl uppercase tracking-[0.2em] font-medium">
               PENDIENTE DE PAGO 2026
             </p>
@@ -1986,15 +2110,14 @@ function SlideNoticia({
   fetchedAt?: string | null;
   tag?: string;
 }) {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme !== "light";
   const title = news.titulo ?? news.title ?? "Noticia del sector energético";
   const imageUrl = news.imagen ?? news.image ?? null;
+  const isEnergia = tag !== "HIDROCARBUROS";
 
   return (
     <div className="relative w-full h-full flex items-center bg-theme-primary overflow-hidden">
-      <TopAccent color="#3B82F6" />
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-slate-900/10 pointer-events-none" />
+      <TopAccent color={isEnergia ? "#3B82F6" : "#D97706"} />
+      <div className={`absolute inset-0 bg-gradient-to-br ${isEnergia ? "from-blue-900/20" : "from-amber-900/20"} via-transparent to-slate-900/10 pointer-events-none`} />
 
       {/* Imagen de fondo si existe */}
       {imageUrl && (
@@ -2025,24 +2148,7 @@ function SlideNoticia({
               </svg>
               Noticia {index + 1} de {total}
             </span>
-            {tag && (() => {
-              const isEnergia = tag === "ENERGÍA";
-              const bgClass = isEnergia
-                ? (isDark ? "bg-blue-900/40 border-blue-600/40 text-blue-400" : "bg-blue-100 border-blue-300 text-blue-700")
-                : (isDark ? "bg-amber-900/40 border-amber-600/40 text-gold" : "bg-amber-100 border-amber-300 text-amber-700");
-              return (
-                <span className={`inline-flex items-center px-3 py-1.5 ${bgClass} rounded-full text-sm xl:text-base font-bold tracking-wider uppercase`}>
-                  <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    {isEnergia ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                    )}
-                  </svg>
-                  {tag}
-                </span>
-              );
-            })()}
+            {tag && <CategoryTag category={isEnergia ? "energia" : "hidrocarburos"} size="md" />}
             {news.fuente && (
               <span className="text-slate-500 text-sm xl:text-base">{news.fuente}</span>
             )}
@@ -2069,7 +2175,11 @@ function SlideNoticia({
               href={news.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-3 px-6 py-3 bg-amber-500/10 border border-amber-500/30 rounded-full text-gold hover:bg-amber-500/20 hover:border-amber-500/60 transition-all text-lg xl:text-xl font-semibold"
+              className={`inline-flex items-center gap-3 px-6 py-3 rounded-full transition-all text-lg xl:text-xl font-semibold border ${
+                isEnergia
+                  ? "bg-blue-500/10 border-blue-500/30 text-title-energia hover:bg-blue-500/20 hover:border-blue-500/60"
+                  : "bg-amber-500/10 border-amber-500/30 text-title-hidrocarburos hover:bg-amber-500/20 hover:border-amber-500/60"
+              }`}
             >
               Leer noticia completa
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -2134,7 +2244,8 @@ function NavArrow({
 
 // ─── Slide definitions metadata ────────────────────────────────────────────────
 const SLIDE_META = [
-  { id: "sector",      label: "Sector",      color: "#3B82F6", href: "/energia"      },
+  { id: "reservas-embalses", label: "Reservas y Embalses", color: "#3B82F6", href: "/energia/predicciones" },
+  { id: "precio-generacion", label: "Precio y Generación", color: "#3B82F6", href: "/energia"             },
   { id: "termica",     label: "Térmica",     color: "#3B82F6", href: "/energia"      },
   { id: "presupuesto", label: "Presupuesto", color: "#3B82F6", href: "/presupuesto"  },
   { id: "comunidades", label: "Comunidades", color: "#3B82F6", href: "/comunidades"  },
@@ -2145,7 +2256,7 @@ const SLIDE_META = [
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function HomeSlider(props: HomeSliderProps) {
-  const { sectorData, sectorDetalle, termicaData, presuData, cemData, cemDepts, orData, supData, subData, deficitFssri, deficitSeries, subBarData } = props;
+  const { sectorData, sectorDetalle, termicaData, presuData, cemData, cemDepts, orData, supData, subData, deficitFssri, deficitSeries, subBarData, hidroPresuData, hidroProdData } = props;
 
   const {
     current,
@@ -2159,16 +2270,18 @@ export default function HomeSlider(props: HomeSliderProps) {
     handlePrev,
     handleNext,
     setPaused,
-  } = useHomeSlider(0); // NOTE: Slides de Redes Sociales X suspendidos temporalmente.
+  } = useHomeSlider(2); // 2 slides fijos de Hidrocarburos (Presupuesto + Producción/WTI-BRENT).
+  // NOTE: Slides de Redes Sociales X suspendidos temporalmente.
   // Motivo: X (Twitter) bloquea embeds gratuitos con HTTP 429.
   // Reactivar cuando haya presupuesto para API paga (TwitterAPI.io ~$10-20/mes).
-  // Para reactivar: cambiar useHomeSlider(0) → useHomeSlider(3) y descomentar
+  // Para reactivar: cambiar useHomeSlider(2) → useHomeSlider(5) y descomentar
   // los dots y renderSlide de redes sociales más abajo.
 
   // Render slide content
   function renderSlide(idx: number) {
-    if (idx === 0) return <SlideGestionSector d={sectorData} detalle={sectorDetalle} />;
-    if (idx === 1) {
+    if (idx === 0) return <SlideReservasEmbalses d={sectorData} />;
+    if (idx === 1) return <SlidePrecioGeneracion d={sectorData} detalle={sectorDetalle} />;
+    if (idx === 2) {
       if (!termicaData) {
         return (
           <div className="w-full h-full flex items-center justify-center bg-theme-primary text-theme-muted">
@@ -2178,12 +2291,12 @@ export default function HomeSlider(props: HomeSliderProps) {
       }
       return <SlideGeneracionTermica d={termicaData} />;
     }
-    if (idx === 2) return <SlidePresupuesto d={presuData} />;
-    if (idx === 3) return <SlideComunidades d={cemData} depts={cemDepts} />;
-    if (idx === 4) return <SlideContratosOR d={orData} />;
-    if (idx === 5) return <SlideSupervision d={supData} />;
-    if (idx === 6) return <SlideSubsidios d={subData} deficitFssri={deficitFssri} deficitSeries={deficitSeries} subBarData={subBarData} />;
-    const newsIdx = idx - 7;
+    if (idx === 3) return <SlidePresupuesto d={presuData} />;
+    if (idx === 4) return <SlideComunidades d={cemData} depts={cemDepts} />;
+    if (idx === 5) return <SlideContratosOR d={orData} />;
+    if (idx === 6) return <SlideSupervision d={supData} />;
+    if (idx === 7) return <SlideSubsidios d={subData} deficitFssri={deficitFssri} deficitSeries={deficitSeries} subBarData={subBarData} />;
+    const newsIdx = idx - 8;
     if (news[newsIdx]) {
       return (
         <SlideNoticia
@@ -2196,7 +2309,7 @@ export default function HomeSlider(props: HomeSliderProps) {
       );
     }
     // Slides de hidrocarburos (después de noticias del sector)
-    const hydroIdx = idx - (7 + news.length);
+    const hydroIdx = idx - (8 + news.length);
     if (hydroNews[hydroIdx]) {
       return (
         <SlideNoticia
@@ -2208,13 +2321,17 @@ export default function HomeSlider(props: HomeSliderProps) {
         />
       );
     }
+    // Slides fijos de Hidrocarburos (después de las noticias de hidrocarburos)
+    const hidroBaseIdx = 8 + news.length + hydroNews.length;
+    if (idx === hidroBaseIdx) return <SlideHidrocarburosPresupuesto d={hidroPresuData} />;
+    if (idx === hidroBaseIdx + 1) return <SlideHidrocarburosProduccion d={hidroProdData} />;
     // ── SUSPENDIDO: Slides de Redes Sociales X ──
     // const redesIdx = idx - (6 + news.length);
     // if (redesIdx >= 0 && redesIdx <= 2) {
     //   const start = redesIdx * 3;
     //   return <SlideRedesX accounts={ALL_X_ACCOUNTS.slice(start, start + 3)} />;
     // }
-    // Para reactivar: descomentar el bloque de arriba y cambiar useHomeSlider(0) → (3)
+    // Para reactivar: descomentar el bloque de arriba y cambiar useHomeSlider(2) → (5)
     return null;
   }
 
@@ -2231,6 +2348,8 @@ export default function HomeSlider(props: HomeSliderProps) {
       label: `Hidrocarburos ${i + 1}`,
       color: "#D97706",
     })),
+    { id: "hidro-presupuesto", label: "Presupuesto Hidrocarburos", color: "#D97706" },
+    { id: "hidro-produccion", label: "Producción Hidrocarburos", color: "#D97706" },
     // ── SUSPENDIDO: Dots de Redes Sociales X ──
     // { id: "redes-x-1", label: "Redes 1", color: "#1DA1F2" },
     // { id: "redes-x-2", label: "Redes 2", color: "#1DA1F2" },
@@ -2241,8 +2360,6 @@ export default function HomeSlider(props: HomeSliderProps) {
     <section
       className="relative w-full overflow-hidden"
       style={{ height: "calc(100vh - 5rem)" }}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
       aria-label="Carrusel de indicadores clave del sector energético"
     >
       {/* Informes XM — visible en todos los slides */}
@@ -2284,6 +2401,26 @@ export default function HomeSlider(props: HomeSliderProps) {
           )}
         </div>
 
+        {/* Play/pause manual */}
+        <div className="flex items-center justify-center mb-3">
+          <button
+            onClick={() => setPaused(!paused)}
+            aria-label={paused ? "Reanudar carrusel" : "Pausar carrusel"}
+            className="w-8 h-8 xl:w-9 xl:h-9 flex items-center justify-center rounded-full bg-black/30 border border-white/10 text-white/60 hover:bg-black/60 hover:border-white/20 hover:text-white transition-all duration-200 backdrop-blur-sm"
+          >
+            {paused ? (
+              <svg className="w-3.5 h-3.5 xl:w-4 xl:h-4 ml-0.5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            ) : (
+              <svg className="w-3.5 h-3.5 xl:w-4 xl:h-4" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="5" width="4" height="14" rx="1" />
+                <rect x="14" y="5" width="4" height="14" rx="1" />
+              </svg>
+            )}
+          </button>
+        </div>
+
         {/* Dots */}
         <div className="flex items-center justify-center gap-2 xl:gap-3">
           {dots.map((dot, i) => (
@@ -2317,13 +2454,6 @@ export default function HomeSlider(props: HomeSliderProps) {
             </button>
           ))}
         </div>
-
-        {/* Paused indicator */}
-        {paused && (
-          <p className="text-center text-slate-600 text-xs mt-2 tracking-widest">
-            ⏸ PAUSADO
-          </p>
-        )}
       </div>
 
       {/* ── Slide counter (top right) ── */}

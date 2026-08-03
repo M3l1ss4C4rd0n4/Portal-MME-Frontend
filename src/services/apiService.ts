@@ -4,6 +4,14 @@
  */
 
 import type { NewsItem } from "@/types/home-slider";
+import type {
+  Departamento,
+  ResumenDepartamento,
+  ResultadoBusquedaTexto,
+  Empresa,
+  VecindarioEmpresa,
+  SaludDatos,
+} from "@/types/ontologia";
 
 /* ─── Error estandarizado ───────────────────────────────────────────────── */
 
@@ -283,6 +291,51 @@ export async function fetchValidaciones(): Promise<ValidacionesData> {
 
 export async function fetchFenoge(): Promise<FenogeData> {
   return apiGet<FenogeData>("/api/fenoge");
+}
+
+/* ─── Ontología (Fase 1/2 Palantir-IA) ──────────────────────────────────── */
+
+export async function fetchDepartamentos(): Promise<{ departamentos: Departamento[] }> {
+  return apiGet<{ departamentos: Departamento[] }>("/api/ontologia/geografia");
+}
+
+export async function fetchResumenDepartamento(
+  codigoDaneDepartamento: string
+): Promise<ResumenDepartamento> {
+  return apiGet<ResumenDepartamento>(
+    `/api/ontologia/geografia/${encodeURIComponent(codigoDaneDepartamento)}/resumen`
+  );
+}
+
+export async function buscarTextoContratos(
+  query: string,
+  topK = 5
+): Promise<{ consulta: string; resultados: ResultadoBusquedaTexto[] }> {
+  return apiGet<{ consulta: string; resultados: ResultadoBusquedaTexto[] }>(
+    `/api/ontologia/buscar-texto?q=${encodeURIComponent(query)}&top_k=${topK}`
+  );
+}
+
+export async function buscarEmpresas(
+  params: { nit?: string; nombre?: string }
+): Promise<{ empresas: Empresa[] }> {
+  const qs = params.nit
+    ? `nit=${encodeURIComponent(params.nit)}`
+    : `nombre=${encodeURIComponent(params.nombre ?? "")}`;
+  return apiGet<{ empresas: Empresa[] }>(`/api/ontologia/empresas?${qs}`);
+}
+
+export async function fetchVecindarioEmpresa(
+  empresaId: number,
+  limit = 50
+): Promise<VecindarioEmpresa> {
+  return apiGet<VecindarioEmpresa>(
+    `/api/ontologia/grafo/empresa/${empresaId}?limit=${limit}`
+  );
+}
+
+export async function fetchSaludDatos(): Promise<SaludDatos> {
+  return apiGet<SaludDatos>("/api/ontologia/salud");
 }
 
 export async function fetchNoticias(): Promise<NoticiasResponse> {

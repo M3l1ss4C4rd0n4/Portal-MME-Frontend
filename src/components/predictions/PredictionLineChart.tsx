@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { ResponsiveLine } from "@nivo/line";
 import { getNivoTheme } from "@/lib/nivo-theme";
 import { useTheme } from "@/providers/ThemeProvider";
+import { classifyOni } from "@/lib/oni";
 import type { PredictionPoint } from "@/types/predictions";
 
 // Climate indicator normalization — all mapped to the lower 0-40% of the chart
@@ -91,11 +92,13 @@ export default function PredictionLineChart({
   }, [data, isDark, showConfidence, hasOni]);
 
   const markers = useMemo(() => {
+    const textStyle = { fill: isDark ? "#F1F5F9" : "#0F172A" };
     const list: Array<{
       axis: "x";
       value: string;
       lineStyle: object;
       legend?: string;
+      textStyle: object;
     }> = [];
     if (threshold80Date) {
       list.push({
@@ -107,6 +110,7 @@ export default function PredictionLineChart({
           strokeDasharray: "6,4",
         },
         legend: "Meta 80%",
+        textStyle,
       });
     }
     if (peakDate) {
@@ -119,10 +123,11 @@ export default function PredictionLineChart({
           strokeDasharray: "6,4",
         },
         legend: "Pico proyectado",
+        textStyle,
       });
     }
     return list;
-  }, [peakDate, threshold80Date]);
+  }, [peakDate, threshold80Date, isDark]);
 
   const tickValues = useMemo(() => {
     const step = Math.max(1, Math.floor(data.length / 10));
@@ -206,28 +211,9 @@ export default function PredictionLineChart({
             "es-CO",
             { day: "numeric", month: "long", year: "numeric" }
           );
-          const oniColor =
-            d.oni != null
-              ? d.oni >= 1.5
-                ? "#EF4444"
-                : d.oni >= 0.5
-                ? "#F97316"
-                : d.oni <= -0.5
-                ? "#38BDF8"
-                : "#94A3B8"
-              : "#94A3B8";
-          const oniLabel =
-            d.oni != null
-              ? d.oni >= 1.5
-                ? "El Niño fuerte"
-                : d.oni >= 0.5
-                ? "El Niño"
-                : d.oni <= -1.5
-                ? "La Niña fuerte"
-                : d.oni <= -0.5
-                ? "La Niña"
-                : "Neutral"
-              : null;
+          const oniClass = classifyOni(d.oni);
+          const oniColor = oniClass?.color ?? "#94A3B8";
+          const oniLabel = oniClass?.label ?? null;
           return (
             <div
               className="rounded-lg border px-3 py-2 text-xs shadow-xl min-w-[160px]"

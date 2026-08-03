@@ -1,6 +1,6 @@
 # CODEMAP COMPLETO — Portal Dirección MME + Servidor
 
-> **Generado:** 2026-05-25 · **Grafo unificado:** `graphify-out/merged-full-graph.json` (6.236 nodos, 13.987 aristas)
+> **Generado:** 2026-05-25 · **Última actualización:** 2026-08-02 · **Grafo unificado:** `graphify-out/merged-full-graph.json` (7.950 nodos, 19.535 aristas)
 > **Consulta rápida:** `graphify query "<tema>" --graph graphify-out/merged-full-graph.json --budget 2000`
 > **Docs TF-IDF:** `python3 ~/search_docs.py "<pregunta>"` (748 fragmentos, 23 docs)
 
@@ -67,6 +67,10 @@
 | `/subsidios` | Subsidios DEE | `SlideSubsidios.tsx` |
 | `/supervision` | Supervisión | `SlideSupervision.tsx` |
 | `/validaciones` | Validaciones | — |
+| `/energia/predicciones` | Predicciones hidrológicas de embalses (ONI/El Niño) | componentes en `src/components/predictions/` |
+| `/energia/informes` | Explorador de boletines e informes XM | — |
+| `/colombia-solar` | Curvas S del programa Colombia Solar | componentes en `src/components/colombia-solar/` |
+| `/hidrocarburos` | Presupuesto y exploración de hidrocarburos (jul-2026, en construcción) | `SlideHidrocarburosPresupuesto.tsx`, `SlideHidrocarburosProduccion.tsx` |
 
 ### BFF API Routes (`src/app/api/`)
 
@@ -92,6 +96,8 @@
 | `/api/chatbot` | backendGet | `/v1/chatbot` |
 | `/api/colombia-solar/curva-s` | backendGet | colombia-solar PM2 |
 | `/api/health` | local | health check |
+| `/api/hidrocarburos` | backendGet | `/v1/hidrocarburos` (jul-2026) |
+| `/api/ontologia` | backendGet | `/v1/ontologia` (jul-2026) |
 
 > **Regla BFF:** Si dudas → `backendGet()`. Ver `.knowledge/bff-patterns.md`
 
@@ -136,6 +142,9 @@
 | `system.py` / `observability.py` | Health, métricas |
 | `internal.py` | Endpoints internos |
 | `reports.py` | Informes ejecutivos |
+| `ontologia.py` | Ontología de datos unificada (dimensiones geografía/empresa/proyecto) + RAG (jul-2026) |
+| `sector_despacho.py` | Despacho diario XM (jul-2026) |
+| `riesgo.py` | Servicio de riesgo (jul-2026) |
 
 ### Domain Services (`domain/services/`)
 
@@ -155,6 +164,9 @@
 | `ai_service.py` | Integración LLM |
 | `news_service.py` | Noticias sector |
 | `report_service.py` | PDFs/informes |
+| `ontologia_service.py` | Capa de ontología unificada + embeddings RAG (jul-2026) |
+| `asistente_ia_service.py` | Asistente conversacional del portal (jul-2026) |
+| `graph_service.py` / `risk_service.py` | Explorador de relaciones / análisis de riesgo (jul-2026) |
 
 ### ETL Pipeline (`etl/`)
 
@@ -172,6 +184,10 @@
 | `etl_nuevos_dashboards.py` | On-demand | Varios |
 | `etl_tarifas_or_mensual.py` | Mensual | OR tarifas |
 | `etl_anomalies_pnt.py` | Celery Beat | Anomalías PNT |
+| `etl_hidrocarburos.py` | Diario | Excel manual + scraping La República (WTI/Brent) |
+| `etl_commodities_larepublica.py` | Cada 24h (6:30 AM) | Scraping precio petróleo WTI/Brent |
+| `etl_despacho_diario.py` | Diario | Despacho XM (PDF, vía `despacho_pdf_parser.py`) |
+| `etl_senda_referencia.py` | On-demand | Senda de referencia (vía `senda_pdf_parser.py`) |
 
 ---
 
@@ -190,6 +206,7 @@
 | `sector_energetico` | Métricas sector |
 | `colombia_solar` | Curva S solar |
 | `public` | Tablas compartidas (metrics, etc.) |
+| `ontologia` | Capa semántica de solo lectura: dimensiones geografía/empresa/proyecto, vistas materializadas, embeddings RAG y linaje de datos (jul-2026, en evolución) |
 
 > ⚠️ `metrics_hourly` >32GB — usar MÉTODO D, nunca `COUNT(*)`. Ver `./verify-table-snapshot.sh`
 

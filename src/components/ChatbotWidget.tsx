@@ -28,8 +28,13 @@ interface Pos { x: number; y: number; }
 const FAB_SIZE = 56;
 const FAB_GAP = 10;
 const FAB_STACK_OFFSET = FAB_SIZE + FAB_GAP;
+// Botones apilados por encima del botón del chatbot en el stack (InformeEmpalmeFab,
+// ResumenEjecutivoFab, PanoramaInformeFab) — el contenedor debe desplazarse hacia
+// arriba un FAB_STACK_OFFSET por cada uno de estos para no empujar el botón del
+// chatbot (último del stack) fuera de la ventana visible.
+const FABS_ABOVE_CHATBOT = 3;
 
-const PORTAL_SHORT = 'Portal de Dirección MME';
+const PORTAL_SHORT = 'Portal Viceministerio de Energía';
 
 const MAIN_MENU: BotBtn[] = [
   { label: '📊 Gestión del sector',          intent: '__gestion_menu' },
@@ -317,7 +322,7 @@ function LoadingDots() {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 const WELCOME_TEXT =
-  '¡Hola! 👋 Soy el asistente del **Portal de Dirección de Despacho del Viceministro de Minas y Energía**.\n\n' +
+  '¡Hola! 👋 Soy el asistente del **Portal Viceministerio de Energía**.\n\n' +
   'Consulto los mismos tableros del portal, organizados en capítulos:\n\n' +
   '**Cap. 1 — Gestión del sector (XM):** estado, predicciones y anomalías\n' +
   '**Cap. 2 — Comunidades:** implementadas, Contratos OR, Fenoge y Colombia Solar\n' +
@@ -353,11 +358,18 @@ export default function ChatbotWidget() {
 
   // ── Init position ───────────────────────────────────────
   useEffect(() => {
+    const W = window.innerWidth, H = window.innerHeight;
     const saved = localStorage.getItem('chatbot-pos');
     if (saved) {
-      try { setBtnPos(JSON.parse(saved)); } catch { /* ignore */ }
+      try {
+        const p = JSON.parse(saved) as Pos;
+        setBtnPos({
+          x: Math.max(8, Math.min(p.x, W - FAB_SIZE - 8)),
+          y: Math.max(FABS_ABOVE_CHATBOT * FAB_STACK_OFFSET + 8, Math.min(p.y, H - FAB_SIZE - 8)),
+        });
+      } catch { /* ignore */ }
     } else {
-      setBtnPos({ x: window.innerWidth - 76, y: window.innerHeight - 90 });
+      setBtnPos({ x: W - 76, y: H - 90 });
     }
     setReady(true);
   }, []);
@@ -373,8 +385,12 @@ export default function ChatbotWidget() {
   }, [isOpen, freeMode]);
 
   // ── Drag ─────────────────────────────────────────────────
+  // No capturamos el puntero en pointerdown: hacerlo incondicionalmente en el
+  // contenedor rompe el evento "click" nativo del botón hijo sobre el que se
+  // presionó (Chromium no lo sintetiza igual con el puntero capturado por un
+  // ancestro) — eso dejaba el chat y los 3 FABs sin responder al clic. Solo
+  // capturamos una vez se confirma que es un arrastre real (>4px de movimiento).
   const onPointerDown = useCallback((e: React.PointerEvent) => {
-    e.currentTarget.setPointerCapture(e.pointerId);
     dragRef.current = { active: true, startX: e.clientX, startY: e.clientY, origX: btnPos.x, origY: btnPos.y, moved: false };
   }, [btnPos]);
 
@@ -382,13 +398,20 @@ export default function ChatbotWidget() {
     if (!dragRef.current.active) return;
     const dx = e.clientX - dragRef.current.startX;
     const dy = e.clientY - dragRef.current.startY;
-    if (Math.abs(dx) + Math.abs(dy) > 4) dragRef.current.moved = true;
-    setBtnPos({ x: dragRef.current.origX + dx, y: dragRef.current.origY + dy });
+    if (!dragRef.current.moved && Math.abs(dx) + Math.abs(dy) > 4) {
+      dragRef.current.moved = true;
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
+    if (dragRef.current.moved) {
+      setBtnPos({ x: dragRef.current.origX + dx, y: dragRef.current.origY + dy });
+    }
   }, []);
 
   const onPointerUp = useCallback((e: React.PointerEvent) => {
     if (!dragRef.current.active) return;
     dragRef.current.active = false;
+    if (!dragRef.current.moved) return; // clic simple: dejar que el onClick del botón actúe normal
+
     e.currentTarget.releasePointerCapture(e.pointerId);
 
     // Clamp inside viewport (btnPos = esquina del botón chatbot)
@@ -396,7 +419,7 @@ export default function ChatbotWidget() {
     setBtnPos(p => {
       const clamped = {
         x: Math.max(8, Math.min(p.x, W - FAB_SIZE - 8)),
-        y: Math.max(FAB_STACK_OFFSET + 8, Math.min(p.y, H - FAB_SIZE - 8)),
+        y: Math.max(FABS_ABOVE_CHATBOT * FAB_STACK_OFFSET + 8, Math.min(p.y, H - FAB_SIZE - 8)),
       };
       localStorage.setItem('chatbot-pos', JSON.stringify(clamped));
       return clamped;
@@ -728,7 +751,7 @@ export default function ChatbotWidget() {
         style={{
           position: 'fixed',
           left: btnPos.x,
-          top: btnPos.y - FAB_STACK_OFFSET,
+          top: btnPos.y - FABS_ABOVE_CHATBOT * FAB_STACK_OFFSET,
           zIndex: 9999,
           touchAction: 'none',
           userSelect: 'none',

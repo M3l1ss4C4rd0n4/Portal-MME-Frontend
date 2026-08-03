@@ -8,7 +8,7 @@ import { ResponsiveLine } from "@nivo/line";
 import { ResponsivePie } from "@nivo/pie";
 import { ResponsiveBar } from "@nivo/bar";
 import CapacidadEmbalseChart from "@/components/charts/CapacidadEmbalseChart";
-import { Zap, Droplets, TrendingUp, AlertTriangle, Waves, Database } from "lucide-react";
+import { Zap, Droplets, TrendingUp, AlertTriangle, Waves, Database, ShieldAlert, GitBranch, ArrowLeftRight, Wrench, Clock } from "lucide-react";
 import PdfDownloadButton from "@/components/PdfDownloadButton";
 import { useTheme } from "@/providers/ThemeProvider";
 
@@ -191,6 +191,30 @@ export default function GestionSectorPage() {
 
   const [loading, setLoading] = useState(true);
 
+  // ── Estado: datos operativos (demanda no atendida, restricciones, intercambios) ──
+  interface MetricaConTendencia {
+    fecha: string | null;
+    actual: number;
+    hace7d: number | null;
+    cambio7d: number | null;
+    unidad: string | null;
+  }
+  const [operativas, setOperativas] = useState<{
+    demandaNoAtendida: { programada: MetricaConTendencia; noProgramada: MetricaConTendencia };
+    restricciones: { aliviadas: MetricaConTendencia; sinAliviar: MetricaConTendencia };
+    intercambios: { exportaciones: MetricaConTendencia; importaciones: MetricaConTendencia };
+  } | null>(null);
+
+  // ── Estado: seguimiento al despacho (disponibilidad de plantas + predespacho) ──
+  const [despacho, setDespacho] = useState<{
+    disponibilidad: {
+      fecha: string | null;
+      totalRecursosDispMenor100: number | null;
+      plantas: Array<{ recurso: string; tipo: string }>;
+    };
+    precioPredespachoIdeal: Array<{ fecha: string; precioCopKwh: number }>;
+  } | null>(null);
+
   // ── Estado: datos para gráfico de capacidad de embalses ───────────────
   const [capacidadEmbalseData, setCapacidadEmbalseData] = useState<any>(null);
   const [capacidadEmbalseLoading, setCapacidadEmbalseLoading] = useState(true);
@@ -198,13 +222,21 @@ export default function GestionSectorPage() {
   // ── Cargar datos reales ───────────────────────────────────────────────
   useEffect(() => {
     Promise.all([
-      fetch("/api/sector").then((r) => r.json()).catch(() => null),
-      fetch("/api/sector/detalle").then((r) => r.json()).catch(() => null),
-      fetch("/api/embalses/capacidad-historica?dias=120").then((r) => r.json()).catch(() => null),
-    ]).then(([snap, det, cap]) => {
+      fetch("/api/sector/").then((r) => r.json()).catch(() => null),
+      fetch("/api/sector/detalle/").then((r) => r.json()).catch(() => null),
+      fetch("/api/embalses/capacidad-historica/?dias=120").then((r) => r.json()).catch(() => null),
+      fetch("/api/sector/operativas/").then((r) => r.json()).catch(() => null),
+      fetch("/api/sector/despacho/").then((r) => r.json()).catch(() => null),
+    ]).then(([snap, det, cap, oper, desp]) => {
       setCapacidadEmbalseLoading(false);
       if (cap && !cap.error) {
         setCapacidadEmbalseData(cap);
+      }
+      if (oper && !oper.error) {
+        setOperativas(oper);
+      }
+      if (desp && !desp.error) {
+        setDespacho(desp);
       }
       setLoading(false);
 
@@ -307,9 +339,17 @@ export default function GestionSectorPage() {
       }));
   }, [sectorDetalle.aportesRios]);
 
+  // Fallback "ahora" solo se calcula en el cliente tras montar — evaluar
+  // `new Date()` directamente en el render causa mismatch de hidratación
+  // (el servidor y el cliente lo calculan en milisegundos distintos).
+  const [ahoraFallback, setAhoraFallback] = useState("");
+  useEffect(() => {
+    setAhoraFallback(fmtDate(new Date()));
+  }, []);
+
   const updateTime = sectorSnapshot.ultimaActualizacion
     ? fmtDate(sectorSnapshot.ultimaActualizacion)
-    : fmtDate(new Date());
+    : ahoraFallback;
 
   return (
     <div className="min-h-screen bg-theme-primary pt-20">
@@ -950,6 +990,247 @@ export default function GestionSectorPage() {
                     </div>
                   );
                 })}
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── Row 6: Confiabilidad del Sistema (demanda no atendida, restricciones, intercambios) ── */}
+        {operativas && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
+            className="mt-6"
+          >
+            <div className="mb-3">
+              <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
+                Confiabilidad del Sistema
+              </span>
+              <p className="text-[10px] text-theme-muted mt-0.5">
+                Datos operativos de XM · sección de prueba, aún no incorporada al home
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Demanda No Atendida */}
+              <div className="bg-dash-chip rounded-xl p-4 border border-white/5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-bold tracking-widest text-theme-muted uppercase">
+                    Demanda No Atendida
+                  </span>
+                  <ShieldAlert className="w-4 h-4 text-red-400" />
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-bold text-theme-primary">
+                    {operativas.demandaNoAtendida.programada.actual.toFixed(1)}
+                  </span>
+                  <span className="text-[10px] text-theme-muted">
+                    {operativas.demandaNoAtendida.programada.unidad ?? "MWh"} programada
+                  </span>
+                </div>
+                <p className="text-[9px] text-theme-muted">
+                  {operativas.demandaNoAtendida.programada.fecha
+                    ? `Corte: ${operativas.demandaNoAtendida.programada.fecha}`
+                    : "Sin datos"}
+                </p>
+                <div className="flex items-baseline gap-1 mt-2">
+                  <span className="text-lg font-bold text-red-400">
+                    {operativas.demandaNoAtendida.noProgramada.actual.toFixed(1)}
+                  </span>
+                  <span className="text-[10px] text-theme-muted">
+                    {operativas.demandaNoAtendida.noProgramada.unidad ?? "MWh"} no programada
+                  </span>
+                </div>
+                <p className="text-[9px] text-theme-muted">
+                  {operativas.demandaNoAtendida.noProgramada.fecha
+                    ? `Corte: ${operativas.demandaNoAtendida.noProgramada.fecha}`
+                    : "Sin datos"}
+                </p>
+              </div>
+
+              {/* Restricciones */}
+              <div className="bg-dash-chip rounded-xl p-4 border border-white/5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-bold tracking-widest text-theme-muted uppercase">
+                    Restricciones del Sistema
+                  </span>
+                  <GitBranch className="w-4 h-4 text-amber-400" />
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-bold text-theme-primary">
+                    {operativas.restricciones.aliviadas.actual.toFixed(1)}
+                  </span>
+                  <span className="text-[10px] text-theme-muted">
+                    {operativas.restricciones.aliviadas.unidad ?? "—"} aliviadas
+                  </span>
+                </div>
+                <p className="text-[9px] text-theme-muted">
+                  {operativas.restricciones.aliviadas.fecha
+                    ? `Corte: ${operativas.restricciones.aliviadas.fecha}`
+                    : "Sin datos"}
+                </p>
+                <div className="flex items-baseline gap-1 mt-2">
+                  <span className="text-lg font-bold text-amber-400">
+                    {operativas.restricciones.sinAliviar.actual.toFixed(1)}
+                  </span>
+                  <span className="text-[10px] text-theme-muted">
+                    {operativas.restricciones.sinAliviar.unidad ?? "—"} sin aliviar
+                  </span>
+                </div>
+                <p className="text-[9px] text-theme-muted">
+                  {operativas.restricciones.sinAliviar.fecha
+                    ? `Corte: ${operativas.restricciones.sinAliviar.fecha}`
+                    : "Sin datos"}
+                </p>
+              </div>
+
+              {/* Intercambios internacionales */}
+              <div className="bg-dash-chip rounded-xl p-4 border border-white/5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-bold tracking-widest text-theme-muted uppercase">
+                    Intercambios (Ecuador)
+                  </span>
+                  <ArrowLeftRight className="w-4 h-4 text-cyan-400" />
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-bold text-theme-primary">
+                    {operativas.intercambios.exportaciones.actual.toFixed(1)}
+                  </span>
+                  <span className="text-[10px] text-theme-muted">
+                    {operativas.intercambios.exportaciones.unidad ?? "MWh"} exportados
+                  </span>
+                </div>
+                <p className="text-[9px] text-theme-muted">
+                  {operativas.intercambios.exportaciones.fecha
+                    ? `Corte: ${operativas.intercambios.exportaciones.fecha}`
+                    : "Sin datos"}
+                </p>
+                <div className="flex items-baseline gap-1 mt-2">
+                  <span className="text-lg font-bold text-cyan-400">
+                    {operativas.intercambios.importaciones.actual.toFixed(1)}
+                  </span>
+                  <span className="text-[10px] text-theme-muted">
+                    {operativas.intercambios.importaciones.unidad ?? "MWh"} importados
+                  </span>
+                </div>
+                <p className="text-[9px] text-theme-muted">
+                  {operativas.intercambios.importaciones.fecha
+                    ? `Corte: ${operativas.intercambios.importaciones.fecha}`
+                    : "Sin datos"}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── Row 7: Seguimiento al Despacho (disponibilidad de plantas + predespacho ideal) ── */}
+        {despacho && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.9 }}
+            className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-5"
+          >
+            {/* Disponibilidad de plantas */}
+            <div className="bg-dash-chip rounded-xl p-5 border border-white/5">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
+                    Disponibilidad de Plantas
+                  </span>
+                  <p className="text-[10px] text-theme-muted mt-0.5">
+                    Informe XM · Seguimiento de Despacho
+                    {despacho.disponibilidad.fecha ? ` · para ${despacho.disponibilidad.fecha}` : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Wrench className="w-4 h-4 text-amber-400" />
+                  <span className="text-lg font-bold text-theme-primary">
+                    {despacho.disponibilidad.totalRecursosDispMenor100 ?? "—"}
+                  </span>
+                  <span className="text-[9px] text-theme-muted">con disp. &lt;100%</span>
+                </div>
+              </div>
+              {despacho.disponibilidad.plantas.length > 0 ? (
+                <div className="flex flex-col gap-1.5 max-h-[220px] overflow-y-auto">
+                  {despacho.disponibilidad.plantas.map((p) => (
+                    <div
+                      key={p.recurso}
+                      className="flex items-center justify-between gap-2 bg-theme-primary/40 rounded-lg px-3 py-1.5"
+                    >
+                      <span className="text-xs text-theme-secondary truncate">{p.recurso}</span>
+                      <span
+                        className={`shrink-0 text-[9px] font-bold px-2 py-0.5 rounded-full border ${
+                          p.tipo === "MANTENIMIENTO"
+                            ? "bg-blue-500/10 text-blue-400 border-blue-500/30"
+                            : "bg-red-500/10 text-red-400 border-red-500/30"
+                        }`}
+                      >
+                        {p.tipo === "MANTENIMIENTO" ? "MANTENIMIENTO" : "SIN REGISTRO"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-theme-muted py-6 text-center">
+                  Sin plantas indisponibles reportadas
+                </p>
+              )}
+            </div>
+
+            {/* Precio predespacho ideal */}
+            <div className="bg-dash-chip rounded-xl p-5 border border-white/5 flex flex-col">
+              <div className="mb-3">
+                <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
+                  Precio Predespacho Ideal
+                </span>
+                <p className="text-[10px] text-theme-muted mt-0.5">
+                  Promedio diario COP/kWh · incluye proyección a mañana
+                </p>
+              </div>
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                {despacho.precioPredespachoIdeal.map((p) => (
+                  <div key={p.fecha} className="bg-theme-primary/40 rounded-lg p-2 text-center">
+                    <p className="text-[9px] text-theme-muted">{p.fecha}</p>
+                    <p className="text-sm font-bold text-gold">${p.precioCopKwh.toFixed(1)}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="relative flex-1 min-h-[140px]">
+                <div className="absolute inset-0">
+                  <ResponsiveLine
+                    data={[{
+                      id: "COP/kWh",
+                      color: "#F59E0B",
+                      data: despacho.precioPredespachoIdeal.map((p) => ({ x: p.fecha, y: p.precioCopKwh })),
+                    }]}
+                    theme={T}
+                    margin={{ top: 10, right: 15, bottom: 25, left: 45 }}
+                    xScale={{ type: "point" }}
+                    yScale={{ type: "linear", min: "auto", max: "auto" }}
+                    curve="monotoneX"
+                    enablePoints
+                    pointSize={6}
+                    enableGridX={false}
+                    axisTop={null}
+                    axisRight={null}
+                    axisBottom={{ tickSize: 0, tickPadding: 8 }}
+                    axisLeft={{ tickSize: 0, tickValues: 4, tickPadding: 8 }}
+                    colors={["#F59E0B"]}
+                    lineWidth={2.5}
+                    enableArea
+                    areaOpacity={0.15}
+                    useMesh
+                    tooltip={({ point }) => (
+                      <div className="nt">
+                        <div className="text-theme-muted mb-0.5">{String(point.data.x)}</div>
+                        <div className="text-gold font-bold">
+                          ${Number(point.data.y).toFixed(2)} COP/kWh
+                        </div>
+                      </div>
+                    )}
+                  />
+                </div>
+              </div>
             </div>
           </motion.div>
         )}

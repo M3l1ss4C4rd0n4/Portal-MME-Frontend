@@ -7,6 +7,8 @@ import { ResponsiveBar } from "@nivo/bar";
 import * as XLSX from 'xlsx';
 import { useTheme } from "@/providers/ThemeProvider";
 import DashboardLayout from "@/components/DashboardLayout";
+import { useGeoFilter } from "@/context/GeoFilterContext";
+import { fetchDepartamentos } from "@/services/apiService";
 
 const ComunidadesMap = dynamic(() => import("./ComunidadesMap"), {
   ssr: false,
@@ -172,9 +174,22 @@ interface FuenteRow {
   capacidad: number;
   inversion: number;
 }
-interface FinanciaRow {
-  fuente: string;
+interface ZonaRow {
+  zona: string;
   count: number;
+  capacidad: number;
+  inversion: number;
+}
+interface EtniaRow {
+  etnia: string;
+  count: number;
+  capacidad: number;
+  inversion: number;
+}
+interface EjecutorRow {
+  ejecutor: string;
+  count: number;
+  capacidad: number;
   inversion: number;
 }
 interface StatsFechas {
@@ -195,39 +210,37 @@ interface ComunidadesData {
   avgUsuarios: number | null;
   avgBeneficiarios: number | null;
   avgInversion: number | null;
-  inversionFinal: number;
-  conInversionFinal: number;
-  conFechaOperacion: number;
   porDepartamento: DptoRow[];
   detalleZona: DetalleZona[];
   porEstado: EstadoRow[];
   porTipoCE: TipoCERow[];
   porFuenteEnergia: FuenteRow[];
-  porFuenteFinanciacion: FinanciaRow[];
+  porZona: ZonaRow[];
+  porEtnia: EtniaRow[];
+  porEjecutor: EjecutorRow[];
   statsFechas: StatsFechas;
   puntos: CePunto[];
   porMunicipio: Record<string, MuniRow[]>;
   deptAvgs: Record<string, DeptAvg>;
 }
 const DEFAULT: ComunidadesData = {
-  implementadas: 469,
-  inversionEstimada: 196125460067.64,
-  capacidadKwp: 11164.465,
-  usuariosEquiv: 20789,
-  beneficiariosEquiv: 128254.125,
-  avgCapacidad: 30.26,
-  avgUsuarios: 44.33,
-  avgBeneficiarios: 273.46,
-  avgInversion: 537330027.58,
-  inversionFinal: 64333029737.85,
-  conInversionFinal: 175,
-  conFechaOperacion: 19,
+  implementadas: 589,
+  inversionEstimada: 268894557486.09,
+  capacidadKwp: 81804.125,
+  usuariosEquiv: 24716,
+  beneficiariosEquiv: 263952.7,
+  avgCapacidad: 138.89,
+  avgUsuarios: 41.96,
+  avgBeneficiarios: 448.14,
+  avgInversion: 1018539990.48,
   porDepartamento: [],
   detalleZona: [],
   porEstado: [],
   porTipoCE: [],
   porFuenteEnergia: [],
-  porFuenteFinanciacion: [],
+  porZona: [],
+  porEtnia: [],
+  porEjecutor: [],
   statsFechas: { min_registro: null, max_registro: null, min_operacion: null, max_operacion: null, con_registro: 0, con_operacion: 0 },
   puntos: [],
   porMunicipio: {},
@@ -264,9 +277,6 @@ export default function ComunidadesPage() {
           avgUsuarios: raw.avgUsuarios != null ? Number(raw.avgUsuarios) : DEFAULT.avgUsuarios,
           avgBeneficiarios: raw.avgBeneficiarios != null ? Number(raw.avgBeneficiarios) : DEFAULT.avgBeneficiarios,
           avgInversion: raw.avgInversion != null ? Number(raw.avgInversion) : DEFAULT.avgInversion,
-          inversionFinal: Number(raw.inversionFinal) || DEFAULT.inversionFinal,
-          conInversionFinal: Number(raw.conInversionFinal) || DEFAULT.conInversionFinal,
-          conFechaOperacion: Number(raw.conFechaOperacion) || DEFAULT.conFechaOperacion,
           porDepartamento: (raw.porDepartamento || []).map((d: any) => ({
             departamento: String(d.departamento),
             departamentoGeo: String(d.departamentoGeo),
@@ -293,8 +303,9 @@ export default function ComunidadesPage() {
             estado_actual: String(p.estado_actual || ""),
             tipo_ce: String(p.tipo_ce || ""),
             fuentes_energia: String(p.fuentes_energia || ""),
+            etnia: String(p.etnia || ""),
+            ejecutor: String(p.ejecutor || ""),
             inversion_estimada: p.inversion_estimada != null ? Number(p.inversion_estimada) : null,
-            inversion_final: p.inversion_final != null ? Number(p.inversion_final) : null,
           })),
           porMunicipio: Object.fromEntries(
             Object.entries(raw.porMunicipio || {}).map(([dept, munis]: [string, any]) => [
@@ -338,9 +349,22 @@ export default function ComunidadesPage() {
             capacidad: Number(e.capacidad) || 0,
             inversion: Number(e.inversion) || 0,
           })),
-          porFuenteFinanciacion: (raw.porFuenteFinanciacion || []).map((e: any) => ({
-            fuente: String(e.fuente || ""),
+          porZona: (raw.porZona || []).map((e: any) => ({
+            zona: String(e.zona || ""),
             count: Number(e.count) || 0,
+            capacidad: Number(e.capacidad) || 0,
+            inversion: Number(e.inversion) || 0,
+          })),
+          porEtnia: (raw.porEtnia || []).map((e: any) => ({
+            etnia: String(e.etnia || ""),
+            count: Number(e.count) || 0,
+            capacidad: Number(e.capacidad) || 0,
+            inversion: Number(e.inversion) || 0,
+          })),
+          porEjecutor: (raw.porEjecutor || []).map((e: any) => ({
+            ejecutor: String(e.ejecutor || ""),
+            count: Number(e.count) || 0,
+            capacidad: Number(e.capacidad) || 0,
             inversion: Number(e.inversion) || 0,
           })),
           statsFechas: {
@@ -361,8 +385,46 @@ export default function ComunidadesPage() {
   const [selectedEstado, setSelectedEstado] = useState<string | null>(null);
   const [selectedTipoCE, setSelectedTipoCE] = useState<string | null>(null);
   const [selectedFuente, setSelectedFuente] = useState<string | null>(null);
-  const [selectedFinancia, setSelectedFinancia] = useState<string | null>(null);
+  const [selectedZona, setSelectedZona] = useState<string | null>(null);
+  const [selectedEtnia, setSelectedEtnia] = useState<string | null>(null);
+  const [selectedEjecutor, setSelectedEjecutor] = useState<string | null>(null);
   const [selectedDept, setSelectedDept] = useState<string | null>(null);
+
+  // Filtro de departamento compartido entre dashboards (Fase 3). Mapeo
+  // nombre-normalizado <-> código DANE, para traducir entre el código que
+  // usa el contexto y el nombre que ya usa el filtro local de esta página.
+  const { codigoDaneDepartamento, setCodigoDaneDepartamento } = useGeoFilter();
+  const [deptCodeByName, setDeptCodeByName] = useState<Record<string, string>>({});
+  const [deptNameByCode, setDeptNameByCode] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    fetchDepartamentos()
+      .then((data) => {
+        const codeByName: Record<string, string> = {};
+        const nameByCode: Record<string, string> = {};
+        for (const d of data.departamentos) {
+          const key = normDeptKey(d.nombre_departamento);
+          codeByName[key] = d.codigo_dane_departamento;
+          nameByCode[d.codigo_dane_departamento] = key;
+        }
+        setDeptCodeByName(codeByName);
+        setDeptNameByCode(nameByCode);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Selecciona/limpia el departamento localmente y sincroniza el código DANE
+  // con el contexto compartido, para que otros dashboards que lo adopten
+  // (ej. Vista Departamental) hereden la misma selección.
+  function handleSelectDept(depto: string | null) {
+    setSelectedDept(depto);
+    if (depto === null) {
+      setCodigoDaneDepartamento(null);
+      return;
+    }
+    const codigo = deptCodeByName[normDeptKey(depto)];
+    if (codigo) setCodigoDaneDepartamento(codigo);
+  }
 
   // Leer parámetros de URL (para capturas Playwright con filtros)
   useEffect(() => {
@@ -370,30 +432,35 @@ export default function ComunidadesPage() {
     if (sp.has("estado"))       setSelectedEstado(sp.get("estado")!);
     if (sp.has("tipo"))         setSelectedTipoCE(sp.get("tipo")!);
     if (sp.has("fuente"))       setSelectedFuente(sp.get("fuente")!);
-    if (sp.has("financia"))     setSelectedFinancia(sp.get("financia")!);
+    if (sp.has("zona"))         setSelectedZona(sp.get("zona")!);
+    if (sp.has("etnia"))        setSelectedEtnia(sp.get("etnia")!);
+    if (sp.has("ejecutor"))     setSelectedEjecutor(sp.get("ejecutor")!);
     if (sp.has("departamento")) setSelectedDept(sp.get("departamento")!);
   }, []);
 
-  // ─── Datos filtrados (multi-filtro: estado, tipo, fuente, depto) ─────────
+
+  // ─── Datos filtrados (multi-filtro: estado, tipo, fuente, zona, etnia, ejecutor, depto) ─
   const filteredPuntos = useMemo(() => {
     let p = data.puntos;
     if (selectedEstado) p = p.filter(r => r.estado_actual === selectedEstado);
     if (selectedTipoCE) p = p.filter(r => r.tipo_ce === selectedTipoCE);
     if (selectedFuente) p = p.filter(r => r.fuentes_energia === selectedFuente);
+    if (selectedZona) p = p.filter(r => r.zona === selectedZona);
+    if (selectedEtnia) p = p.filter(r => r.etnia === selectedEtnia);
+    if (selectedEjecutor) p = p.filter(r => r.ejecutor === selectedEjecutor);
     if (selectedDept) p = p.filter(r => r.departamentoGeo === selectedDept);
     return p;
-  }, [data.puntos, selectedEstado, selectedTipoCE, selectedFuente, selectedDept]);
+  }, [data.puntos, selectedEstado, selectedTipoCE, selectedFuente, selectedZona, selectedEtnia, selectedEjecutor, selectedDept]);
 
   // KPIs desde puntos filtrados
   const kpiFiltrados = useMemo(() => {
     const len = filteredPuntos.length;
     const totalCap = filteredPuntos.reduce((s, r) => s + (r.capacidad ?? 0), 0);
     const totalInvEst = filteredPuntos.reduce((s, r) => s + (r.inversion_estimada ?? 0), 0);
-    const totalInvFin = filteredPuntos.reduce((s, r) => s + (r.inversion_final ?? 0), 0);
-    return { implementadas: len, capacidadKwp: totalCap, inversionEstimada: totalInvEst, inversionFinal: totalInvFin };
+    return { implementadas: len, capacidadKwp: totalCap, inversionEstimada: totalInvEst };
   }, [filteredPuntos]);
 
-  const hayFiltros = selectedEstado !== null || selectedTipoCE !== null || selectedFuente !== null || selectedDept !== null;
+  const hayFiltros = selectedEstado !== null || selectedTipoCE !== null || selectedFuente !== null || selectedZona !== null || selectedEtnia !== null || selectedEjecutor !== null || selectedDept !== null;
 
   // KPIs a mostrar
   const displayKpi = useMemo(() => {
@@ -403,7 +470,6 @@ export default function ComunidadesPage() {
       capacidadKwp: data.capacidadKwp,
       usuariosEquiv: data.usuariosEquiv,
       beneficiariosEquiv: data.beneficiariosEquiv,
-      inversionFinal: data.inversionFinal,
       avgInversion: data.avgInversion,
       avgCapacidad: data.avgCapacidad,
       avgUsuarios: data.avgUsuarios,
@@ -415,7 +481,6 @@ export default function ComunidadesPage() {
       capacidadKwp: kpiFiltrados.capacidadKwp,
       usuariosEquiv: data.usuariosEquiv,
       beneficiariosEquiv: data.beneficiariosEquiv,
-      inversionFinal: kpiFiltrados.inversionFinal,
       avgInversion: data.avgInversion,
       avgCapacidad: data.avgCapacidad,
       avgUsuarios: data.avgUsuarios,
@@ -487,6 +552,21 @@ export default function ComunidadesPage() {
     return result;
   }, [deptDesdePuntos]);
 
+  // Heredar el departamento del contexto compartido si esta página se abre sin
+  // filtro propio (ni URL) y otro dashboard (ej. Vista Departamental) ya dejó
+  // una selección activa. Busca el valor real de departamentoGeo (no el nombre
+  // normalizado del DANE) para no romper el filtro exacto `===` de más arriba.
+  useEffect(() => {
+    if (selectedDept !== null || !codigoDaneDepartamento) return;
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.has("departamento")) return;
+    const nombreNormalizado = deptNameByCode[codigoDaneDepartamento];
+    if (!nombreNormalizado) return;
+    const match = deptDesdePuntos.find(d => normDeptKey(d.departamentoGeo) === nombreNormalizado);
+    if (match) setSelectedDept(match.departamentoGeo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [codigoDaneDepartamento, deptNameByCode, deptDesdePuntos]);
+
   // Top N para charts — usa puntos filtrados si existen, si no cae en datos pre-agregados del API
   // Remapeo a tipo anónimo para compatibilidad con BarDatum de Nivo (evita restricción de index signature)
   const TOP_N_EST = 6;
@@ -528,17 +608,14 @@ export default function ComunidadesPage() {
   // Tabla a nivel municipio (cuando se selecciona un dpto)
   const muniTableData = useMemo(() => {
     if (!selectedDept || !data.puntos) return null;
-    const rows: Record<string, { count: number; capacidad: number; inversionEst: number; inversionFin: number }> = {};
+    const rows: Record<string, { count: number; capacidad: number; inversionEst: number }> = {};
     for (const p of data.puntos) {
       if (p.departamentoGeo !== selectedDept) continue;
       const mun = (p.municipio || "S/I").split(" ").map(w => w[0]+w.slice(1).toLowerCase()).join(" ");
-      if (!rows[mun]) rows[mun] = { count: 0, capacidad: 0, inversionEst: 0, inversionFin: 0 };
+      if (!rows[mun]) rows[mun] = { count: 0, capacidad: 0, inversionEst: 0 };
       rows[mun].count += 1;
       rows[mun].capacidad += p.capacidad ?? 0;
-      const invNum = typeof p.inversion_final === "number" ? p.inversion_final
-        : typeof p.inversion_estimada === "number" ? p.inversion_estimada : 0;
-      rows[mun].inversionEst += invNum;
-      rows[mun].inversionFin += typeof p.inversion_final === "number" ? p.inversion_final : 0;
+      rows[mun].inversionEst += p.inversion_estimada ?? 0;
     }
     return Object.entries(rows).map(([municipio, v]) => ({ municipio, ...v })).sort((a, b) => b.count - a.count);
   }, [selectedDept, data.puntos]);
@@ -550,7 +627,7 @@ export default function ComunidadesPage() {
   return (
     <DashboardLayout title="Comunidades Energéticas"
       downloadTablero="comunidades" subtitle={`Soluciones energéticas implementadas en zonas no interconectadas${ultimaActualizacion ? "  ·  Última actualización: " + ultimaActualizacion : ""}`}
-      downloadParams={{ estado: selectedEstado || '', tipo: selectedTipoCE || '', fuente: selectedFuente || '', financia: selectedFinancia || '', departamento: selectedDept || '' }}>
+      downloadParams={{ estado: selectedEstado || '', tipo: selectedTipoCE || '', fuente: selectedFuente || '', zona: selectedZona || '', etnia: selectedEtnia || '', ejecutor: selectedEjecutor || '', departamento: selectedDept || '' }}>
 
       {/* ── Row 1: KPIs ── */}
       <Card delay={0.05} className="mb-5">
@@ -572,6 +649,21 @@ export default function ComunidadesPage() {
                 Fuente: {selectedFuente.length > 20 ? selectedFuente.slice(0, 20) + '…' : selectedFuente}
               </span>
             )}
+            {selectedZona && (
+              <span className="text-[10px] bg-cyan-500/15 text-cyan-400 px-2.5 py-1 rounded-full border border-cyan-500/30">
+                Zona: {selectedZona}
+              </span>
+            )}
+            {selectedEtnia && (
+              <span className="text-[10px] bg-rose-500/15 text-rose-400 px-2.5 py-1 rounded-full border border-rose-500/30">
+                Etnia: {selectedEtnia}
+              </span>
+            )}
+            {selectedEjecutor && (
+              <span className="text-[10px] bg-lime-500/15 text-lime-400 px-2.5 py-1 rounded-full border border-lime-500/30">
+                Ejecutor: {selectedEjecutor.length > 20 ? selectedEjecutor.slice(0, 20) + '…' : selectedEjecutor}
+              </span>
+            )}
             {selectedDept && (
               <span className="flex items-center gap-1.5 text-[10px] bg-amber-500/15 text-gold px-2.5 py-1 rounded-full border border-amber-500/30">
                 <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"/></svg>
@@ -579,7 +671,7 @@ export default function ComunidadesPage() {
               </span>
             )}
             {hayFiltros && (
-              <button onClick={() => { setSelectedEstado(null); setSelectedTipoCE(null); setSelectedFuente(null); setSelectedFinancia(null); setSelectedDept(null); }}
+              <button onClick={() => { setSelectedEstado(null); setSelectedTipoCE(null); setSelectedFuente(null); setSelectedZona(null); setSelectedEtnia(null); setSelectedEjecutor(null); handleSelectDept(null); }}
                 className="text-[10px] text-theme-muted hover:text-red-400 transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10">
                 ✕ Limpiar filtros
               </button>
@@ -591,7 +683,6 @@ export default function ComunidadesPage() {
           <KpiChip label="Inversión Estimada" value={fmtCOP(displayKpi.inversionEstimada)} accent
             avg={displayKpi.avgInversion != null ? fmtCOP(displayKpi.avgInversion) : undefined}
             avgLabel="promedio / CE" />
-          <KpiChip label="Inversión Final" value={fmtCOP(displayKpi.inversionFinal)} accent />
           <KpiChip label="Capacidad Instalada" value={`${Math.round(displayKpi.capacidadKwp).toLocaleString("es-CO")} kWp`}
             avg={displayKpi.avgCapacidad != null ? `${Math.round(displayKpi.avgCapacidad)} kWp` : undefined}
             avgLabel="promedio / CE" />
@@ -602,20 +693,16 @@ export default function ComunidadesPage() {
             avg={displayKpi.avgBeneficiarios != null ? `${Math.round(displayKpi.avgBeneficiarios)} mil` : undefined}
             avgLabel="promedio / CE" />
         </div>
-        {data.conInversionFinal > 0 && (
+        {(data.statsFechas.con_operacion > 0 || data.statsFechas.con_registro > 0) && (
           <div className="flex gap-3 mt-3 flex-wrap">
             <span className="text-[10px] text-theme-muted">
-              {data.conInversionFinal} CEs con inversión final reportada
-            </span>
-            <span className="text-[10px] text-theme-muted">
-              {data.conFechaOperacion} CEs con fecha de operación
+              {data.statsFechas.con_operacion} CEs con fecha de operación
             </span>
             <span className="text-[10px] text-theme-muted">
               {data.statsFechas.con_registro} CEs con fecha de registro
             </span>
           </div>
         )}
-
       </Card>
 
       {/* ── Row 2: Mapa + acordeón filtros ── */}
@@ -626,7 +713,7 @@ export default function ComunidadesPage() {
           <div className="flex items-center justify-between mb-2">
             <span className="text-gold font-bold uppercase tracking-widest text-[11px]">CES — MAPA DE UBICACIÓN</span>
             {selectedDept && (
-              <button onClick={() => setSelectedDept(null)}
+              <button onClick={() => handleSelectDept(null)}
                 className="text-[10px] text-theme-muted hover:text-gold transition-colors">
                 ← Ver todos
               </button>
@@ -639,7 +726,7 @@ export default function ComunidadesPage() {
               selectedDept={selectedDept}
               isDark={isDark}
               deptColors={deptColors}
-              onSelectDept={setSelectedDept}
+              onSelectDept={handleSelectDept}
               porDepartamento={data.porDepartamento}
               deptAvgs={data.deptAvgs}
             />
@@ -705,18 +792,53 @@ export default function ComunidadesPage() {
             </div>
           </AccordionSection>
 
-          {/* Fuente Financiación */}
-          <AccordionSection title="Fuente de Financiación" count={data.porFuenteFinanciacion.length}>
+          {/* Zona */}
+          <AccordionSection title="Zona" count={data.porZona.length}>
             <div className="space-y-1 max-h-[200px] overflow-y-auto">
-              {data.porFuenteFinanciacion.map(e => (
+              {data.porZona.map(e => (
                 <FilterItem
-                  key={e.fuente}
-                  label={e.fuente}
+                  key={e.zona}
+                  label={e.zona}
                   count={e.count}
-                  active={selectedFinancia === e.fuente}
-                  onClick={() => setSelectedFinancia(selectedFinancia === e.fuente ? null : e.fuente)}
+                  active={selectedZona === e.zona}
+                  onClick={() => setSelectedZona(selectedZona === e.zona ? null : e.zona)}
                 />
               ))}
+            </div>
+          </AccordionSection>
+
+          {/* Etnia */}
+          <AccordionSection title="Etnia" count={data.porEtnia.length}>
+            <div className="space-y-1 max-h-[200px] overflow-y-auto">
+              {data.porEtnia.map(e => (
+                <FilterItem
+                  key={e.etnia}
+                  label={e.etnia}
+                  count={e.count}
+                  active={selectedEtnia === e.etnia}
+                  onClick={() => setSelectedEtnia(selectedEtnia === e.etnia ? null : e.etnia)}
+                />
+              ))}
+            </div>
+          </AccordionSection>
+
+          {/* Ejecutor */}
+          <AccordionSection title="Ejecutor" count={data.porEjecutor.length}>
+            <div className="space-y-1 max-h-[200px] overflow-y-auto">
+              {data.porEjecutor.slice(0, 15).map(e => (
+                <FilterItem
+                  key={e.ejecutor}
+                  label={e.ejecutor.length > 35 ? e.ejecutor.slice(0, 35) + '…' : e.ejecutor}
+                  count={e.count}
+                  active={selectedEjecutor === e.ejecutor}
+                  onClick={() => setSelectedEjecutor(selectedEjecutor === e.ejecutor ? null : e.ejecutor)}
+                />
+              ))}
+              {data.porEjecutor.length > 15 && (
+                <div className="text-[9px] text-theme-muted text-center pt-1">
+                  +{data.porEjecutor.length - 15} más
+                </div>
+              )}
             </div>
           </AccordionSection>
 
@@ -729,7 +851,7 @@ export default function ComunidadesPage() {
                   label={d.departamentoGeo.split(" ").map(w => w[0]+w.slice(1).toLowerCase()).join(" ")}
                   count={d.count}
                   active={selectedDept != null && normDeptKey(selectedDept) === normDeptKey(d.departamentoGeo)}
-                  onClick={() => setSelectedDept(selectedDept != null && normDeptKey(selectedDept) === normDeptKey(d.departamentoGeo) ? null : d.departamentoGeo)}
+                  onClick={() => handleSelectDept(selectedDept != null && normDeptKey(selectedDept) === normDeptKey(d.departamentoGeo) ? null : d.departamentoGeo)}
                 />
               ))}
             </div>
@@ -890,7 +1012,7 @@ export default function ComunidadesPage() {
           </div>
           <div className="flex items-center gap-2">
             {selectedDept && (
-              <button onClick={() => setSelectedDept(null)}
+              <button onClick={() => handleSelectDept(null)}
                 className="text-[10px] text-theme-muted hover:text-gold transition-colors">
                 ← Ver todos
               </button>
@@ -906,13 +1028,11 @@ export default function ComunidadesPage() {
                     'N° CEs': m.count,
                     'Capacidad (kWp)': Math.round(m.capacidad),
                     'Inversión Estimada ($)': m.inversionEst,
-                    'Inversión Final ($)': m.inversionFin,
                   }));
                 const totalCEs = muniTableData.reduce((s, m) => s + m.count, 0);
                 const totalCap = muniTableData.reduce((s, m) => s + m.capacidad, 0);
                 const totalInvEst = muniTableData.reduce((s, m) => s + m.inversionEst, 0);
-                const totalInvFin = muniTableData.reduce((s, m) => s + m.inversionFin, 0);
-                exportData.push({ 'Departamento': 'TOTAL', 'Municipio': '', 'N° CEs': totalCEs, 'Capacidad (kWp)': Math.round(totalCap), 'Inversión Estimada ($)': totalInvEst, 'Inversión Final ($)': totalInvFin });
+                exportData.push({ 'Departamento': 'TOTAL', 'Municipio': '', 'N° CEs': totalCEs, 'Capacidad (kWp)': Math.round(totalCap), 'Inversión Estimada ($)': totalInvEst });
                 const ws = XLSX.utils.json_to_sheet(exportData);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, 'Municipios');
@@ -953,8 +1073,7 @@ export default function ComunidadesPage() {
                   <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Municipio</th>
                   <th className="pb-3 pr-4 font-semibold uppercase tracking-wider text-right">N° CEs</th>
                   <th className="pb-3 pr-4 font-semibold uppercase tracking-wider text-right">Capacidad (kWp)</th>
-                  <th className="pb-3 pr-4 font-semibold uppercase tracking-wider text-right">Inv. Estimada</th>
-                  <th className="pb-3 font-semibold uppercase tracking-wider text-right">Inv. Final</th>
+                  <th className="pb-3 font-semibold uppercase tracking-wider text-right">Inv. Estimada</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-theme-card">
@@ -971,8 +1090,7 @@ export default function ComunidadesPage() {
                       </div>
                     </td>
                     <td className="py-2.5 pr-4 text-right text-cyan-400">{Math.round(m.capacidad).toLocaleString("es-CO")}</td>
-                    <td className="py-2.5 pr-4 text-right text-purple-400">{fmtCOP(m.inversionEst)}</td>
-                    <td className="py-2.5 text-right text-emerald-400">{m.inversionFin > 0 ? fmtCOP(m.inversionFin) : '—'}</td>
+                    <td className="py-2.5 text-right text-purple-400">{fmtCOP(m.inversionEst)}</td>
                   </motion.tr>
                 ))}
               </tbody>
@@ -991,7 +1109,7 @@ export default function ComunidadesPage() {
               <tbody className="divide-y divide-theme-card">
                 {deptDesdePuntos.sort((a, b) => b.count - a.count).map((d, i) => (
                   <motion.tr key={d.departamentoGeo} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 + i * 0.02 }}
-                    onClick={() => setSelectedDept(prev => prev != null && normDeptKey(prev) === normDeptKey(d.departamentoGeo) ? null : d.departamentoGeo)}
+                    onClick={() => handleSelectDept(selectedDept != null && normDeptKey(selectedDept) === normDeptKey(d.departamentoGeo) ? null : d.departamentoGeo)}
                     className={`text-theme-secondary transition-colors cursor-pointer ${selectedDept != null && normDeptKey(selectedDept) === normDeptKey(d.departamentoGeo) ? "bg-amber-500/10" : "hover:bg-dash-chip"}`}>
                     <td className="py-2.5 pr-4 font-medium text-theme-primary">
                       {d.departamentoGeo.split(" ").map(w => w[0]+w.slice(1).toLowerCase()).join(" ")}

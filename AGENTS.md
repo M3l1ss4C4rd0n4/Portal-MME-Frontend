@@ -406,8 +406,8 @@ npm run build --verbose
 ## ⚠️ Deuda Técnica Conocida
 
 - `src/hooks/` está vacío - crear custom hooks reutilizables
-- Dashboard Energía usa mocks - pendiente conectar a BD
-- 0 tests unitarios - implementar Jest + React Testing Library
+- Tableros de Hidrocarburos (combustibles, gas, transporte, energías alternativas) pendientes de datos reales - a la espera de que el equipo de hidrocarburos comparta los archivos fuente completos
+- Cobertura de tests: suite Vitest en `src/lib/` (formato, kpi-logic, svg-math); pendiente ampliar a componentes
 
 ---
 
@@ -467,8 +467,7 @@ Usar para: búsqueda web, generación de imágenes/video/audio, documentos (xlsx
 - `verify_table.py` — Snapshot de tabla PostgreSQL (métodos A-D)
 - `check_cycles.py` — Detección de ciclos estáticos y lógicos
 
-### Conocimiento del Grafo (Graphify 2026-05-01)
-- 172 nodos · 133 aristas · 6 comunidades
-- God nodes: `backendGet()` (10 edges), `getPool()` (7 edges), `estadoGeneracion()` (4 edges)
-- BFF pattern: 14 endpoints, mezcla `backendGet()` + `getPool()` sin patrón unificado
+### Conocimiento del Grafo (Graphify 2026-08-02)
+- 479 nodos · 448 aristas · 23 comunidades (solo frontend; ver `graphify-out/merged-full-graph.json` para el grafo unificado con el backend)
+- BFF pattern: mezcla `backendGet()` + `getPool()` sin patrón unificado — sigue siendo deuda técnica documentada
 - Frontend: ✅ ZERO ciclos | Backend: ⚠️ Ciclos lógicos en `container.py`

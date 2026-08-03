@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/ThemeProvider";
+import { GeoFilterProvider } from "@/context/GeoFilterContext";
 import ClientLayout from "@/components/ClientLayout";
 
 const inter = Inter({
@@ -15,8 +16,8 @@ export const metadata: Metadata = {
     'https://portaldireccionee.minenergia.gov.co'
   ),
   title: {
-    default: 'Portal de Dirección EE – MinMinas',
-    template: '%s | Portal de Dirección EE',
+    default: 'Portal Viceministerio de Energía – MinMinas',
+    template: '%s | Portal Viceministerio de Energía',
   },
   description:
     'Dashboard ejecutivo de la Dirección de Energía Eléctrica del Ministerio de Minas y Energía – República de Colombia.',
@@ -33,10 +34,10 @@ export const metadata: Metadata = {
     shortcut: '/favicon.svg',
   },
   openGraph: {
-    title: 'Portal de Dirección EE – MinMinas',
+    title: 'Portal Viceministerio de Energía – MinMinas',
     description: 'Dashboard ejecutivo de la Dirección de Energía Eléctrica del Ministerio de Minas y Energía – República de Colombia.',
     url: 'https://portaldireccionee.minenergia.gov.co',
-    siteName: 'Portal de Dirección EE',
+    siteName: 'Portal Viceministerio de Energía',
     images: [{ url: '/images/logo-minenergia.png', width: 512, height: 512 }],
     locale: 'es_CO',
     type: 'website',
@@ -77,9 +78,11 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider>
-          <ClientLayout>
-            {children}
-          </ClientLayout>
+          <GeoFilterProvider>
+            <ClientLayout>
+              {children}
+            </ClientLayout>
+          </GeoFilterProvider>
         </ThemeProvider>
       </body>
     </html>

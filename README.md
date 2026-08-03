@@ -52,9 +52,14 @@ El **Portal de Dirección MME** es una plataforma de business intelligence que i
 | **Presupuesto** | ✅ Producción | PostgreSQL | Ejecución presupuestal DEE |
 | **Comunidades** | ✅ Producción | PostgreSQL | Comunidades Energéticas |
 | **Contratos OR** | ✅ Producción | PostgreSQL | Contratos Operadores de Red |
-| **Supervisión** | ✅ Producción | PostgreSQL | Supervisión de contratos |
-| **Subsidios** | ✅ Producción | PostgreSQL | Subsidios de energía |
-| **Energía** | 🚧 Construcción | Mocks | Gestión del sector (diseño en curso) |
+| **Supervisión** | ✅ Producción | PostgreSQL | Supervisión de contratos FNCER |
+| **Subsidios** | ✅ Producción | PostgreSQL | Subsidios de energía DEE |
+| **Energía** | ✅ Producción | PostgreSQL | Gestión del sector eléctrico |
+| **FENOGE** | ✅ Producción | PostgreSQL | Fondo Nacional de Eficiencia Energética |
+| **Colombia Solar** | ✅ Producción | PostgreSQL | Curvas S del programa Colombia Solar |
+| **Predicciones** | ✅ Producción | PostgreSQL + ML | Proyección hidrológica de embalses (ONI, El Niño) |
+| **Informes** | ✅ Producción | Archivos | Explorador de boletines e informes XM |
+| **Hidrocarburos** | 🚧 En construcción | Excel/scraping | Presupuesto y exploración del sector hidrocarburos |
 
 ---
 

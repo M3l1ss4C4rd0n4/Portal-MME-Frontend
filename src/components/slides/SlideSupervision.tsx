@@ -17,7 +17,7 @@ type EtapaChipProps = {
 
 function EtapaChip({ label, value, pct, color }: EtapaChipProps) {
   return (
-    <div className="flex flex-col items-center bg-theme-secondary border border-theme-secondary rounded-xl px-5 py-2.5 flex-1">
+    <div className="flex flex-col items-center bg-theme-secondary border border-card-energia rounded-xl px-5 py-2 flex-1">
       <span className="text-[10px] text-slate-400 uppercase tracking-widest mb-0.5">{label}</span>
       <span className={`text-2xl xl:text-3xl font-bold leading-none ${color}`}>{fmtNum(value)}</span>
       {pct && <span className="text-[11px] text-slate-500 mt-0.5">{pct}</span>}
@@ -37,24 +37,24 @@ export function SlideSupervision({ d }: { d: HomeSliderProps["supData"] }) {
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/15 via-transparent to-slate-900/10 pointer-events-none" />
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[60%] h-[30%] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 flex flex-col h-full max-w-6xl w-full mx-auto px-6 xl:px-10 py-4 justify-evenly">
+      <div className="relative z-10 flex flex-col h-full max-w-6xl w-full mx-auto px-6 xl:px-10 py-4 justify-center gap-4 xl:gap-5">
 
         {/* Título */}
         <div className="text-center shrink-0">
-          <SectionBadge label="Supervisión" dot="#06B6D4" />
+          <SectionBadge label="Supervisión" dot="#3B82F6" titleColorClass="text-title-energia" category="energia" />
           <p className="text-slate-500 text-sm">Monitoreo y seguimiento de contratos · 2015–2026</p>
         </div>
 
         {/* KPIs principales — 2 col */}
         <div className="grid grid-cols-2 gap-4 shrink-0 max-w-2xl mx-auto w-full">
-          <div className="bg-theme-secondary border border-theme-secondary rounded-xl px-6 py-3 text-center">
+          <div className="bg-theme-secondary border border-card-energia rounded-xl px-6 py-2 text-center">
             <p className="text-[10px] text-slate-400 uppercase tracking-widest">Usuarios contratados</p>
-            <p className="text-3xl xl:text-4xl font-bold text-gold leading-tight">{fmtNum(d.usuarios.contratados)}</p>
+            <p className="text-3xl xl:text-4xl font-bold text-indigo-400 leading-tight">{fmtNum(d.usuarios.contratados)}</p>
             <p className="text-xs text-slate-500">beneficiarios ZNI/SIN</p>
           </div>
-          <div className="bg-theme-secondary border border-theme-secondary rounded-xl px-6 py-3 text-center">
+          <div className="bg-theme-secondary border border-card-energia rounded-xl px-6 py-2 text-center">
             <p className="text-[10px] text-slate-400 uppercase tracking-widest">Valor total portafolio</p>
-            <p className="text-3xl xl:text-4xl font-bold text-gold leading-tight">{fmtCOPShort(d.financiero.valorProyecto)}</p>
+            <p className="text-3xl xl:text-4xl font-bold text-violet-400 leading-tight">{fmtCOPShort(d.financiero.valorProyecto)}</p>
             <p className="text-xs text-slate-500">portafolio supervisado</p>
           </div>
         </div>
@@ -64,7 +64,7 @@ export function SlideSupervision({ d }: { d: HomeSliderProps["supData"] }) {
           <EtapaChip label="Contratos"   value={d.nContratos}         color="text-cyan-400"    />
           <EtapaChip label="Ejecución"   value={d.enEjecucion}         color="text-emerald-400" pct={pct(d.enEjecucion)} />
           <EtapaChip label="AOM"         value={d.enAOM}               color="text-teal-400"    pct={pct(d.enAOM)} />
-          <EtapaChip label="Liquidación" value={d.enLiquidacion}       color="text-gold"   pct={pct(d.enLiquidacion)} />
+          <EtapaChip label="Liquidación" value={d.enLiquidacion}       color="text-sky-400"   pct={pct(d.enLiquidacion)} />
           <EtapaChip label="Liquidados"  value={d.liquidados}           color="text-slate-300"   pct={pct(d.liquidados)} />
           <EtapaChip label="Pérd. Comp." value={d.perdidaCompetencia}   color="text-rose-400"    pct={pct(d.perdidaCompetencia)} />
         </div>

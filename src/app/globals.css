@@ -23,6 +23,12 @@
   --color-success: #10B981;
   --color-warning: #F59E0B;
   --color-danger: #EF4444;
+
+  --color-title-energia: #60A5FA;
+  --color-title-hidrocarburos: #D97706;
+
+  --card-border-energia: rgba(59, 130, 246, 0.25);
+  --card-border-hidrocarburos: rgba(217, 119, 6, 0.25);
 }
 
 /* Light mode */
@@ -107,6 +113,10 @@ body {
 .text-gold { color: var(--color-gold); }
 .text-gold-light { color: var(--color-gold-light); }
 .bg-gold { background-color: var(--color-gold); }
+.text-title-energia { color: var(--color-title-energia); }
+.text-title-hidrocarburos { color: var(--color-title-hidrocarburos); }
+.border-card-energia { border-color: var(--card-border-energia); }
+.border-card-hidrocarburos { border-color: var(--card-border-hidrocarburos); }
 .bg-gold-10 { background-color: rgba(232, 168, 56, 0.1); }
 .bg-gold-5 { background-color: rgba(232, 168, 56, 0.05); }
 .border-gold-20 { border-color: rgba(232, 168, 56, 0.2); }
@@ -262,6 +272,10 @@ html.light [class*="text-amber-5"]  { color: #92400E; }
 html.light [class*="hover:text-amber"]:hover { color: #92400E; }
 html.light .text-gold,
 html.light .text-gold-light          { color: #92400E; }
+html.light .text-title-energia       { color: #1D4ED8; }
+html.light .text-title-hidrocarburos { color: #C2410C; }
+html.light .border-card-energia        { border-color: rgba(29, 78, 216, 0.35); }
+html.light .border-card-hidrocarburos  { border-color: rgba(194, 65, 12, 0.35); }
 
 /* Cyan */
 html.light [class*="text-cyan-3"],

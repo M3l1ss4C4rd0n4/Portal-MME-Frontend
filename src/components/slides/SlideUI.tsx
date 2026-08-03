@@ -1,5 +1,7 @@
 "use client";
 
+import { useTheme } from "@/providers/ThemeProvider";
+
 export function TopAccent({ color }: { color: string }) {
   return (
     <div
@@ -11,24 +13,59 @@ export function TopAccent({ color }: { color: string }) {
   );
 }
 
+export function CategoryTag({
+  category,
+  size = "sm",
+}: {
+  category: "energia" | "hidrocarburos";
+  size?: "sm" | "md";
+}) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme !== "light";
+  const isEnergia = category === "energia";
+  const bgClass = isEnergia
+    ? (isDark ? "bg-blue-900/40 border-blue-600/40 text-blue-400" : "bg-blue-100 border-blue-300 text-blue-700")
+    : (isDark ? "bg-amber-900/40 border-amber-600/40 text-gold" : "bg-amber-100 border-amber-300 text-amber-700");
+  const sizeClass = size === "md"
+    ? "px-3 py-1.5 text-sm xl:text-base"
+    : "px-3 py-1 text-[11px] xl:text-xs";
+  return (
+    <span className={`inline-flex items-center ${sizeClass} ${bgClass} rounded-full font-bold tracking-wider uppercase`}>
+      <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        {isEnergia ? (
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        ) : (
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+        )}
+      </svg>
+      {isEnergia ? "ENERGÍA" : "HIDROCARBUROS"}
+    </span>
+  );
+}
+
 export function SectionBadge({
   label,
   pulse = false,
   dot = "#F59E0B",
+  titleColorClass = "text-gold",
+  category,
 }: {
   label: string;
   pulse?: boolean;
   dot?: string;
+  titleColorClass?: string;
+  category?: "energia" | "hidrocarburos";
 }) {
   return (
-    <div className="flex items-center justify-center gap-3 mb-2">
+    <div className="flex items-center justify-center flex-wrap gap-3 mb-2">
       <span
         className={`w-3.5 h-3.5 rounded-full ${pulse ? "animate-pulse" : ""}`}
         style={{ backgroundColor: dot }}
       />
-      <span className="text-gold font-black tracking-[0.3em] text-xl xl:text-2xl 2xl:text-3xl uppercase">
+      <span className={`${titleColorClass} font-black tracking-[0.3em] text-xl xl:text-2xl 2xl:text-3xl uppercase`}>
         {label}
       </span>
+      {category && <CategoryTag category={category} />}
     </div>
   );
 }

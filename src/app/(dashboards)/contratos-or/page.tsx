@@ -612,7 +612,7 @@ export default function ContratosORPage() {
           </div>
           <div className="flex justify-around">
             <SemiGauge value={data.avanceFinanciero} label="Avance Financiero" color="gold" size="lg" delay={0.1} />
-            <SemiGauge value={data.avanceGeneral} label="Avance General" color="white" size="lg" delay={0.15} />
+            <SemiGauge value={data.avanceGeneral} label="Avance Documental" color="white" size="lg" delay={0.15} />
           </div>
         </Card>
 
@@ -736,7 +736,7 @@ export default function ContratosORPage() {
             />
           </div>
           <div className="flex gap-4 mt-2">
-            {[{ label: "Avance General", c: "#F59E0B" }, { label: "Avance Financiero", c: "#8B5CF6" }, { label: "Avance Físico", c: "#10B981" }].map(({ label, c }) => (
+            {[{ label: "Avance Documental", c: "#F59E0B" }, { label: "Avance Financiero", c: "#8B5CF6" }, { label: "Avance Físico", c: "#10B981" }].map(({ label, c }) => (
               <div key={label} className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-sm" style={{ background: c }} />
                 <span className="text-[10px] text-theme-muted">{label}</span>
@@ -762,7 +762,7 @@ export default function ContratosORPage() {
                 'Ejecutor': p.ejecutor,
                 'Departamento': p.departamento,
                 'Municipio': p.municipio,
-                'Avance General (%)': p.avanceGeneral / 100, // Como decimal para formato porcentaje en Excel
+                'Avance Documental (%)': p.avanceGeneral / 100, // Como decimal para formato porcentaje en Excel
                 'Avance Financiero (%)': p.avanceFinanciero / 100, // Como decimal
                 'Avance Físico (%)': p.avanceFisico / 100, // Como decimal
                 'Pagos Realizados': p.pagosRealizados,
@@ -787,7 +787,7 @@ export default function ContratosORPage() {
                 'Ejecutor': '',
                 'Departamento': '',
                 'Municipio': '',
-                'Avance General (%)': avgAvanceObra / 100,
+                'Avance Documental (%)': avgAvanceObra / 100,
                 'Avance Financiero (%)': avgAvanceFinanciero / 100,
                 'Avance Físico (%)': avgAvanceFisico / 100,
                 'Pagos Realizados': totalPagosRealizados,
@@ -817,7 +817,7 @@ export default function ContratosORPage() {
                 <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Proyecto</th>
                 <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Ejecutor</th>
                 <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Departamento</th>
-                <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Avance General</th>
+                <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Avance Documental</th>
                 <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Avance Financiero</th>
                 <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Avance Físico</th>
                 <th className="pb-3 font-semibold uppercase tracking-wider">Pagos</th>

@@ -51,14 +51,18 @@ const LABEL_TIPO: Record<string, string> = {
 export async function GET() {
   const pool = getPool();
   try {
-    const latest = await pool.query<{ fecha_gene: Date; fecha_precio: Date }>(`
+    const latest = await pool.query<{ fecha_gene: Date; fecha_ppp: Date; fecha_escasez: Date; fecha_pei: Date }>(`
       SELECT
         MAX(CASE WHEN metrica='Gene' AND entidad='Recurso' THEN fecha END) AS fecha_gene,
-        MAX(CASE WHEN metrica IN ('PPPrecBolsNaci','PrecEsca') AND entidad='Sistema' THEN fecha END) AS fecha_precio
+        MAX(CASE WHEN metrica='PPPrecBolsNaci' AND entidad='Sistema' THEN fecha END) AS fecha_ppp,
+        MAX(CASE WHEN metrica='PrecEscaSup' AND entidad='Sistema' THEN fecha END) AS fecha_escasez,
+        MAX(CASE WHEN metrica='PrecEscaInf' AND entidad='Sistema' THEN fecha END) AS fecha_pei
       FROM sector_energetico.metrics
     `);
     const fechaGene = latest.rows[0]?.fecha_gene;
-    const fechaPrecio = latest.rows[0]?.fecha_precio;
+    const fechaPpp = latest.rows[0]?.fecha_ppp;
+    const fechaEscasez = latest.rows[0]?.fecha_escasez;
+    const fechaPei = latest.rows[0]?.fecha_pei;
 
     if (!fechaGene) {
       return NextResponse.json({ error: "No hay datos de generación térmica" }, { status: 404 });
@@ -104,23 +108,25 @@ export async function GET() {
 
     const preciosRes = await pool.query(`
       SELECT
-        MAX(CASE WHEN metrica='PrecEsca' THEN valor_gwh END) AS escasez,
-        MAX(CASE WHEN metrica='PPPrecBolsNaci' THEN valor_gwh END) AS ppp,
-        MAX(fecha) AS fecha
+        MAX(CASE WHEN metrica='PrecEscaSup' AND fecha=$1 THEN valor_gwh END) AS escasez,
+        MAX(CASE WHEN metrica='PPPrecBolsNaci' AND fecha=$2 THEN valor_gwh END) AS ppp,
+        MAX(CASE WHEN metrica='PrecEscaInf' AND fecha=$3 THEN valor_gwh END) AS pei
       FROM sector_energetico.metrics
       WHERE entidad='Sistema' AND recurso='Sistema'
-        AND metrica IN ('PrecEsca','PPPrecBolsNaci')
-        AND fecha = COALESCE($1, (SELECT MAX(fecha) FROM sector_energetico.metrics WHERE metrica='PPPrecBolsNaci'))
-    `, [fechaPrecio]);
+        AND metrica IN ('PrecEscaSup','PPPrecBolsNaci','PrecEscaInf')
+        AND fecha IN ($1, $2, $3)
+    `, [fechaEscasez, fechaPpp, fechaPei]);
 
     const escasez = Number(preciosRes.rows[0]?.escasez ?? 0);
     const ppp = Number(preciosRes.rows[0]?.ppp ?? 0);
-    const fechaPrecioFmt = fmtFecha(preciosRes.rows[0]?.fecha);
+    const pei = preciosRes.rows[0]?.pei != null ? Number(preciosRes.rows[0].pei) : null;
+    const fechaEscasezFmt = fmtFecha(fechaEscasez);
+    const fechaPppFmt = fmtFecha(fechaPpp);
 
     const varRes = await pool.query(`
       SELECT
         (SELECT valor_gwh FROM sector_energetico.metrics
-         WHERE metrica='PrecEsca' AND entidad='Sistema' AND recurso='Sistema'
+         WHERE metrica='PrecEscaSup' AND entidad='Sistema' AND recurso='Sistema'
          ORDER BY fecha DESC LIMIT 1 OFFSET 30) AS escasez_mes,
         (SELECT valor_gwh FROM sector_energetico.metrics
          WHERE metrica='PPPrecBolsNaci' AND entidad='Sistema' AND recurso='Sistema'
@@ -262,16 +268,17 @@ export async function GET() {
       precios: {
         escasez: {
           valor: escasez,
-          fecha: fechaPrecioFmt,
+          fecha: fechaEscasezFmt,
           variacion: escasezMesRef != null ? Math.round((escasez - escasezMesRef) * 100) / 100 : null,
           tendencia: tendenciaPct(escasez, escasezMesRef),
         },
         ppp: {
           valor: ppp,
-          fecha: fechaPrecioFmt,
+          fecha: fechaPppFmt,
           variacion: pppSemRef != null ? Math.round((ppp - pppSemRef) * 100) / 100 : null,
           tendencia: tendenciaPct(ppp, pppSemRef),
         },
+        pei,
         mayor: escasez >= ppp ? "escasez" : "ppp",
       },
       plantas: plantasRes.rows.map((p) => ({
