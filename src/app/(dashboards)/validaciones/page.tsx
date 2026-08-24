@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
 import { ResponsiveBar, BarDatum } from "@nivo/bar";
 import { useTheme } from "@/providers/ThemeProvider";
 import DashboardLayout from "@/components/DashboardLayout";
+import Card from "@/components/dashboard/Card";
+import BaseKpiChip, { type KpiChipProps } from "@/components/dashboard/KpiChip";
 import { getNivoTheme } from "@/lib/nivo-theme";
+import { useGeoFilter } from "@/context/GeoFilterContext";
+import { fetchDepartamentos } from "@/services/apiService";
+import { normDeptKey } from "@/lib/departamentos";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -64,30 +68,8 @@ const MESES_NOMBRE: Record<number, string> = {
 
 // ─── Componentes auxiliares ───────────────────────────────────────────────────
 
-function Card({ children, className = "", delay = 0 }: {
-  children: React.ReactNode; className?: string; delay?: number;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay }}
-      className={`bg-theme-secondary border border-theme-card rounded-2xl p-5
-        hover:border-amber-500/40 transition-colors duration-300 ${className}`}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-function KpiChip({ label, value, color = "#F59E0B" }: {
-  label: string; value: number | string; color?: string;
-}) {
-  return (
-    <div className="bg-dash-chip rounded-xl px-4 py-3 text-center min-w-[110px]">
-      <div className="text-lg font-bold" style={{ color }}>{value}</div>
-      <div className="text-[10px] text-theme-muted mt-1 leading-tight">{label}</div>
-    </div>
-  );
+function KpiChip({ color = "#F59E0B", ...rest }: Omit<KpiChipProps, "padding" | "valueSize" | "centered">) {
+  return <BaseKpiChip padding="lg" valueSize="lg" centered color={color} {...rest} />;
 }
 
 function SelectFiltro({ label, value, onChange, options, minWidth = "140px" }: {
@@ -318,6 +300,43 @@ export default function ValidacionesPage() {
   const [trimestre, setTrimestre] = useState<string>("");
   const [departamento, setDepartamento] = useState("");
 
+  // Filtro de departamento compartido entre dashboards (Fase 3). Mapeo
+  // nombre-normalizado <-> código DANE, mismo patrón ya usado en
+  // Comunidades/FENOGE, para traducir entre el código que usa el contexto y
+  // el nombre que usa el <SelectFiltro> local de esta página.
+  const { codigoDaneDepartamento, setCodigoDaneDepartamento } = useGeoFilter();
+  const [deptCodeByName, setDeptCodeByName] = useState<Record<string, string>>({});
+  const [deptNameByCode, setDeptNameByCode] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    fetchDepartamentos()
+      .then((data) => {
+        const codeByName: Record<string, string> = {};
+        const nameByCode: Record<string, string> = {};
+        for (const d of data.departamentos) {
+          const key = normDeptKey(d.nombre_departamento);
+          codeByName[key] = d.codigo_dane_departamento;
+          nameByCode[d.codigo_dane_departamento] = key;
+        }
+        setDeptCodeByName(codeByName);
+        setDeptNameByCode(nameByCode);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Selecciona/limpia el departamento localmente y sincroniza el código DANE
+  // con el contexto compartido, para que otros dashboards que lo adopten
+  // hereden la misma selección.
+  function handleSelectDepartamento(depto: string) {
+    setDepartamento(depto);
+    if (!depto) {
+      setCodigoDaneDepartamento(null);
+      return;
+    }
+    const codigo = deptCodeByName[normDeptKey(depto)];
+    if (codigo) setCodigoDaneDepartamento(codigo);
+  }
+
   // Fecha de actualización: se inicializa vacío, pero en cuanto cargamos
   // las fechas disponibles se setea automáticamente a la más reciente.
   const [fechaActualizacion, setFechaActualizacion] = useState("");
@@ -358,6 +377,22 @@ export default function ValidacionesPage() {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Sigue la selección de departamento del contexto compartido (ej. si se
+  // eligió en Comunidades/FENOGE) siempre que no haya override explícito por
+  // URL y exista una opción que coincida en el filtro de este tablero.
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.has("departamento")) return;
+    if (!codigoDaneDepartamento) return;
+    const nombreNormalizado = deptNameByCode[codigoDaneDepartamento];
+    if (!nombreNormalizado) return;
+    const match = (data?.filtros.departamentos ?? []).find(
+      (d) => normDeptKey(d) === nombreNormalizado
+    );
+    if (match) setDepartamento(match);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [codigoDaneDepartamento, deptNameByCode, data?.filtros.departamentos]);
 
   // Petición principal de datos (solo cuando fechaActualizacion ya está definida)
   useEffect(() => {
@@ -489,7 +524,7 @@ export default function ValidacionesPage() {
           <SelectFiltro
             label="Departamento"
             value={departamento}
-            onChange={setDepartamento}
+            onChange={handleSelectDepartamento}
             options={data?.filtros.departamentos ?? []}
             minWidth="200px"
           />
@@ -515,7 +550,7 @@ export default function ValidacionesPage() {
                 setAnioDesde("");
                 setAnioHasta("");
                 setTrimestre("");
-                setDepartamento("");
+                handleSelectDepartamento("");
                 // fechaActualizacion NO se resetea — siempre debe tener un valor
               }}
               className="text-[10px] text-gold hover:text-gold underline underline-offset-2 self-end pb-1.5"

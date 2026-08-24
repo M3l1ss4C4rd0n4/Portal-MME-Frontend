@@ -1,8 +1,10 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { classifyOni } from "@/lib/oni";
 import { fmtDate, fmtShortDate } from "@/types/predictions";
 import type { PredictionPoint } from "@/types/predictions";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 
 interface PredictionKpiBlockProps {
   pico: { valor: number; fecha: string } | null;
@@ -41,7 +43,7 @@ export default function PredictionKpiBlock({
 
   const metaTitle = metaFecha
     ? `El 80% es el umbral que XM y el Gobierno usan como referencia de un nivel saludable de reservas hídricas para el sistema eléctrico. Según el modelo, los embalses superarán ese umbral el ${fmtDate(metaFecha)} y se mantendrán por encima durante varios meses.`
-    : undefined;
+    : `El modelo no proyecta que los embalses alcancen el umbral saludable del 80% en el horizonte calculado.`;
 
   const confianzaTitle =
     `MAPE es el error promedio que ha tenido este modelo al predecir el pasado: un MAPE de ${(mape * 100).toFixed(1)}% significa que, en promedio, sus proyecciones se desvían solo eso del valor real, es decir que es bastante preciso. ` +
@@ -52,49 +54,106 @@ export default function PredictionKpiBlock({
     "ONI mide la temperatura del océano Pacífico: cuando sube, estamos en El Niño (menos lluvia y embalses que bajan); cuando baja, en La Niña (más lluvia). " +
     "PDO y SOI son señales climáticas de más largo plazo que refuerzan esa misma tendencia, y GMST indica cuánto más caliente está el planeta que el promedio histórico, lo que intensifica las sequías.";
 
-  const climaTitle = [
-    climaIntro,
+  const climaDetalle = [
     pico && fraseClimaPunto("el pico proyectado", pico.fecha, climaPico),
     metaFecha && fraseClimaPunto("la fecha en que se alcanza la meta del 80%", metaFecha, climaMeta),
-  ]
-    .filter(Boolean)
-    .join(" ");
+  ].filter(Boolean);
+
+  const climaContent = climaPico && (
+    <div className="space-y-1.5">
+      <p>{climaIntro}</p>
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 pt-0.5">
+        {climaPico.oni != null && (
+          <span style={{ color: classifyOni(climaPico.oni)?.color ?? "#94A3B8" }}>
+            ONI {climaPico.oni > 0 ? "+" : ""}{climaPico.oni.toFixed(2)}
+          </span>
+        )}
+        {climaPico.pdo != null && (
+          <span style={{ color: "#94A3B8" }}>PDO {climaPico.pdo > 0 ? "+" : ""}{climaPico.pdo.toFixed(2)}</span>
+        )}
+        {climaPico.soi != null && (
+          <span style={{ color: "#94A3B8" }}>SOI {climaPico.soi > 0 ? "+" : ""}{climaPico.soi.toFixed(1)}</span>
+        )}
+        {climaPico.gmst != null && (
+          <span style={{ color: "#94A3B8" }}>GMST +{climaPico.gmst.toFixed(2)}</span>
+        )}
+      </div>
+      {climaDetalle.length > 0 && <p className="pt-1 border-t border-theme-primary/10">{climaDetalle.join(" ")}</p>}
+    </div>
+  );
 
   return (
-    <div className="flex flex-col items-center justify-center text-center gap-0.5 px-2 py-2 bg-theme-secondary border border-theme-secondary rounded-xl">
-      <p className="text-slate-400 text-base xl:text-lg 2xl:text-xl uppercase tracking-[0.18em] font-medium">
-        Proyección Embalses
-      </p>
-      <p className="text-slate-300 text-sm xl:text-base font-semibold" title={picoTitle}>
-        {pico ? `Pico el ${fmtShortDate(pico.fecha)}` : "Pico proyectado"}
-      </p>
-      <div className="inline-flex items-center gap-2 text-3xl xl:text-4xl 2xl:text-5xl font-black leading-none text-gold" title={picoTitle}>
+    <div className="h-full flex flex-col text-center gap-1.5 px-3 py-2.5 bg-card-glow-energia border border-card-energia border-t-2 border-t-[var(--color-title-energia)] rounded-xl">
+      {/* Encabezado: título a la izquierda, estado de la meta como badge arriba a la derecha */}
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-theme-muted text-xs xl:text-sm uppercase tracking-[0.14em] font-semibold text-left">
+          Proyección Embalses
+        </p>
+        <div
+          className="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] xl:text-xs font-bold tracking-wider uppercase whitespace-nowrap"
+          style={{
+            background: metaFecha ? "#10B98122" : "#94A3B822",
+            border: `1px solid ${metaFecha ? "#10B98155" : "#94A3B855"}`,
+            color: metaFecha ? "#10B981" : "#94A3B8",
+          }}
+          title={metaTitle}
+        >
+          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: metaFecha ? "#10B981" : "#94A3B8" }} />
+          {metaFecha ? "Meta 80%" : "Sin meta 80%"}
+        </div>
+      </div>
+
+      {/* Valor principal */}
+      <div className="text-3xl xl:text-4xl 2xl:text-5xl font-extrabold leading-none tabular-nums text-theme-primary" title={picoTitle}>
         {pico ? `${pico.valor.toFixed(2)}%` : "—"}
       </div>
-      <p className="text-slate-300 text-sm xl:text-base font-semibold mt-0.5" title={metaTitle}>
-        {metaFecha ? `meta 80% el ${fmtShortDate(metaFecha)}` : "Sin meta 80% proyectada"}
+
+      {/* Secundario: fecha del pico + indicadores climáticos (ONI/PDO/SOI/GMST) al lado */}
+      <p className="text-slate-300 text-xs xl:text-sm font-medium flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0" title={picoTitle}>
+        <span>{pico ? `Pico el ${fmtShortDate(pico.fecha)}` : "Pico proyectado"}</span>
+        {climaPico?.oni != null && (
+          <span style={{ color: classifyOni(climaPico.oni)?.color ?? "#94A3B8" }}>
+            · ONI {climaPico.oni > 0 ? "+" : ""}{climaPico.oni.toFixed(2)}
+          </span>
+        )}
+        {climaPico?.pdo != null && (
+          <span style={{ color: "#94A3B8" }}>PDO {climaPico.pdo > 0 ? "+" : ""}{climaPico.pdo.toFixed(2)}</span>
+        )}
+        {climaPico?.soi != null && (
+          <span style={{ color: "#94A3B8" }}>SOI {climaPico.soi > 0 ? "+" : ""}{climaPico.soi.toFixed(1)}</span>
+        )}
+        {climaPico?.gmst != null && (
+          <span style={{ color: "#94A3B8" }}>GMST +{climaPico.gmst.toFixed(2)}</span>
+        )}
+        {climaContent && <InfoTooltip content={climaContent} wide />}
       </p>
-      <p className="text-slate-500 text-xs xl:text-sm" title={confianzaTitle}>
-        MAPE {(mape * 100).toFixed(1)}% · confianza {(confianza * 100).toFixed(0)}%
-      </p>
-      {climaPico && (
-        <p className="text-[11px] xl:text-xs flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0" title={climaTitle || undefined}>
-          {climaPico.oni != null && (
-            <span style={{ color: classifyOni(climaPico.oni)?.color ?? "#94A3B8" }}>
-              ONI {climaPico.oni > 0 ? "+" : ""}{climaPico.oni.toFixed(2)}
-            </span>
-          )}
-          {climaPico.pdo != null && (
-            <span style={{ color: "#A855F7" }}>PDO {climaPico.pdo > 0 ? "+" : ""}{climaPico.pdo.toFixed(2)}</span>
-          )}
-          {climaPico.soi != null && (
-            <span style={{ color: "#14B8A6" }}>SOI {climaPico.soi > 0 ? "+" : ""}{climaPico.soi.toFixed(1)}</span>
-          )}
-          {climaPico.gmst != null && (
-            <span style={{ color: "#FB7185" }}>GMST +{climaPico.gmst.toFixed(2)}</span>
-          )}
-        </p>
+
+      {/* Barra de progreso con degradado — refuerzo visual del % (escala 0-100%), misma firma
+          que las tarjetas vecinas; ya cumple la función de separador, sin línea divisoria aparte */}
+      {pico && (
+        <div>
+          <div className="w-full h-1.5 rounded-full bg-theme-tertiary overflow-hidden">
+            <motion.div
+              className="h-full rounded-full"
+              style={{ background: "linear-gradient(90deg, #60A5FA, #1D4ED8)" }}
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min(pico.valor, 100)}%` }}
+              transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
+            />
+          </div>
+          <div className="flex justify-between text-[9px] text-slate-600 leading-none mt-0.5">
+            <span>0%</span>
+            <span>100%</span>
+          </div>
+        </div>
       )}
+
+      {/* Metadato al pie */}
+      <div className="mt-auto">
+        <p className="text-slate-500 text-[11px] xl:text-xs font-medium" title={confianzaTitle}>
+          MAPE {(mape * 100).toFixed(1)}% · confianza {(confianza * 100).toFixed(0)}%
+        </p>
+      </div>
     </div>
   );
 }

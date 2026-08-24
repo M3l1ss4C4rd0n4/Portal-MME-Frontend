@@ -26,8 +26,8 @@ function LightningIcon({ className }: { className?: string }) {
 
 function ProgressRing({
   progress,
-  size = 28,
-  stroke = 3,
+  size = 22,
+  stroke = 2.5,
   color = '#2A2826',
 }: {
   progress: number;
@@ -64,12 +64,7 @@ function ProgressRing({
   );
 }
 
-interface PanoramaInformeFabProps {
-  /** Evita que el contenedor padre capture el evento de arrastre */
-  onPointerDown?: (e: React.PointerEvent) => void;
-}
-
-export default function PanoramaInformeFab({ onPointerDown }: PanoramaInformeFabProps) {
+export default function PanoramaInformeFab() {
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -154,22 +149,16 @@ export default function PanoramaInformeFab({ onPointerDown }: PanoramaInformeFab
       }}
       disabled={downloading}
       className={[
-        'w-14 h-14 rounded-full shadow-xl flex items-center justify-center',
-        'transition-transform hover:scale-105 active:scale-95',
-        'disabled:opacity-70 disabled:cursor-wait disabled:hover:scale-100',
-        'bg-[#F5C518] hover:bg-[#FFCF2A]',
-        'border border-[#E0AD00]/60',
-        'relative pointer-events-auto',
+        'relative w-14 h-14 rounded-full flex items-center justify-center',
+        'transition-colors hover:bg-black/10 active:bg-black/20',
+        'disabled:opacity-70 disabled:cursor-wait',
         error ? 'ring-2 ring-red-500/80' : '',
       ].join(' ')}
-      style={{
-        boxShadow: '0 4px 20px rgba(245, 197, 24, 0.35), 0 2px 8px rgba(0,0,0,0.3)',
-      }}
       aria-label="Descargar boletín energético Panorama Energético"
-      title={error ?? 'Descargar boletín energético (Panorama Energético)'}
+      title={error ?? 'Panorama Energético'}
     >
       {downloading ? (
-        <ProgressRing progress={progress} size={28} stroke={3} color="#2A2826" />
+        <ProgressRing progress={progress} size={26} stroke={2.5} color="#2A2826" />
       ) : (
         <LightningIcon className="w-5 h-7 text-[#2A2826] pointer-events-none" />
       )}

@@ -1,29 +1,43 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import { backendGetPdf } from "@/lib/backendClient";
+
+export const dynamic = "force-dynamic";
 
 /**
- * API placeholder para la descarga del Informe de Empalme.
- *
- * TODO: Cuando el equipo entregue el enlace de OneDrive/SharePoint,
- * reemplazar esta respuesta por una redirección 302 o por una descarga
- * proxy del archivo remoto.
- *
- * Ejemplo de redirección directa:
- *   const ONE_DRIVE_DOWNLOAD_URL = process.env.INFORME_EMPALME_URL ?? '';
- *   if (!ONE_DRIVE_DOWNLOAD_URL) {
- *     return NextResponse.json(
- *       { error: 'El informe de empalme aún no está configurado' },
- *       { status: 503 }
- *     );
- *   }
- *   return NextResponse.redirect(ONE_DRIVE_DOWNLOAD_URL, { status: 302 });
+ * Proxy al backend: PDF del informe de empalme más reciente (SharePoint).
  */
 export async function GET() {
-  return NextResponse.json(
-    {
-      status: 'PENDING',
-      message: 'El informe de empalme estará disponible próximamente.',
-      hint: 'Configure INFORME_EMPALME_URL en las variables de entorno o reemplace este handler cuando el enlace de OneDrive esté listo.',
-    },
-    { status: 503 }
-  );
+  try {
+    const res = await backendGetPdf("/v1/reports/informe-empalme/latest");
+
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      console.error("[API /informe-empalme] Backend error:", res.status, detail);
+      return NextResponse.json(
+        { error: "No se pudo obtener el informe de empalme" },
+        { status: res.status >= 500 ? 502 : res.status },
+      );
+    }
+
+    const pdf = await res.arrayBuffer();
+    const disposition =
+      res.headers.get("Content-Disposition") ??
+      'attachment; filename="Informe_de_Empalme_MME.pdf"';
+
+    return new NextResponse(pdf, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": disposition,
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        Pragma: "no-cache",
+      },
+    });
+  } catch (error) {
+    console.error("[API /informe-empalme] Error:", error);
+    return NextResponse.json(
+      { error: "Error interno al descargar el informe de empalme" },
+      { status: 500 },
+    );
+  }
 }

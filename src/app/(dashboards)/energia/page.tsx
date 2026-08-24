@@ -352,7 +352,7 @@ export default function GestionSectorPage() {
     : ahoraFallback;
 
   return (
-    <div className="min-h-screen bg-theme-primary pt-20">
+    <div className="min-h-screen bg-theme-primary pt-20" style={{ paddingTop: "var(--header-height, 5rem)" }}>
       {/* ═══════════════════════════════════════════════════════════════
           TÍTULO DE PÁGINA (no sticky — el Header global ya lo es)
       ═══════════════════════════════════════════════════════════════ */}

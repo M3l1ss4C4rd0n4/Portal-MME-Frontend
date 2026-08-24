@@ -1,20 +1,13 @@
 "use client";
 
 import { GeoJSON, Pane } from "react-leaflet";
+import type { DptoRow } from "@/types/mapa-departamentos";
 
 /**
  * Capa de departamentos (choropleth + hover/click + tooltip) compartida por
  * ComunidadesMap y FenogeCEMap — verificado que esta lógica era byte-idéntica
  * en ambos archivos (solo difería la indentación) antes de extraerla.
  */
-
-export interface DptoRow {
-  departamento: string;
-  departamentoGeo: string;
-  count: number;
-  capacidad: number;
-  inversion: number;
-}
 
 interface DeptAvgConInversion {
   avgInv: number | null;
@@ -28,6 +21,12 @@ interface Props {
   onSelectDept: (dept: string | null) => void;
   porDepartamento: DptoRow[];
   deptAvgs: Record<string, DeptAvgConInversion>;
+  /**
+   * Contenido del tooltip por departamento. Por defecto muestra CEs/capacidad/inversión
+   * (dominio de Comunidades Energéticas). Pasar esta prop para dashboards con otro dominio
+   * (ej. Vista Departamental, que agrega 6 esquemas distintos).
+   */
+  renderTooltip?: (dept: DptoRow, deptAvg?: DeptAvgConInversion) => string[];
 }
 
 export default function DepartmentGeoJsonLayer({
@@ -38,6 +37,7 @@ export default function DepartmentGeoJsonLayer({
   onSelectDept,
   porDepartamento,
   deptAvgs,
+  renderTooltip,
 }: Props) {
   const fillBase = isDark ? "#152840" : "#CBD5E1";
   const strokeCol = isDark ? "#475569" : "#64748B";
@@ -83,15 +83,17 @@ export default function DepartmentGeoJsonLayer({
             .split(" ")
             .map((w: string) => w[0] + w.slice(1).toLowerCase())
             .join(" ");
-          const tooltipLines = [
-            `<strong style="font-size:13px">${nomFormateado}</strong>`,
-            `CEs: <strong>${deptInfo.count}</strong>`,
-            `Capacidad: <strong>${Math.round(deptInfo.capacidad).toLocaleString("es-CO")} kWp</strong>`,
-            `Inversión: <strong>$${Math.round(deptInfo.inversion).toLocaleString("es-CO")}</strong>`,
-          ];
-          if (deptAvg?.avgInv != null) {
-            tooltipLines.push(`Prom. inversión/CE: <strong>$${Math.round(deptAvg.avgInv).toLocaleString("es-CO")}</strong>`);
-          }
+          const tooltipLines = renderTooltip
+            ? [`<strong style="font-size:13px">${nomFormateado}</strong>`, ...renderTooltip(deptInfo, deptAvg)]
+            : [
+                `<strong style="font-size:13px">${nomFormateado}</strong>`,
+                `CEs: <strong>${deptInfo.count}</strong>`,
+                `Capacidad: <strong>${Math.round(deptInfo.capacidad).toLocaleString("es-CO")} kWp</strong>`,
+                `Inversión: <strong>$${Math.round(deptInfo.inversion).toLocaleString("es-CO")}</strong>`,
+                ...(deptAvg?.avgInv != null
+                  ? [`Prom. inversión/CE: <strong>$${Math.round(deptAvg.avgInv).toLocaleString("es-CO")}</strong>`]
+                  : []),
+              ];
           layer.bindTooltip(tooltipLines.join("<br/>"), { sticky: true, direction: "top", className: "dept-tooltip" });
         }}
       />

@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { ResponsivePie } from "@nivo/pie";
 import SemiGauge from "@/components/ui/SemiGauge";
 import { fmtNum, fmtCOPShort } from "@/lib/format";
@@ -7,6 +8,7 @@ import { getNivoTheme } from "@/lib/nivo-theme";
 import { useTheme } from "@/providers/ThemeProvider";
 import type { HomeSliderProps } from "@/types/home-slider";
 import { TopAccent, SectionBadge } from "./SlideUI";
+import { SkeletonBlock } from "@/components/ui/Skeleton";
 
 type EtapaChipProps = {
   label: string;
@@ -17,7 +19,7 @@ type EtapaChipProps = {
 
 function EtapaChip({ label, value, pct, color }: EtapaChipProps) {
   return (
-    <div className="flex flex-col items-center bg-theme-secondary border border-card-energia rounded-xl px-5 py-2 flex-1">
+    <div className="flex flex-col items-center bg-card-glow-energia border border-card-energia rounded-xl px-5 py-2 flex-1">
       <span className="text-[10px] text-slate-400 uppercase tracking-widest mb-0.5">{label}</span>
       <span className={`text-2xl xl:text-3xl font-bold leading-none ${color}`}>{fmtNum(value)}</span>
       {pct && <span className="text-[11px] text-slate-500 mt-0.5">{pct}</span>}
@@ -31,42 +33,50 @@ export function SlideSupervision({ d }: { d: HomeSliderProps["supData"] }) {
   const tot = d.nContratos || 1;
   const pct = (n: number) => `${((n / tot) * 100).toFixed(1)}%`;
 
+  // Hallazgo: fondo que concentra más contratos supervisados.
+  const fondoTop = useMemo(() => {
+    if (!d.porFondo || d.porFondo.length === 0 || !d.nContratos) return null;
+    const top = d.porFondo.slice().sort((a, b) => b.contratos - a.contratos)[0];
+    return { nombre: top.fondo, pct: (top.contratos / d.nContratos) * 100, contratos: top.contratos };
+  }, [d.porFondo, d.nContratos]);
+
   return (
     <div className="relative w-full h-full flex flex-col bg-theme-primary overflow-hidden">
       <TopAccent color="#3B82F6" />
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/15 via-transparent to-slate-900/10 pointer-events-none" />
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[60%] h-[30%] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 flex flex-col h-full max-w-6xl w-full mx-auto px-6 xl:px-10 py-4 justify-center gap-4 xl:gap-5">
+      <div className="relative z-10 flex flex-col h-full max-w-6xl w-full mx-auto px-6 xl:px-10 py-4 justify-evenly gap-2">
 
         {/* Título */}
         <div className="text-center shrink-0">
-          <SectionBadge label="Supervisión" dot="#3B82F6" titleColorClass="text-title-energia" category="energia" />
+          <SectionBadge label="Supervisión" dot="#3B82F6" titleColorClass="text-gradient-energia" category="energia" />
           <p className="text-slate-500 text-sm">Monitoreo y seguimiento de contratos · 2015–2026</p>
         </div>
 
         {/* KPIs principales — 2 col */}
         <div className="grid grid-cols-2 gap-4 shrink-0 max-w-2xl mx-auto w-full">
-          <div className="bg-theme-secondary border border-card-energia rounded-xl px-6 py-2 text-center">
+          <div className="bg-card-glow-energia border border-card-energia rounded-xl px-6 py-2 text-center">
             <p className="text-[10px] text-slate-400 uppercase tracking-widest">Usuarios contratados</p>
-            <p className="text-3xl xl:text-4xl font-bold text-indigo-400 leading-tight">{fmtNum(d.usuarios.contratados)}</p>
+            <p className="text-3xl xl:text-4xl font-bold text-theme-primary leading-tight">{fmtNum(d.usuarios.contratados)}</p>
             <p className="text-xs text-slate-500">beneficiarios ZNI/SIN</p>
           </div>
-          <div className="bg-theme-secondary border border-card-energia rounded-xl px-6 py-2 text-center">
+          <div className="bg-card-glow-energia border border-card-energia rounded-xl px-6 py-2 text-center">
             <p className="text-[10px] text-slate-400 uppercase tracking-widest">Valor total portafolio</p>
-            <p className="text-3xl xl:text-4xl font-bold text-violet-400 leading-tight">{fmtCOPShort(d.financiero.valorProyecto)}</p>
+            <p className="text-3xl xl:text-4xl font-bold text-chart-teal leading-tight">{fmtCOPShort(d.financiero.valorProyecto)}</p>
             <p className="text-xs text-slate-500">portafolio supervisado</p>
           </div>
         </div>
 
         {/* Etapas — 6 chips horizontales */}
         <div className="flex gap-2 shrink-0">
-          <EtapaChip label="Contratos"   value={d.nContratos}         color="text-cyan-400"    />
-          <EtapaChip label="Ejecución"   value={d.enEjecucion}         color="text-emerald-400" pct={pct(d.enEjecucion)} />
-          <EtapaChip label="AOM"         value={d.enAOM}               color="text-teal-400"    pct={pct(d.enAOM)} />
-          <EtapaChip label="Liquidación" value={d.enLiquidacion}       color="text-sky-400"   pct={pct(d.enLiquidacion)} />
+          <EtapaChip label="Contratos"   value={d.nContratos}         color="text-theme-primary"    />
+          <EtapaChip label="Ejecución"   value={d.enEjecucion}         color="text-chart-teal" pct={pct(d.enEjecucion)} />
+          <EtapaChip label="AOM"         value={d.enAOM}               color="text-theme-secondary"    pct={pct(d.enAOM)} />
+          <EtapaChip label="Liquidación" value={d.enLiquidacion}       color="text-theme-secondary"   pct={pct(d.enLiquidacion)} />
           <EtapaChip label="Liquidados"  value={d.liquidados}           color="text-slate-300"   pct={pct(d.liquidados)} />
-          <EtapaChip label="Pérd. Comp." value={d.perdidaCompetencia}   color="text-rose-400"    pct={pct(d.perdidaCompetencia)} />
+          {/* Excepción deliberada: resultado negativo real, se mantiene en rojo aunque las demás etapas usen la paleta decorativa neutral */}
+          <EtapaChip label="Pérd. Comp." value={d.perdidaCompetencia}   color="text-danger"    pct={pct(d.perdidaCompetencia)} />
         </div>
 
         {/* Sección inferior: Gauges + Donut */}
@@ -76,9 +86,9 @@ export function SlideSupervision({ d }: { d: HomeSliderProps["supData"] }) {
           <div className="flex flex-col items-center gap-3">
             <span className="text-[10px] text-theme-muted uppercase tracking-widest">Avance portafolio</span>
             <div className="flex gap-8">
-              <SemiGauge rawValue={d.avanceContrato}   label="General"    color="gold"    size="xl" delay={0.25} />
-              <SemiGauge rawValue={d.avanceFisico}     label="Físico"     color="success" size="xl" delay={0.3}  />
-              <SemiGauge rawValue={d.avanceFinanciero} label="Financiero" color="success" size="xl" delay={0.35} />
+              <SemiGauge rawValue={d.avanceContrato}   label="General"    color="energia" size="xl" delay={0.25} />
+              <SemiGauge rawValue={d.avanceFisico}     label="Físico"     color="energia" size="xl" delay={0.3}  />
+              <SemiGauge rawValue={d.avanceFinanciero} label="Financiero" color="energia" size="xl" delay={0.35} />
             </div>
           </div>
 
@@ -93,7 +103,7 @@ export function SlideSupervision({ d }: { d: HomeSliderProps["supData"] }) {
                       id: f.fondo,
                       label: f.fondo,
                       value: f.contratos,
-                      color: ["#F59E0B", "#8B5CF6", "#06B6D4", "#22C55E", "#EF4444", "#F97316"][i],
+                      color: ["#3B82F6", "#14B8A6", "#1D4ED8", "#94A3B8", "#64748B", "#334155"][i],
                     }))}
                     theme={getNivoTheme(isDark)}
                     margin={{ top: 8, right: 105, bottom: 8, left: 8 }}
@@ -137,14 +147,19 @@ export function SlideSupervision({ d }: { d: HomeSliderProps["supData"] }) {
                   </div>
                 </>
               ) : (
-                <div className="h-full flex items-center justify-center">
-                  <span className="text-slate-500 text-sm">Cargando…</span>
-                </div>
+                <SkeletonBlock className="h-full w-full" />
               )}
             </div>
           </div>
 
         </div>
+
+        {fondoTop && (
+          <p className="text-xs xl:text-sm text-center max-w-4xl text-slate-400 mx-auto">
+            El fondo <strong className="text-title-energia">{fondoTop.nombre}</strong> concentra el{" "}
+            <strong className="text-title-energia">{fondoTop.pct.toFixed(0)}%</strong> de los contratos supervisados ({fondoTop.contratos} de {d.nContratos}).
+          </p>
+        )}
       </div>
     </div>
   );

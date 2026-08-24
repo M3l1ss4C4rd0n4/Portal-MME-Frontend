@@ -10,6 +10,8 @@ import { ResponsiveBar } from "@nivo/bar";
 import { useTheme } from "@/providers/ThemeProvider";
 
 import SemiGauge from "@/components/ui/SemiGauge";
+import Card from "@/components/dashboard/Card";
+import BaseKpiChip, { type KpiChipProps } from "@/components/dashboard/KpiChip";
 import HomeSlider from "@/components/HomeSlider";
 import type { TermicaSliderData, HomeSliderProps } from "@/types/home-slider";
 import type { MetricaTendencia } from "@/components/ui/TrendBadge";
@@ -98,27 +100,6 @@ const NIVO_LIGHT = {
 };
 
 // ─── UI helpers ───────────────────────────────────────────────────────────
-function Card({
-  children,
-  className = "",
-  delay = 0,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  delay?: number;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay }}
-      className={`bg-theme-secondary border border-theme-card rounded-2xl p-5 hover:border-amber-500/40 transition-colors duration-300 ${className}`}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
 function CardHeader({
   title,
   link,
@@ -161,25 +142,8 @@ function CardHeader({
   );
 }
 
-function KpiChip({
-  label,
-  value,
-  accent = false,
-  small = false,
-}: {
-  label: string;
-  value: string | number;
-  accent?: boolean;
-  small?: boolean;
-}) {
-  return (
-    <div className="bg-theme-secondary border border-theme-primary rounded-xl px-3 py-2.5">
-      <div className={`font-bold leading-none ${small ? "text-[11px]" : "text-base"} ${accent ? "text-gold" : "text-theme-primary"}`}>
-        {value}
-      </div>
-      <div className="text-[10px] text-theme-muted mt-1 leading-tight">{label}</div>
-    </div>
-  );
+function KpiChip({ small = false, ...rest }: Omit<KpiChipProps, "container" | "valueSize"> & { small?: boolean }) {
+  return <BaseKpiChip container="surface" valueSize={small ? "sm" : "base"} {...rest} />;
 }
 
 function StateRow({ dot, label, count, total }: { dot: string; label: string; count: number; total: number }) {
@@ -760,7 +724,7 @@ export default function Home() {
   }, [cemDepts]);
 
   return (
-    <div className="min-h-screen bg-theme-primary pt-20 pb-16">
+    <div className="min-h-screen bg-portal-gradient pt-20 pb-16" style={{ paddingTop: "var(--header-height, 5rem)" }}>
       <HomeSlider
         sectorData={sectorData}
         sectorDetalle={sectorDetalle}

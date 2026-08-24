@@ -29,6 +29,16 @@
 
   --card-border-energia: rgba(59, 130, 246, 0.25);
   --card-border-hidrocarburos: rgba(217, 119, 6, 0.25);
+
+  /* Glow de fondo del home — un solo par de tonos (azul de marca Energía +
+     dorado institucional), nunca multicolor ni saturado. */
+  --glow-energia: rgba(96, 165, 250, 0.16);
+  --glow-gold: rgba(232, 168, 56, 0.10);
+
+  /* Altura real del header (fixed) — Header.tsx la mide con ResizeObserver y
+     sobreescribe este valor. El fallback de 5rem evita un salto de layout
+     antes de que el JS del cliente corra (SSR/primer paint). */
+  --header-height: 5rem;
 }
 
 /* Light mode */
@@ -45,6 +55,9 @@ html.light {
   --border-primary: #CBD5E1;
   --border-secondary: #E2E8F0;
   --card-border: #CBD5E1;
+
+  --glow-energia: rgba(96, 165, 250, 0.12);
+  --glow-gold: rgba(232, 168, 56, 0.08);
 }
 
 /* ========================================
@@ -98,6 +111,43 @@ body {
 .bg-theme-tertiary { background-color: var(--bg-tertiary); }
 .bg-theme-hover { background-color: var(--bg-hover); }
 
+/* Panel del Asistente IA — layout tipo "push": el contenido se encoge en vez
+   de quedar tapado por un backdrop, para poder seguir usando el portal con
+   el panel abierto. En pantallas angostas no hay espacio para encoger, así
+   que se conserva el comportamiento de overlay con backdrop (ver ChatbotWidget.tsx). */
+.app-content {
+  transition: margin-right 0.25s ease;
+}
+body.ai-panel-open .app-content {
+  margin-right: 420px;
+}
+@media (max-width: 900px) {
+  body.ai-panel-open .app-content {
+    margin-right: 0;
+  }
+}
+
+/* Fondo del home — glow radial sutil de dos tonos sobre el fondo base del tema */
+.bg-portal-gradient {
+  background-color: var(--bg-primary);
+  background-image:
+    radial-gradient(1100px 700px at 12% -8%, var(--glow-energia), transparent 60%),
+    radial-gradient(900px 650px at 100% 5%, var(--glow-gold), transparent 55%);
+  background-repeat: no-repeat;
+}
+
+/* Tarjetas KPI con leve glow radial de categoría — mismo glow que usa el fondo
+   del slide (--glow-energia/-gold), concentrado en la esquina de la tarjeta en
+   vez de un panel plano de un solo color. */
+.bg-card-glow-energia {
+  background-color: var(--bg-secondary);
+  background-image: radial-gradient(130% 130% at 100% 0%, var(--glow-energia), transparent 70%);
+}
+.bg-card-glow-hidrocarburos {
+  background-color: var(--bg-secondary);
+  background-image: radial-gradient(130% 130% at 100% 0%, var(--glow-gold), transparent 70%);
+}
+
 /* Text colors */
 .text-theme-primary { color: var(--text-primary); }
 .text-theme-secondary { color: var(--text-secondary); }
@@ -128,6 +178,15 @@ body {
 
 .text-warning { color: var(--color-warning); }
 .text-danger { color: var(--color-danger); }
+
+/* Acento secundario "Nivel 2" por categoría — la ÚNICA cifra compañera dentro
+   de una fila de KPIs (ej. Energía Generada junto a Precio de Bolsa) usa esto;
+   todo lo demás en la fila es el color primario de categoría o gris neutro.
+   No usar para estados regulatorios (ver --color-success/warning/danger) ni
+   fuera de la categoría a la que pertenece (teal solo en Energía, orange solo
+   en Hidrocarburos — ver --color-title-energia/-hidrocarburos). */
+.text-chart-teal { color: #14B8A6; }
+.text-chart-orange { color: #EA580C; }
 
 /* ========================================
    UTILITY CLASSES
@@ -164,6 +223,46 @@ html.light .glass {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* Títulos de slide (SectionBadge) — mismo mecanismo que .text-gradient-gold,
+   reutilizando los tonos ya establecidos por categoría (nunca un color nuevo). */
+.text-gradient-energia {
+  background: linear-gradient(135deg, #3B82F6 0%, #93C5FD 45%, #60A5FA 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+html.light .text-gradient-energia {
+  background: linear-gradient(135deg, #1D4ED8 0%, #3B82F6 55%, #1D4ED8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.text-gradient-hidrocarburos {
+  background: linear-gradient(135deg, #D97706 0%, var(--color-gold-light) 45%, #D97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+html.light .text-gradient-hidrocarburos {
+  background: linear-gradient(135deg, #C2410C 0%, #D97706 55%, #C2410C 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ========================================
+   MICRO TYPOGRAPHY SCALE
+   Nombra los tamaños de fuente usados en labels/valores de KPI y ejes de
+   gráficas en los dashboards (antes text-[Npx] arbitrarios sin sistema).
+   Cada clase define solo font-size, igual que un arbitrary value de
+   Tailwind, para no interferir con otras utilidades (leading, color,
+   margin) aplicadas junto a ellas.
+   ======================================== */
+.text-2xs { font-size: 11px; }
+.text-3xs { font-size: 10px; }
+.text-4xs { font-size: 9px; }
+.text-5xs { font-size: 8px; }
 
 .grid-pattern {
   background-image: 
@@ -274,6 +373,8 @@ html.light .text-gold,
 html.light .text-gold-light          { color: #92400E; }
 html.light .text-title-energia       { color: #1D4ED8; }
 html.light .text-title-hidrocarburos { color: #C2410C; }
+html.light .text-chart-teal          { color: #0F766E; }
+html.light .text-chart-orange        { color: #9A3412; }
 html.light .border-card-energia        { border-color: rgba(29, 78, 216, 0.35); }
 html.light .border-card-hidrocarburos  { border-color: rgba(194, 65, 12, 0.35); }
 
@@ -408,9 +509,10 @@ html.light svg text[style*="fill:#94A3B8"] { fill: var(--text-primary) !importan
 
   /* ── Fondo blanco en tarjetas ─────────────────────────────────────────── */
   .bg-theme-primary, .bg-theme-secondary, .bg-theme-tertiary,
-  .bg-theme-hover, .bg-dash-chip {
+  .bg-theme-hover, .bg-dash-chip, .bg-portal-gradient {
     background: #ffffff !important;
     background-color: #ffffff !important;
+    background-image: none !important;
   }
 
   /* ── Texto legible en blanco/negro ────────────────────────────────────── */
@@ -452,8 +554,8 @@ html.light svg text[style*="fill:#94A3B8"] { fill: var(--text-primary) !importan
   .mt-10, .mt-8, .mt-5 { margin-top: 4px !important; }
 
   /* ── Tipografía ──────────────────────────────────────────────────────── */
-  .text-\[10px\] { font-size: 8px !important; }
-  .text-\[11px\] { font-size: 9px !important; }
+  .text-\[10px\], .text-3xs { font-size: 8px !important; }
+  .text-\[11px\], .text-2xs { font-size: 9px !important; }
   table { font-size: 8px !important; width: 100% !important; }
   th, td { padding: 2px 3px !important; }
 

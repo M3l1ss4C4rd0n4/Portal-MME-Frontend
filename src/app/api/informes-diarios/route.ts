@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
+import { backendGetPdf } from "@/lib/backendClient";
 
 export const dynamic = "force-dynamic";
-
-const BACKEND_URL = process.env.BACKEND_API_URL ?? "http://localhost:8000";
-const BACKEND_KEY = process.env.BACKEND_API_KEY ?? "";
 
 const NO_CACHE = {
   "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
@@ -16,14 +14,7 @@ const NO_CACHE = {
  */
 export async function GET() {
   try {
-    const res = await fetch(`${BACKEND_URL}/v1/reports/informes-diarios-xm/paquete`, {
-      headers: {
-        "X-API-Key": BACKEND_KEY,
-        "Cache-Control": "no-cache",
-      },
-      cache: "no-store",
-      signal: AbortSignal.timeout(600_000),
-    });
+    const res = await backendGetPdf("/v1/reports/informes-diarios-xm/paquete");
 
     if (!res.ok) {
       const detail = await res.text().catch(() => "");

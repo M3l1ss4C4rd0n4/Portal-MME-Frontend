@@ -34,6 +34,39 @@ export interface ResultadoBusquedaTexto {
   chunk_index: number | null;
 }
 
+/* ─── Catálogo de métricas (Fase 12/13) ─────────────────────────────────── */
+
+export interface MetricaRelacion {
+  relacion_id: number;
+  tipo_relacion: "insumo_de" | "se_compara_con" | "compone_indice";
+  descripcion: string;
+  referencia_normativa: string | null;
+  origen_id: number;
+  origen_codigo: string;
+  origen_nombre: string;
+  destino_id: number;
+  destino_codigo: string;
+  destino_nombre: string;
+}
+
+export interface Metrica {
+  metrica_id: number;
+  codigo_tecnico: string;
+  nombre_display: string;
+  dominio: string;
+  esquema_origen: string | null;
+  tabla_origen: string | null;
+  columna_origen: string | null;
+  unidad: string | null;
+  fuente: string;
+  descripcion: string | null;
+  es_indice_regulatorio: boolean;
+  referencia_normativa: string | null;
+  estado: "catalogado" | "pendiente_curacion";
+  creado_en: string;
+  relaciones?: MetricaRelacion[];
+}
+
 /* ─── Salud de datos / linaje (Fase 6) ──────────────────────────────────── */
 
 export interface LineageRow {

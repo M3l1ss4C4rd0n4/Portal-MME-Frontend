@@ -4,9 +4,9 @@ export type CombustibleTermica = "Carbón" | "Gas" | "Gas Importado" | "Líquido
 
 export const COMBUSTIBLE_COLORES: Record<CombustibleTermica, string> = {
   "Carbón": "#E2E8F0",
-  Gas: "#22C55E",
-  "Gas Importado": "#EF4444",
-  Líquidos: "#A855F7",
+  Gas: "#14B8A6",
+  "Gas Importado": "#1D4ED8",
+  Líquidos: "#3B82F6",
 };
 
 /** Plantas carbón — centrales a carbón mineral. */

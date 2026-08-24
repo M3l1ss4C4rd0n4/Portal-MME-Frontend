@@ -1,6 +1,23 @@
 "use client";
 
+import { motion, type Variants } from "framer-motion";
 import { useTheme } from "@/providers/ThemeProvider";
+
+// Misma curva de easing que slideVariants.center (HomeSlider.tsx) — el título,
+// las tarjetas KPI y el slide en sí comparten una sola firma de movimiento.
+const EASE_SLIDE = [0.25, 0.46, 0.45, 0.94] as const;
+
+/** Animación de entrada compartida por los grids de KPIs/gráficas de cada slide. */
+export const containerVariants: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08, delayChildren: 0.15 } },
+};
+
+/** Item hijo de containerVariants — usado por KpiBlock/HydroKpiBlock. */
+export const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE_SLIDE } },
+};
 
 export function TopAccent({ color }: { color: string }) {
   return (
@@ -57,16 +74,28 @@ export function SectionBadge({
   category?: "energia" | "hidrocarburos";
 }) {
   return (
-    <div className="flex items-center justify-center flex-wrap gap-3 mb-2">
-      <span
-        className={`w-3.5 h-3.5 rounded-full ${pulse ? "animate-pulse" : ""}`}
-        style={{ backgroundColor: dot }}
-      />
-      <span className={`${titleColorClass} font-black tracking-[0.3em] text-xl xl:text-2xl 2xl:text-3xl uppercase`}>
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: EASE_SLIDE }}
+      className="flex items-center justify-center flex-wrap gap-3 mb-2"
+    >
+      <span className="relative inline-block w-3.5 h-3.5 shrink-0">
+        <span
+          className="absolute -inset-2.5 rounded-full blur-md"
+          style={{ background: `radial-gradient(circle, ${dot}55, transparent 70%)` }}
+          aria-hidden="true"
+        />
+        <span
+          className={`relative inline-block w-3.5 h-3.5 rounded-full ${pulse ? "animate-pulse" : ""}`}
+          style={{ backgroundColor: dot }}
+        />
+      </span>
+      <span className={`${titleColorClass} font-black tracking-[0.22em] text-xl xl:text-2xl 2xl:text-3xl uppercase`}>
         {label}
       </span>
       {category && <CategoryTag category={category} />}
-    </div>
+    </motion.div>
   );
 }
 

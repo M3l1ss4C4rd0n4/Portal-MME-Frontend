@@ -101,3 +101,35 @@ export async function backendGet<T>(
 export function backendGetPdf(path: string): Promise<BackendPdfResponse> {
   return requestBackend(path);
 }
+
+export async function backendPost<T>(
+  path: string,
+  body?: unknown,
+  timeoutMs = 15_000
+): Promise<T> {
+  const url = `${BACKEND_URL}${path}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "X-API-Key": BACKEND_KEY,
+        ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new BackendError(res.status, text || `HTTP ${res.status}`);
+    }
+
+    return res.json() as Promise<T>;
+  } finally {
+    clearTimeout(timer);
+  }
+}

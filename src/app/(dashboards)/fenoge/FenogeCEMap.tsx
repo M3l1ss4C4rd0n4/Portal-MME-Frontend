@@ -1,18 +1,11 @@
 "use client";
 import "leaflet/dist/leaflet.css";
-import { useMemo } from "react";
 import { MapContainer, CircleMarker, Popup, ZoomControl, Marker } from "react-leaflet";
 import L from "leaflet";
-import {
-  COL_BOUNDS,
-  SAN_ANDRES_KEY,
-  SA_LNG_OFFSET,
-  shiftGeometryLng,
-  applyJitter,
-  computeDeptCentroids,
-  MAP_TOOLTIP_STYLES,
-} from "@/components/maps/mapUtils";
+import { COL_BOUNDS, MAP_TOOLTIP_STYLES } from "@/components/maps/mapUtils";
 import DepartmentGeoJsonLayer from "@/components/maps/DepartmentGeoJsonLayer";
+import { useDepartmentMapGeo } from "@/components/maps/useDepartmentMapGeo";
+import type { DptoRow } from "@/types/mapa-departamentos";
 
 export interface FenogePunto {
   nombre: string;
@@ -37,13 +30,6 @@ export const FASE_LABELS: Record<string, string> = {
   "CE":  "CE",
 };
 
-interface DptoRow {
-  departamento: string;
-  departamentoGeo: string;
-  count: number;
-  capacidad: number;
-  inversion: number;
-}
 interface DeptAvg {
   avgKwp: number | null;
   avgBenef: number | null;
@@ -63,27 +49,7 @@ interface Props {
 }
 
 export default function FenogeCEMap({ geoData, puntos, selectedDept, isDark, deptColors, onSelectDept, porDepartamento, deptAvgs }: Props) {
-  const transformedGeoData = useMemo(() => {
-    if (!geoData) return null;
-    const clone = JSON.parse(JSON.stringify(geoData));
-    for (const feat of (clone as any).features) {
-      if (feat.properties?.NOMBRE_DPT === SAN_ANDRES_KEY) {
-        shiftGeometryLng(feat.geometry, SA_LNG_OFFSET);
-      }
-    }
-    return clone;
-  }, [geoData]);
-
-  const jittered = useMemo(() => {
-    const adjusted = puntos.map(p =>
-      p.departamentoGeo === SAN_ANDRES_KEY
-        ? { ...p, lng: p.lng + SA_LNG_OFFSET }
-        : p
-    );
-    return applyJitter(adjusted);
-  }, [puntos]);
-
-  const deptLabels = useMemo(() => computeDeptCentroids(transformedGeoData), [transformedGeoData]);
+  const { transformedGeoData, jittered, deptLabels } = useDepartmentMapGeo(geoData, puntos);
 
   if (!transformedGeoData) {
     return (

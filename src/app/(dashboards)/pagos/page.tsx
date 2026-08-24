@@ -1,26 +1,12 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { motion } from "framer-motion";
 import { ResponsiveBar } from "@nivo/bar";
 import { useTheme } from "@/providers/ThemeProvider";
 import DashboardLayout from "@/components/DashboardLayout";
+import Card from "@/components/dashboard/Card";
 import { getNivoTheme } from "@/lib/nivo-theme";
 import SemiGauge from "@/components/ui/SemiGauge";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────
-function Card({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay }}
-      className={`bg-theme-secondary border border-theme-card rounded-2xl p-5 hover:border-amber-500/40 transition-colors duration-300 ${className}`}
-    >
-      {children}
-    </motion.div>
-  );
-}
 
 const fmtCOP = (v: number) => `$ ${Math.round(v).toLocaleString("es-CO")}`;
 const fmtFull = (v: number) => v.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });

@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { backendGetPdf } from "@/lib/backendClient";
 
 export const dynamic = "force-dynamic";
-
-const BACKEND_URL = process.env.BACKEND_API_URL ?? "http://localhost:8000";
-const BACKEND_KEY = process.env.BACKEND_API_KEY ?? "";
 
 export async function GET(request: NextRequest) {
   const itemId = request.nextUrl.searchParams.get("itemId");
@@ -15,16 +13,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const res = await fetch(
-      `${BACKEND_URL}/v1/contratos-or/actas/descargar?item_id=${encodeURIComponent(itemId)}`,
-      {
-        headers: {
-          "X-API-Key": BACKEND_KEY,
-          "Cache-Control": "no-cache",
-        },
-        cache: "no-store",
-        signal: AbortSignal.timeout(180_000),
-      },
+    const res = await backendGetPdf(
+      `/v1/contratos-or/actas/descargar?item_id=${encodeURIComponent(itemId)}`,
     );
 
     if (!res.ok) {

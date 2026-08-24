@@ -2,11 +2,7 @@
 
 import { useCallback, useState } from 'react';
 
-interface ResumenEjecutivoFabProps {
-  onPointerDown?: (e: React.PointerEvent) => void;
-}
-
-export default function ResumenEjecutivoFab({ onPointerDown }: ResumenEjecutivoFabProps) {
+export default function ResumenEjecutivoFab() {
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,38 +51,23 @@ export default function ResumenEjecutivoFab({ onPointerDown }: ResumenEjecutivoF
       }}
       disabled={downloading}
       className={[
-        'w-14 h-14 rounded-full shadow-xl flex flex-col items-center justify-center',
-        'transition-transform hover:scale-105 active:scale-95',
-        'disabled:opacity-70 disabled:cursor-wait disabled:hover:scale-100',
-        'border border-[#2A5A6E]/60 relative pointer-events-auto',
+        'relative w-14 h-14 rounded-full flex items-center justify-center',
+        'transition-colors hover:bg-black/10 active:bg-black/20',
+        'disabled:opacity-70 disabled:cursor-wait',
         error ? 'ring-2 ring-red-500/80' : '',
       ].join(' ')}
-      style={{
-        background: 'linear-gradient(145deg, #2A6B7C 0%, #1D3544 100%)',
-        boxShadow: '0 4px 20px rgba(29, 53, 68, 0.45), 0 2px 8px rgba(0,0,0,0.3)',
-      }}
       aria-label="Descargar resumen ejecutivo diario MME"
-      title={error ?? 'Descargar informe ejecutivo diario (correo/Telegram)'}
+      title={error ?? 'Resumen Ejecutivo'}
     >
       {downloading ? (
-        <svg
-          className="w-5 h-5 animate-spin text-white"
-          viewBox="0 0 24 24"
-          fill="none"
-          aria-hidden="true"
-        >
+        <svg className="w-6 h-6 animate-spin text-[#2A2826]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
         </svg>
       ) : (
-        <>
-          <span className="text-[7px] font-bold uppercase leading-none tracking-wide" style={{ color: '#ffffff' }}>
-            Resumen
-          </span>
-          <span className="text-[7px] font-bold uppercase leading-none tracking-wide" style={{ color: '#ffffff' }}>
-            Ejecutivo
-          </span>
-        </>
+        <svg className="w-6 h-6 text-[#2A2826] pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
       )}
     </button>
   );

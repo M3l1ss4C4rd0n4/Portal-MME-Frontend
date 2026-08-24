@@ -7,9 +7,12 @@ import { ResponsiveLine } from "@nivo/line";
 import { ResponsivePie } from "@nivo/pie";
 import { ResponsiveBar, type BarCustomLayerProps } from "@nivo/bar";
 import SemiGauge from "@/components/ui/SemiGauge";
-import { TrendBadge, TrendArrow, getTrendColor } from "@/components/ui/TrendBadge";
+import { SkeletonBlock, SkeletonKpiCard, SkeletonChart } from "@/components/ui/Skeleton";
+import { Sparkline } from "@/components/ui/Sparkline";
+import { TrendArrow, getTrendColor } from "@/components/ui/TrendBadge";
 import type { MetricaTendencia } from "@/components/ui/TrendBadge";
 import { useHomeSlider, SLIDE_INTERVAL_MS } from "@/hooks/useHomeSlider";
+import { useDiagnosticosIA } from "@/hooks/useDiagnosticosIA";
 import { fmtCortePresupuesto } from "@/lib/format";
 import { getNivoTheme } from "@/lib/nivo-theme";
 import { useTheme } from "@/providers/ThemeProvider";
@@ -20,7 +23,7 @@ import PredictionKpiBlock from "@/components/predictions/PredictionKpiBlock";
 import type { PredictionPoint } from "@/types/predictions";
 import { fmtShortDate } from "@/types/predictions";
 import InformesDiariosSlider from "@/components/InformesDiariosSlider";
-import { TopAccent, SectionBadge, CategoryTag } from "@/components/slides/SlideUI";
+import { TopAccent, SectionBadge, CategoryTag, containerVariants, itemVariants } from "@/components/slides/SlideUI";
 import { SlideSupervision } from "@/components/slides/SlideSupervision";
 import { SlideHidrocarburosPresupuesto } from "@/components/slides/SlideHidrocarburosPresupuesto";
 import { SlideHidrocarburosProduccion } from "@/components/slides/SlideHidrocarburosProduccion";
@@ -41,6 +44,7 @@ import {
   PRECIO_ESCASEZ_PE_REF_2026_01,
   PRECIO_ESCASEZ_PES_REF_2026_01,
 } from "@/lib/umbralesOficiales";
+import { diagnosticoTermico } from "@/lib/kpi-logic";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const fmtCOP = (v: number) => `$ ${Math.round(v).toLocaleString("es-CO")}`;
@@ -242,8 +246,11 @@ const slideVariants = {
 // ─── KPI Block (reutilizable) ──────────────────────────────────────────────────
 function KpiBlock({
   label, value, unit, date, valueClass = "text-gold", large = false,
+  valueSizeClass,
+  progressPct,
   chipLabel, chipColor, tendencia, metrica,
   valueTitle, chipTitle, trendTitle,
+  sparklineData, sparklineColor,
 }: {
   label: string;
   value: React.ReactNode;
@@ -251,6 +258,14 @@ function KpiBlock({
   date?: string | null;
   valueClass?: string;
   large?: boolean;
+  /** Fuerza un tamaño de fuente fijo para el valor, ignorando el autoescalado por longitud de
+      texto — usar cuando la cifra debe verse igual de grande que otra tarjeta aunque tenga más
+      dígitos (ej. valores en pesos con precisión completa vs. montos abreviados). */
+  valueSizeClass?: string;
+  /** Cuando el valor ES un porcentaje (0-100), muestra la barra de progreso con degradado y
+      escala 0%/100% — igual que en Reservas/Aportes/Proyección Embalses. Omitir en valores que
+      no son un porcentaje de algo (precios, montos, conteos): una barra ahí no tiene sentido. */
+  progressPct?: number;
   chipLabel?: string;
   chipColor?: string;
   tendencia?: MetricaTendencia | null;
@@ -261,11 +276,16 @@ function KpiBlock({
   chipTitle?: string;
   /** Tooltip nativo al pasar cursor sobre el badge de tendencia */
   trendTitle?: string;
+  /** Serie histórica para la mini gráfica de tendencia — se omite si no hay datos suficientes */
+  sparklineData?: number[];
+  sparklineColor?: string;
 }) {
   const strLen = typeof value === 'string' || typeof value === 'number' ? String(value).length : 12;
   let fontClass: string;
-  
-  if (large) {
+
+  if (valueSizeClass) {
+    fontClass = valueSizeClass;
+  } else if (large) {
     if (strLen <= 8) {
       fontClass = "text-4xl xl:text-5xl 2xl:text-6xl";
     } else if (strLen <= 12) {
@@ -287,29 +307,75 @@ function KpiBlock({
     }
   }
 
+  const trendColor = tendencia && tendencia.label !== "S/D" ? getTrendColor(tendencia, metrica ?? "valor") : undefined;
+  const trendUnit = metrica === "embalses" || metrica === "aportes" ? "pp" : "%";
+
   return (
-    <div className="flex flex-col items-center justify-center text-center gap-0.5 px-2 py-2 bg-theme-secondary border border-card-energia rounded-xl">
-      <p className="text-theme-muted text-lg xl:text-xl 2xl:text-2xl uppercase tracking-[0.2em] font-medium">
-        {label}
-      </p>
-      <div
-        className={`inline-flex items-center gap-2 font-black leading-none break-all ${valueClass} ${fontClass}`}
-        style={tendencia && tendencia.label !== "S/D" ? { color: getTrendColor(tendencia, metrica ?? "valor") } : undefined}
-        title={valueTitle}
-      >
-        {value}
-        <TrendArrow tendencia={tendencia} metrica={metrica} trendTitle={trendTitle} />
+    <motion.div
+      variants={itemVariants}
+      whileHover={{ y: -4, boxShadow: "0 8px 30px -8px var(--glow-energia)", transition: { duration: 0.2 } }}
+      className="h-full flex flex-col text-center gap-1.5 px-3 py-2.5 bg-card-glow-energia border border-card-energia border-t-2 border-t-[var(--color-title-energia)] rounded-xl"
+    >
+      {/* Encabezado: título a la izquierda, estado como badge arriba a la derecha */}
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-theme-muted text-xs xl:text-sm uppercase tracking-[0.14em] font-semibold text-left">
+          {label}
+        </p>
+        {chipLabel && chipColor && <StatusChip label={chipLabel} color={chipColor} title={chipTitle} />}
       </div>
+
+      {/* Valor principal + tendencia — la mini-tendencia (si hay) va a la izquierda del valor */}
+      <div className="flex items-center justify-center gap-2.5" title={valueTitle}>
+        {sparklineData && sparklineData.length >= 2 && (
+          <Sparkline data={sparklineData} color={sparklineColor ?? "var(--color-title-energia)"} className="w-10 xl:w-12 shrink-0" />
+        )}
+        <div className="inline-flex items-baseline gap-2 flex-wrap">
+          <span
+            className={`font-extrabold leading-none tabular-nums break-all ${valueClass} ${fontClass}`}
+            style={trendColor ? { color: trendColor } : undefined}
+          >
+            {value}
+          </span>
+          {tendencia && tendencia.label !== "S/D" && (
+            <span
+              className="inline-flex items-center gap-0.5 text-xs xl:text-sm font-bold"
+              style={{ color: trendColor }}
+              title={trendTitle}
+            >
+              <TrendArrow tendencia={tendencia} metrica={metrica} />
+              {tendencia.cambio7d !== null && `${Math.abs(tendencia.cambio7d).toFixed(1)}${trendUnit}/7d`}
+            </span>
+          )}
+        </div>
+      </div>
+
       {(unit || date) && (
-        <p className="text-slate-400 text-xs xl:text-sm 2xl:text-base mt-0.5">
+        <p className="text-slate-400 text-xs xl:text-sm font-medium">
           {unit}
           {unit && date && " · "}
           {date && `Dato: ${date}`}
         </p>
       )}
-      <TrendBadge tendencia={tendencia} metrica={metrica} title={trendTitle} />
-      {chipLabel && chipColor && <StatusChip label={chipLabel} color={chipColor} title={chipTitle} />}
-    </div>
+
+      {/* Barra de progreso con degradado — solo cuando el valor es un porcentaje real */}
+      {progressPct != null && (
+        <div>
+          <div className="w-full h-1.5 rounded-full bg-theme-tertiary overflow-hidden">
+            <motion.div
+              className="h-full rounded-full"
+              style={{ background: "linear-gradient(90deg, #60A5FA, #1D4ED8)" }}
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min(progressPct, 100)}%` }}
+              transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
+            />
+          </div>
+          <div className="flex justify-between text-[9px] text-slate-600 leading-none mt-0.5">
+            <span>0%</span>
+            <span>100%</span>
+          </div>
+        </div>
+      )}
+    </motion.div>
   );
 }
 
@@ -440,12 +506,16 @@ function diagnosticoReservas(p: DiagnosticoReservasParams): string {
     ? "Las reservas hídricas y los aportes del sistema están en vigilancia. "
     : "Las reservas hídricas y los aportes del sistema están en condiciones normales. ";
 
+  // .toFixed(1), no .toFixed(0): las tarjetas de KPI de al lado muestran 1-2
+  // decimales (ej. "79.51%") — redondear el texto a entero (79.51→"80") cruza
+  // la barrera del número entero y hace parecer que el párrafo usa un dato
+  // distinto al de la tarjeta, aunque sea el mismo valor solo que redondeado.
   if (p.aportesPct != null && p.aportesPct < 90 && p.reservasPct >= 70) {
-    texto += `Aunque los aportes hídricos están por debajo de lo normal (${p.aportesPct.toFixed(0)}%), los embalses aún se mantienen estables al ${p.reservasPct.toFixed(0)}%. `;
+    texto += `Aunque los aportes hídricos están por debajo de lo normal (${p.aportesPct.toFixed(1)}%), los embalses aún se mantienen estables al ${p.reservasPct.toFixed(1)}%. `;
   } else if (p.aportesPct != null && p.aportesPct >= 90) {
-    texto += `Los aportes hídricos están en nivel normal, sosteniendo los embalses al ${p.reservasPct.toFixed(0)}%. `;
+    texto += `Los aportes hídricos están en nivel normal, sosteniendo los embalses al ${p.reservasPct.toFixed(1)}%. `;
   } else {
-    texto += `Embalses al ${p.reservasPct.toFixed(0)}%. `;
+    texto += `Embalses al ${p.reservasPct.toFixed(1)}%. `;
   }
 
   if (p.oniActual != null && p.oniClasificacion) {
@@ -461,10 +531,20 @@ function diagnosticoReservas(p: DiagnosticoReservasParams): string {
   }
 
   if (p.prediccion) {
-    texto += `Se proyecta un pico de ${p.prediccion.picoPct.toFixed(1)}% el ${fmtShortDate(p.prediccion.picoFecha)}` +
-      (p.prediccion.meta80Fecha
-        ? `, superando la meta del 80% a partir del ${fmtShortDate(p.prediccion.meta80Fecha)}. `
-        : `, sin alcanzar la meta del 80% en el horizonte proyectado. `);
+    // Bug real corregido: "pico" es el máximo DENTRO de la serie de predicción
+    // futura (ver server/api/v1/routes/predictions.py:196, idxmax() sobre solo
+    // los próximos 90 días) — una serie distinta del valor actual medido
+    // (p.reservasPct). Es matemáticamente válido que ese máximo futuro sea
+    // igual o menor al valor de hoy (el modelo no proyecta recuperación), pero
+    // decir "se proyecta un pico" en ese caso suena a buena noticia futura
+    // cuando en realidad es lo contrario.
+    const sinRecuperacionProyectada = p.prediccion.picoPct <= p.reservasPct;
+    texto += sinRecuperacionProyectada
+      ? `El modelo no proyecta una recuperación en los próximos meses: el mejor escenario esperado es ${p.prediccion.picoPct.toFixed(1)}% el ${fmtShortDate(p.prediccion.picoFecha)}, en línea con el nivel actual o levemente por debajo`
+      : `Se proyecta un pico de ${p.prediccion.picoPct.toFixed(1)}% el ${fmtShortDate(p.prediccion.picoFecha)}`;
+    texto += p.prediccion.meta80Fecha
+      ? `, superando la meta del 80% a partir del ${fmtShortDate(p.prediccion.meta80Fecha)}. `
+      : `, sin alcanzar la meta del 80% en el horizonte proyectado. `;
     texto += `La ventana de mayor riesgo energético se ubica entre diciembre de 2026 y marzo de 2027. `;
   }
 
@@ -498,7 +578,13 @@ function diagnosticoPrecio(p: DiagnosticoPrecioParams): string {
     : "El precio de bolsa y la generación están en condiciones normales. ";
 
   if (hidroPct != null && termicaPct != null) {
-    texto += `La generación hidráulica cubre el ${hidroPct.toFixed(1)}% de la demanda, y la térmica el ${termicaPct.toFixed(1)}%. `;
+    // "de la generación" (no "de la demanda" — bug real: esto es composición
+    // de la generación, no del consumo) y "en los últimos 7 días" explícito —
+    // este dato es un promedio semanal (generacionPorFuente, ventana de 7 días),
+    // a diferencia del % puntual "de hoy" que muestra el slide de Generación
+    // Térmica. Sin esta aclaración ambos números parecen contradecirse aunque
+    // los dos sean correctos para lo que miden.
+    texto += `En promedio de los últimos 7 días, la generación hidráulica ha cubierto el ${hidroPct.toFixed(1)}% de la generación total, y la térmica el ${termicaPct.toFixed(1)}%. `;
   }
 
   texto += p.precio < pe
@@ -529,6 +615,7 @@ function HydroKpiBlock({
   dailyGwh, dailyHistGwh,
   date, chipLabel, chipColor, tendencia, metrica,
   valueTitle, chipTitle, trendTitle, gwhTitle, dailyTitle,
+  sparklineData, sparklineColor,
 }: {
   label: string;
   pct: number;
@@ -553,45 +640,91 @@ function HydroKpiBlock({
   gwhTitle?: string;
   /** Tooltip nativo sobre la línea diaria (dailyGwh/date) */
   dailyTitle?: string;
+  /** Serie histórica para la mini gráfica de tendencia — se omite si no hay datos suficientes */
+  sparklineData?: number[];
+  sparklineColor?: string;
 }) {
   const fmt = (v: number) => v.toLocaleString("es-CO", { maximumFractionDigits: 1 });
   const fontClass = "text-3xl xl:text-4xl 2xl:text-5xl";
+  const trendColor = tendencia && tendencia.label !== "S/D" ? getTrendColor(tendencia, metrica ?? "valor") : undefined;
+  const trendUnit = metrica === "embalses" || metrica === "aportes" ? "pp" : "%";
+  const footer = dailyGwh != null
+    ? <>{date ?? "hoy"}: {fmt(dailyGwh)} GWh{dailyHistGwh != null && <span className="text-slate-600"> · media {fmt(dailyHistGwh)} GWh</span>}</>
+    : date
+    ? <>Última act.: {date}</>
+    : null;
   return (
-    <div className="flex flex-col items-center justify-center text-center gap-0.5 px-2 py-2 bg-theme-secondary border border-card-energia rounded-xl">
-      <p className="text-slate-400 text-base xl:text-lg 2xl:text-xl uppercase tracking-[0.18em] font-medium">
-        {label}
-      </p>
-      {gwh != null ? (
-        <p className="text-slate-300 text-sm xl:text-base font-semibold" title={gwhTitle}>
+    <motion.div
+      variants={itemVariants}
+      whileHover={{ y: -4, boxShadow: "0 8px 30px -8px var(--glow-energia)", transition: { duration: 0.2 } }}
+      className="h-full flex flex-col text-center gap-1.5 px-3 py-2.5 bg-card-glow-energia border border-card-energia border-t-2 border-t-[var(--color-title-energia)] rounded-xl"
+    >
+      {/* Encabezado: título a la izquierda, estado como badge arriba a la derecha */}
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-theme-muted text-xs xl:text-sm uppercase tracking-[0.14em] font-semibold text-left">
+          {label}
+        </p>
+        {chipLabel && chipColor && <StatusChip label={chipLabel} color={chipColor} title={chipTitle} />}
+      </div>
+
+      {/* Valor principal + tendencia — la mini-tendencia (si hay) va a la izquierda del valor */}
+      <div className="flex items-center justify-center gap-2.5" title={valueTitle}>
+        {sparklineData && sparklineData.length >= 2 && (
+          <Sparkline data={sparklineData} color={sparklineColor ?? "var(--color-title-energia)"} className="w-10 xl:w-12 shrink-0" />
+        )}
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <span
+            className={`${fontClass} font-extrabold leading-none tabular-nums ${pctColor}`}
+            style={trendColor ? { color: trendColor } : undefined}
+          >
+            {pct.toFixed(2)}%
+          </span>
+          {tendencia && tendencia.label !== "S/D" && (
+            <span
+              className="inline-flex items-center gap-0.5 text-xs xl:text-sm font-bold"
+              style={{ color: trendColor }}
+              title={trendTitle}
+            >
+              <TrendArrow tendencia={tendencia} metrica={metrica} />
+              {tendencia.cambio7d !== null && `${Math.abs(tendencia.cambio7d).toFixed(1)}${trendUnit}/7d`}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Métrica secundaria */}
+      {gwh != null && (
+        <p className="text-slate-300 text-xs xl:text-sm font-medium" title={gwhTitle}>
           {fmt(gwh)} GWh
           {gwhRef != null && (
-            <span className="text-slate-500 font-normal"> · {gwhRefLabel ?? "ref."} {fmt(gwhRef)} GWh</span>
+            <span className="text-slate-500"> · {gwhRefLabel ?? "ref."} {fmt(gwhRef)} GWh</span>
           )}
         </p>
-      ) : (
-        <p className="text-sm xl:text-base font-semibold invisible select-none" aria-hidden="true">·</p>
       )}
-      <div
-        className={`inline-flex items-center gap-2 ${fontClass} font-black leading-none ${pctColor}`}
-        style={tendencia && tendencia.label !== "S/D" ? { color: getTrendColor(tendencia, metrica ?? "valor") } : undefined}
-        title={valueTitle}
-      >
-        {pct.toFixed(2)}%
-        <TrendArrow tendencia={tendencia} metrica={metrica} trendTitle={trendTitle} />
+
+      {/* Barra de progreso con degradado — refuerzo visual del % (escala 0-100%) y única
+          separadora visual antes del pie, ya no hace falta una línea divisoria aparte */}
+      <div>
+        <div className="w-full h-1.5 rounded-full bg-theme-tertiary overflow-hidden">
+          <motion.div
+            className="h-full rounded-full"
+            style={{ background: "linear-gradient(90deg, #60A5FA, #1D4ED8)" }}
+            initial={{ width: 0 }}
+            animate={{ width: `${Math.min(pct, 100)}%` }}
+            transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
+          />
+        </div>
+        <div className="flex justify-between text-[9px] text-slate-600 leading-none mt-0.5">
+          <span>0%</span>
+          <span>100%</span>
+        </div>
       </div>
-      {dailyGwh != null ? (
-        <p className="text-slate-500 text-[10px] xl:text-xs mt-0.5" title={dailyTitle}>
-          {date ?? "hoy"}: {fmt(dailyGwh)} GWh
-          {dailyHistGwh != null && (
-            <span className="text-slate-600"> · media {fmt(dailyHistGwh)} GWh</span>
-          )}
-        </p>
-      ) : (
-        date && <p className="text-slate-500 text-[10px] xl:text-xs mt-0.5" title={dailyTitle}>{date}</p>
+
+      {/* Metadato al pie */}
+      {footer && (
+        <p className="mt-auto text-slate-500 text-[11px] xl:text-xs font-medium" title={dailyTitle}>{footer}</p>
       )}
-      <TrendBadge tendencia={tendencia} metrica={metrica} title={trendTitle} />
-      {chipLabel && chipColor && <StatusChip label={chipLabel} color={chipColor} title={chipTitle} />}
-    </div>
+    </motion.div>
   );
 }
 
@@ -714,7 +847,8 @@ function SlideReservasEmbalses({ d }: { d: HomeSliderProps["sectorData"] }) {
 
   const stRes = estadoReservas(d.pctEmbalses);
   const stAp  = aportesPct !== null ? estadoAportes(aportesPct) : null;
-  const diagnostico = diagnosticoReservas({
+  const diagnosticosIA = useDiagnosticosIA();
+  const diagnosticoDeterministico = diagnosticoReservas({
     reservasPct: d.pctEmbalses,
     aportesPct,
     estados: { reservas: stRes, aportes: stAp },
@@ -725,6 +859,10 @@ function SlideReservasEmbalses({ d }: { d: HomeSliderProps["sectorData"] }) {
       ? { picoPct: predData.pico.valor, picoFecha: predData.pico.fecha, meta80Fecha: threshold80Date }
       : null,
   });
+  // Fase 11: texto generado por IA 1 vez al día (cacheado), reconcilia
+  // explícitamente cifras que de otro modo parecerían contradictorias entre
+  // slides. Si la tarea diaria aún no corrió o falló, cae al determinístico.
+  const diagnostico = diagnosticosIA["reservas"]?.texto ?? diagnosticoDeterministico;
 
   const aportesColor = aportesPct === null ? "text-slate-400"
     : aportesPct >= HSIN_UMBRAL_NORMAL ? "text-emerald-400"
@@ -752,10 +890,23 @@ function SlideReservasEmbalses({ d }: { d: HomeSliderProps["sectorData"] }) {
     `de un total posible de ${d.capacidadEmbalseGwh?.toLocaleString('es-CO', {maximumFractionDigits:1}) ?? '—'} GWh. ` +
     `Es como la batería del sistema: cuando los embalses están llenos, hay energía de sobra; cuando están vacíos, hay que prender otras plantas.`;
 
+  // Bug real corregido: el índice NE "SUPERIOR" se activa por DOS reglas
+  // distintas (embalse ≥ senda del mes, O embalse ≥ 70% por la "regla
+  // absoluta" CREG 209/2020 — ver clasificarIndiceNE en @/lib/umbralesOficiales),
+  // pero el texto asumía ciegamente que "SUPERIOR" siempre significa "por
+  // encima del número de senda mostrado". En años de El Niño la senda puede
+  // subir por encima del 70% (ej. 82%), y un embalse de 79.5% cae en SUPERIOR
+  // por la regla absoluta sin superar esa senda específica — el texto decía
+  // "por encima de la senda (82%)" con un valor que en realidad está por
+  // debajo. Se compara explícitamente contra sendaPct en vez de confiar en el
+  // label.
+  const superaLaSendaEspecifica = d.pctEmbalses >= sendaPct;
   const tReservasChip =
     `${stRes.label}. ` +
-    (neNivel === 'SUPERIOR'
+    (neNivel === 'SUPERIOR' && superaLaSendaEspecifica
       ? `Los embalses están en muy buen nivel, por encima de la senda de referencia que establece la CREG (${sendaPct.toFixed(1)}% para este mes). Esto significa que hay agua suficiente y el sistema está tranquilo.`
+      : neNivel === 'SUPERIOR'
+      ? `Los embalses están por encima del piso mínimo del 70% que exige la regulación CREG 209/2020, aunque todavía por debajo de la senda específica de este mes (${sendaPct.toFixed(1)}%). El sistema está estable, sin ser el nivel ideal para la época.`
       : neNivel === 'ALERTA'
       ? `Los embalses están por debajo de la senda de referencia que fija la CREG (${sendaPct.toFixed(1)}%). Todavía no es crítico, pero hay que vigilar de cerca la evolución en los próximos días.`
       : `Los embalses están en un nivel inferior al esperado para esta época del año. La senda de referencia de la CREG es de ${sendaPct.toFixed(1)}%. Esta situación puede activar medidas de seguimiento especial.`);
@@ -805,15 +956,15 @@ function SlideReservasEmbalses({ d }: { d: HomeSliderProps["sectorData"] }) {
       : undefined;
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-theme-primary overflow-hidden">
+    <div className="relative w-full h-full flex flex-col items-center justify-center bg-portal-gradient overflow-hidden">
       <TopAccent color="#3B82F6" />
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-blue-900/10 pointer-events-none" />
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[60%] h-[30%] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 flex flex-col items-center w-full max-w-7xl px-6 xl:px-8 gap-2 xl:gap-4">
+      <div className="relative z-10 flex flex-col items-center h-full w-full max-w-[1600px] px-6 xl:px-10 py-3 justify-evenly gap-2">
         {/* Header con diagnóstico dinámico */}
         <div className="text-center">
-          <SectionBadge label="Gestión del Sector" pulse dot="#EF4444" titleColorClass="text-title-energia" category="energia" />
+          <SectionBadge label="Gestión del Sector" pulse dot="#EF4444" titleColorClass="text-gradient-energia" category="energia" />
           <p className="text-theme-secondary text-xs xl:text-sm font-medium">{diagnostico}</p>
           <p className="text-slate-600 text-[10px] xl:text-xs mt-0.5">
             {d.ultimaEjecucionETL
@@ -825,7 +976,7 @@ function SlideReservasEmbalses({ d }: { d: HomeSliderProps["sectorData"] }) {
         </div>
 
         {/* KPIs — 3 columnas */}
-        <div className="grid grid-cols-3 w-full gap-3">
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-3 w-full gap-3">
           <HydroKpiBlock
             label="Reservas Hídricas"
             pct={d.pctEmbalses}
@@ -843,6 +994,8 @@ function SlideReservasEmbalses({ d }: { d: HomeSliderProps["sectorData"] }) {
             chipTitle={tReservasChip}
             trendTitle={tReservasTrend}
             dailyTitle={tReservasDaily}
+            sparklineData={embalseData?.pctSin.data.map((p) => p.y)}
+            sparklineColor="#3B82F6"
           />
           {aportesPct !== null && stAp ? (
             <HydroKpiBlock
@@ -866,7 +1019,7 @@ function SlideReservasEmbalses({ d }: { d: HomeSliderProps["sectorData"] }) {
               dailyTitle={tAportesDaily}
             />
           ) : (
-            <div className="flex items-center justify-center bg-theme-secondary border border-card-energia rounded-xl px-2 py-2">
+            <div className="flex items-center justify-center bg-card-glow-energia border border-card-energia rounded-xl px-2 py-2">
               <p className="text-slate-600 text-sm">Sin datos</p>
             </div>
           )}
@@ -880,11 +1033,9 @@ function SlideReservasEmbalses({ d }: { d: HomeSliderProps["sectorData"] }) {
               climaMeta={climaMeta}
             />
           ) : (
-            <div className="flex items-center justify-center bg-theme-secondary border border-card-energia rounded-xl px-2 py-2">
-              <p className="text-slate-600 text-sm">Cargando predicción…</p>
-            </div>
+            <SkeletonKpiCard />
           )}
-        </div>
+        </motion.div>
 
         {/* Gráficos — 2 columnas: Capacidad Embalse | Proyección de Embalses */}
         <div className="grid grid-cols-1 md:grid-cols-2 w-full gap-2 xl:gap-3">
@@ -894,9 +1045,7 @@ function SlideReservasEmbalses({ d }: { d: HomeSliderProps["sectorData"] }) {
             {embalseData ? (
               <CapacidadEmbalseChart data={embalseData} height={220} />
             ) : (
-              <div className="flex items-center justify-center h-[22vh] min-h-[140px] max-h-[220px] text-slate-600 text-xs">
-                Cargando embalses…
-              </div>
+              <SkeletonBlock className="h-[22vh] min-h-[140px] max-h-[220px] w-full" />
             )}
           </div>
 
@@ -911,9 +1060,7 @@ function SlideReservasEmbalses({ d }: { d: HomeSliderProps["sectorData"] }) {
                 threshold80Date={threshold80Date}
               />
             ) : (
-              <div className="flex items-center justify-center h-[22vh] min-h-[140px] max-h-[220px] text-slate-600 text-xs">
-                Cargando predicción…
-              </div>
+              <SkeletonBlock className="h-[22vh] min-h-[140px] max-h-[220px] w-full" />
             )}
           </div>
         </div>
@@ -940,12 +1087,16 @@ function SlidePrecioGeneracion({ d, detalle }: { d: HomeSliderProps["sectorData"
     d.precioBolsa,
     preciosReg ?? undefined,
   );
-  const diagnostico = diagnosticoPrecio({
+  const diagnosticosIA = useDiagnosticosIA();
+  const diagnosticoDeterministico = diagnosticoPrecio({
     precio: d.precioBolsa,
     preciosReg: d.umbralesRegulatorios,
     fuentes: detalle?.generacionPorFuente,
     estados: { precio: stPr, generacion: stGen },
   });
+  // Fase 11: texto generado por IA 1 vez al día (cacheado), con respaldo
+  // determinístico si la tarea diaria aún no corrió o falló.
+  const diagnostico = diagnosticosIA["precio_generacion"]?.texto ?? diagnosticoDeterministico;
 
   // ─── Tooltips nativos (title) para cada valor ────────────────────────────
   const pei = preciosReg?.pei ?? PRECIO_ESCASEZ_PEI_REF_2026_01;
@@ -1041,15 +1192,15 @@ function SlidePrecioGeneracion({ d, detalle }: { d: HomeSliderProps["sectorData"
       : `Se compara la generación de hoy con el promedio de la última semana.`;
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-theme-primary overflow-hidden">
+    <div className="relative w-full h-full flex flex-col items-center justify-center bg-portal-gradient overflow-hidden">
       <TopAccent color="#3B82F6" />
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-blue-900/10 pointer-events-none" />
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[60%] h-[30%] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 flex flex-col items-center w-full max-w-7xl px-6 xl:px-8 gap-2 xl:gap-4">
+      <div className="relative z-10 flex flex-col items-center h-full w-full max-w-[1600px] px-6 xl:px-10 py-3 justify-evenly gap-2">
         {/* Header con diagnóstico dinámico */}
         <div className="text-center">
-          <SectionBadge label="Gestión del Sector" pulse dot="#EF4444" titleColorClass="text-title-energia" category="energia" />
+          <SectionBadge label="Gestión del Sector" pulse dot="#EF4444" titleColorClass="text-gradient-energia" category="energia" />
           <p className="text-theme-secondary text-xs xl:text-sm font-medium">{diagnostico}</p>
           <p className="text-slate-600 text-[10px] xl:text-xs mt-0.5">
             {d.ultimaEjecucionETL
@@ -1061,7 +1212,7 @@ function SlidePrecioGeneracion({ d, detalle }: { d: HomeSliderProps["sectorData"
         </div>
 
         {/* KPIs — 2 columnas */}
-        <div className="grid grid-cols-2 w-full gap-3">
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-2 w-full gap-3">
           <KpiBlock
             label="Precio de Bolsa (PPP)"
             value={`$${d.precioBolsa.toFixed(2)}`}
@@ -1075,13 +1226,15 @@ function SlidePrecioGeneracion({ d, detalle }: { d: HomeSliderProps["sectorData"
             valueTitle={tPrecioValor}
             chipTitle={tPrecioChip}
             trendTitle={tPrecioTrend}
+            sparklineData={hasPrecioSeries ? detalle!.precioBolsaSeries[0].data.map((p) => p.y) : undefined}
+            sparklineColor="var(--color-gold)"
           />
           <KpiBlock
             label="Energía Generada"
             value={d.generacionGwh.toFixed(2)}
             unit="GWh"
             date={d.fechaGeneracion}
-            valueClass="text-cyan-400"
+            valueClass="text-chart-teal"
             chipLabel={stGen.label}
             chipColor={stGen.color}
             tendencia={d.tendencias?.generacion}
@@ -1090,10 +1243,10 @@ function SlidePrecioGeneracion({ d, detalle }: { d: HomeSliderProps["sectorData"
             chipTitle={tGeneracionChip}
             trendTitle={tGeneracionTrend}
           />
-        </div>
+        </motion.div>
 
         {/* Gráficos — 2 columnas: Precio | Generación */}
-        {hasDetalle && (
+        {hasDetalle ? (
           <div className="grid grid-cols-1 md:grid-cols-2 w-full gap-2 xl:gap-3">
             {/* Precio de Bolsa (PPP) - Línea */}
             {hasPrecioSeries && (
@@ -1127,7 +1280,7 @@ function SlidePrecioGeneracion({ d, detalle }: { d: HomeSliderProps["sectorData"
                       },
                     }}
                     axisLeft={{ tickSize: 0, tickValues: 3, tickPadding: 6 }}
-                    colors={["#F59E0B"]}
+                    colors={["var(--color-gold)"]}
                     lineWidth={2}
                     enableArea
                     areaOpacity={0.15}
@@ -1190,6 +1343,11 @@ function SlidePrecioGeneracion({ d, detalle }: { d: HomeSliderProps["sectorData"
               </div>
             </div>
           </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 w-full gap-2 xl:gap-3">
+            <SkeletonChart heightClass="h-[20vh] min-h-[110px] max-h-[200px]" />
+            <SkeletonChart heightClass="h-[16vh] min-h-[90px] max-h-[160px]" />
+          </div>
         )}
       </div>
     </div>
@@ -1197,9 +1355,19 @@ function SlidePrecioGeneracion({ d, detalle }: { d: HomeSliderProps["sectorData"
 }
 
 // ─── Slide 1: Generación Térmica ──────────────────────────────────────────────
-function SlideGeneracionTermica({ d }: { d: TermicaSliderData }) {
+function SlideGeneracionTermica({
+  d,
+  detalle,
+}: {
+  d: TermicaSliderData;
+  /** Datos del slide "Precio y Generación" (promedio 7 días) — solo se usa
+   * para citar el promedio semanal en el diagnóstico y así aclarar por qué
+   * puede diferir del dato puntual de hoy que muestra este slide. */
+  detalle?: HomeSliderProps["sectorDetalle"];
+}) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme !== "light";
+  const termica7dPct = detalle?.generacionPorFuente.find(f => f.id === "TERMICA")?.value;
   const stTerm = estadoI3Termica(d.generacionTermica.participacionPct);
   const stPPP  = estadoPrecio(d.precios.ppp.valor);
   const pct    = d.generacionTermica.participacionPct;
@@ -1221,22 +1389,17 @@ function SlideGeneracionTermica({ d }: { d: TermicaSliderData }) {
     : { label: "SIN ACTIVACIÓN", color: "#22C55E" };
 
   // ── Diagnóstico dinámico ────────────────────────────────────────────────────
+  // Clasificación y redacción de la participación térmica: reutiliza
+  // diagnosticoTermico() de @/lib/kpi-logic (misma fuente que usa el resto del
+  // portal) en vez de una copia local — antes esta función y diagnosticoPrecio()
+  // (más abajo, slide "Gestión del Sector") tenían cada una su propio texto y
+  // sus propios umbrales para el mismo dato, lo que permitía que quedaran
+  // desalineados entre sí sin que ningún test lo detectara.
   function buildDiagnostico(): string {
-    let texto = "";
     const escActual = d.precios.escasez.valor;
     const pppActual = d.precios.ppp.valor;
 
-    if (pct <= 15) {
-      texto += "El despacho térmico está en niveles sostenibles. ";
-    } else if (pct <= 25) {
-      texto += "Las plantas térmicas están en operación normal como soporte a la hidráulica. ";
-    } else if (pct <= 35) {
-      texto += "El despacho térmico está en alerta media, indicando mayor dependencia de combustibles fósiles. ";
-    } else {
-      texto += "El despacho térmico es crítico: se está dependiendo demasiado de las plantas de combustibles fósiles. ";
-    }
-
-    texto += `Las plantas térmicas cubren el ${pct.toFixed(1)}% de la generación total del SIN hoy. `;
+    let texto = `${diagnosticoTermico(pct, pppActual, escActual, undefined, termica7dPct)} `;
 
     if (pppActual < escActual) {
       texto += `El PPP diario ($${pppActual.toFixed(0)} COP/kWh) está por debajo del precio de escasez superior ($${escActual.toFixed(0)} COP/kWh), lo que indica que no se han activado los mecanismos de cargo por confiabilidad. `;
@@ -1247,7 +1410,10 @@ function SlideGeneracionTermica({ d }: { d: TermicaSliderData }) {
     return texto.trim();
   }
 
-  const diagnostico = buildDiagnostico();
+  const diagnosticosIA = useDiagnosticosIA();
+  // Fase 11: texto generado por IA 1 vez al día (cacheado), con respaldo
+  // determinístico si la tarea diaria aún no corrió o falló.
+  const diagnostico = diagnosticosIA["termica"]?.texto ?? buildDiagnostico();
 
   // ── Tooltip strings — Energía Térmica ──────────────────────────────────────
   const tTermicaValor =
@@ -1372,25 +1538,25 @@ function SlideGeneracionTermica({ d }: { d: TermicaSliderData }) {
   }
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-theme-primary overflow-hidden">
+    <div className="relative w-full h-full flex flex-col items-center justify-center bg-portal-gradient overflow-hidden">
       <TopAccent color="#3B82F6" />
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/15 via-transparent to-slate-900/10 pointer-events-none" />
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[50%] h-[25%] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 flex flex-col items-center w-full max-w-7xl px-6 xl:px-8 gap-2 xl:gap-4">
+      <div className="relative z-10 flex flex-col items-center h-full w-full max-w-[1600px] px-6 xl:px-10 py-3 justify-evenly gap-2">
         <div className="text-center">
-          <SectionBadge label="Generación Térmica" pulse dot="#EF4444" titleColorClass="text-title-energia" category="energia" />
+          <SectionBadge label="Generación Térmica" pulse dot="#EF4444" titleColorClass="text-gradient-energia" category="energia" />
           <p className="text-theme-secondary text-xs xl:text-sm font-medium">{diagnostico}</p>
           <p className="text-slate-600 text-[10px] xl:text-xs mt-0.5">Datos XM · sector_energetico</p>
         </div>
 
-        <div className="grid grid-cols-4 w-full gap-2">
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-3 gap-3 w-full items-stretch">
           <KpiBlock
             label="Energía Térmica"
             value={d.generacionTermica.gwh.toFixed(2)}
             unit="GWh"
             date={d.generacionTermica.fecha}
-            valueClass="text-red-400"
+            valueClass="text-theme-primary"
             chipLabel={stTerm.label}
             chipColor={stTerm.color}
             tendencia={d.generacionTermica.tendencia}
@@ -1402,60 +1568,77 @@ function SlideGeneracionTermica({ d }: { d: TermicaSliderData }) {
 
           {/* Precio Escasez Superior (PES) */}
           <div
-            className={`flex flex-col items-center justify-center text-center gap-0.5 px-2 py-2 bg-theme-secondary border border-card-energia rounded-xl transition-opacity duration-300 ${
+            className={`h-full flex flex-col text-center gap-1.5 px-3 py-2.5 bg-card-glow-energia border border-card-energia rounded-xl transition-opacity duration-300 ${
               d.precios.mayor === "escasez" ? "opacity-100" : "opacity-40"
             }`}
           >
-            <p className="text-theme-muted text-lg xl:text-xl 2xl:text-2xl uppercase tracking-[0.2em] font-medium">Precio Escasez Superior (PES)</p>
-            <div
-              className="inline-flex items-center gap-2 font-black text-3xl xl:text-4xl leading-none text-theme-primary"
-              title={tEscasezValor}
-            >
-              ${d.precios.escasez.valor.toFixed(2)}
-              <TrendArrow tendencia={d.precios.escasez.tendencia} metrica="precio" trendTitle={tEscasezTrend} />
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-theme-muted text-xs xl:text-sm uppercase tracking-[0.14em] font-semibold text-left">Precio Escasez Superior (PES)</p>
+              <StatusChip label={stEsc.label} color={stEsc.color} title={tEscasezChip} />
+            </div>
+            <div className="flex items-center justify-center gap-2" title={tEscasezValor}>
+              <span className="font-black text-3xl xl:text-4xl leading-none text-theme-primary">${d.precios.escasez.valor.toFixed(2)}</span>
+              {d.precios.escasez.tendencia && d.precios.escasez.tendencia.label !== "S/D" && (
+                <span
+                  className="inline-flex items-center gap-0.5 text-xs xl:text-sm font-bold"
+                  style={{ color: getTrendColor(d.precios.escasez.tendencia, "precio") }}
+                  title={tEscasezTrend}
+                >
+                  <TrendArrow tendencia={d.precios.escasez.tendencia} metrica="precio" />
+                  {d.precios.escasez.tendencia.cambio7d !== null && `${Math.abs(d.precios.escasez.tendencia.cambio7d).toFixed(1)}%/7d`}
+                </span>
+              )}
             </div>
             {d.precios.escasez.fecha && (
-              <p className="text-theme-muted text-xs xl:text-sm mt-0.5">COP/kWh · Dato: {d.precios.escasez.fecha}</p>
+              <p className="text-theme-muted text-xs xl:text-sm font-medium">COP/kWh · Dato: {d.precios.escasez.fecha}</p>
             )}
             {d.precios.escasez.variacion != null && (
-              <p className={`text-xs mt-1 ${d.precios.escasez.variacion < 0 ? "text-red-400" : "text-emerald-400"}`}>
+              <p className={`mt-auto text-xs xl:text-sm font-medium ${d.precios.escasez.variacion < 0 ? "text-red-400" : "text-emerald-400"}`}>
                 Var. mensual: {d.precios.escasez.variacion >= 0 ? "+" : ""}{d.precios.escasez.variacion.toFixed(2)} COP/kWh
               </p>
             )}
-            <TrendBadge tendencia={d.precios.escasez.tendencia} metrica="precio" title={tEscasezTrend} />
-            <StatusChip label={stEsc.label} color={stEsc.color} title={tEscasezChip} />
           </div>
 
           {/* PPP Diario */}
           <div
-            className={`flex flex-col items-center justify-center text-center gap-0.5 px-2 py-2 bg-theme-secondary border border-card-energia rounded-xl transition-opacity duration-300 ${
+            className={`h-full flex flex-col text-center gap-1.5 px-3 py-2.5 bg-card-glow-energia border border-card-energia rounded-xl transition-opacity duration-300 ${
               d.precios.mayor === "ppp" ? "opacity-100" : "opacity-40"
             }`}
           >
-            <p className="text-theme-muted text-lg xl:text-xl 2xl:text-2xl uppercase tracking-[0.2em] font-medium">PPP Diario</p>
-            <div
-              className="inline-flex items-center gap-2 font-black text-3xl xl:text-4xl leading-none text-theme-primary"
-              title={tPPPValor}
-            >
-              ${d.precios.ppp.valor.toFixed(2)}
-              <TrendArrow tendencia={d.precios.ppp.tendencia} metrica="precio" trendTitle={tPPPTrend} />
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-theme-muted text-xs xl:text-sm uppercase tracking-[0.14em] font-semibold text-left">PPP Diario</p>
+              <StatusChip label={stPPP.label} color={stPPP.color} title={tPPPChip} />
+            </div>
+            <div className="flex items-center justify-center gap-2" title={tPPPValor}>
+              <span className="font-black text-3xl xl:text-4xl leading-none text-theme-primary">${d.precios.ppp.valor.toFixed(2)}</span>
+              {d.precios.ppp.tendencia && d.precios.ppp.tendencia.label !== "S/D" && (
+                <span
+                  className="inline-flex items-center gap-0.5 text-xs xl:text-sm font-bold"
+                  style={{ color: getTrendColor(d.precios.ppp.tendencia, "precio") }}
+                  title={tPPPTrend}
+                >
+                  <TrendArrow tendencia={d.precios.ppp.tendencia} metrica="precio" />
+                  {d.precios.ppp.tendencia.cambio7d !== null && `${Math.abs(d.precios.ppp.tendencia.cambio7d).toFixed(1)}%/7d`}
+                </span>
+              )}
             </div>
             {d.precios.ppp.fecha && (
-              <p className="text-theme-muted text-xs xl:text-sm mt-0.5">COP/kWh · Dato: {d.precios.ppp.fecha}</p>
+              <p className="text-theme-muted text-xs xl:text-sm font-medium">COP/kWh · Dato: {d.precios.ppp.fecha}</p>
             )}
             {d.precios.ppp.variacion != null && (
-              <p className={`text-xs mt-1 ${d.precios.ppp.variacion < 0 ? "text-red-400" : "text-emerald-400"}`}>
+              <p className={`mt-auto text-xs xl:text-sm font-medium ${d.precios.ppp.variacion < 0 ? "text-red-400" : "text-emerald-400"}`}>
                 Var. semanal: {d.precios.ppp.variacion >= 0 ? "+" : ""}{d.precios.ppp.variacion.toFixed(2)} COP/kWh
               </p>
             )}
-            <TrendBadge tendencia={d.precios.ppp.tendencia} metrica="precio" title={tPPPTrend} />
-            <StatusChip label={stPPP.label} color={stPPP.color} title={tPPPChip} />
           </div>
+        </motion.div>
 
+        {/* Gráficos — 3 columnas: Plantas Térmicas (ranking) | Evolución | Generación por fuente */}
+        <div className="grid grid-cols-3 w-full gap-3 xl:gap-4 mt-2 xl:mt-3">
           {/* Plantas Térmicas */}
-          <div className="flex flex-col px-2">
+          <div className="flex flex-col">
             <p className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Plantas Térmicas · Diaria</p>
-            <div className="flex-1 min-h-[18vh]">
+            <div className="flex-1 min-h-[18vh] xl:min-h-[20vh]">
               {barData.length > 0 ? (
                 <ResponsiveBar
                   data={barData}
@@ -1485,10 +1668,7 @@ function SlideGeneracionTermica({ d }: { d: TermicaSliderData }) {
               )}
             </div>
           </div>
-        </div>
 
-        {/* Gráficos — 2 columnas */}
-        <div className="grid grid-cols-2 w-full gap-2 xl:gap-3">
           {/* Evolución térmica por combustible */}
           <div className="flex flex-col">
             <p className="text-[10px] text-theme-muted uppercase tracking-wider mb-1"
@@ -1630,16 +1810,17 @@ function SlidePresupuesto({ d }: { d: HomeSliderProps["presuData"] }) {
   const { apropiacion, pct_comprometido, obligados, pct_obligado } = d.totales;
   const pctDisp = Math.max(0, 100 - pct_comprometido);
   const pctCompNoObl = Math.max(0, pct_comprometido - pct_obligado);
+  const montoDisponible = apropiacion * (pctDisp / 100);
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-theme-primary overflow-hidden">
+    <div className="relative w-full h-full flex flex-col items-center justify-center bg-portal-gradient overflow-hidden">
       <TopAccent color="#3B82F6" />
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/15 via-transparent to-slate-900/10 pointer-events-none" />
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[50%] h-[25%] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 w-full h-full max-w-7xl px-4 xl:px-8 py-3 overflow-y-auto flex flex-col items-center justify-center gap-3">
+      <div className="relative z-10 w-full h-full max-w-[1600px] px-4 xl:px-10 py-3 overflow-y-auto flex flex-col items-center justify-evenly gap-2">
         <div className="text-center">
-          <SectionBadge label="Ejecución Presupuestal 2026" dot="#3B82F6" titleColorClass="text-title-energia" category="energia" />
+          <SectionBadge label="Ejecución Presupuestal 2026" dot="#3B82F6" titleColorClass="text-gradient-energia" category="energia" />
           <p className="text-theme-muted text-base xl:text-lg">
             Ejecución de proyectos DEE — corte {fmtCortePresupuesto(d.ultimaActualizacion)}
           </p>
@@ -1650,7 +1831,7 @@ function SlidePresupuesto({ d }: { d: HomeSliderProps["presuData"] }) {
           <p className="text-theme-muted text-lg xl:text-xl uppercase tracking-[0.2em] font-medium mb-1">
             Apropiación Pptal DEE
           </p>
-          <div className="text-4xl xl:text-5xl 2xl:text-6xl font-black text-emerald-400 leading-none">
+          <div className="text-4xl xl:text-5xl 2xl:text-6xl font-black text-theme-primary leading-none">
             {fmtFull(apropiacion)}
           </div>
         </div>
@@ -1666,7 +1847,7 @@ function SlidePresupuesto({ d }: { d: HomeSliderProps["presuData"] }) {
               <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
             <div
-              className="h-full bg-gradient-to-r from-violet-600 to-violet-400 transition-all duration-1000 relative group cursor-pointer shrink-0"
+              className="h-full bg-gradient-to-r from-teal-600 to-teal-400 transition-all duration-1000 relative group cursor-pointer shrink-0"
               style={{ width: `${pctCompNoObl}%` }}
               title={`Comprometido restante (aún no obligado): ${pctCompNoObl.toFixed(2)}%\nTotal comprometido: ${pct_comprometido.toFixed(2)}%`}
             >
@@ -1681,7 +1862,7 @@ function SlidePresupuesto({ d }: { d: HomeSliderProps["presuData"] }) {
             </div>
           </div>
           <div className="flex justify-between mt-2 text-sm xl:text-base">
-            <span className="text-emerald-400 font-semibold">
+            <span className="text-theme-primary font-semibold">
               {pct_comprometido.toFixed(2)}% Comp. ({pct_obligado.toFixed(1)}% obl.)
             </span>
             <span className="text-slate-500">
@@ -1692,9 +1873,15 @@ function SlidePresupuesto({ d }: { d: HomeSliderProps["presuData"] }) {
 
         {/* SemiGauges */}
         <div className="flex justify-around w-full max-w-3xl">
-          <SemiGauge rawValue={pct_comprometido} label="% Comprometido" color="gold" size="xl" delay={0.3} />
-          <SemiGauge rawValue={pct_obligado} label="% Obligado" color="muted" size="xl" delay={0.4} />
+          <SemiGauge rawValue={pct_comprometido} label="% Comprometido" color="energia" size="xl" delay={0.3} />
+          <SemiGauge rawValue={pct_obligado} label="% Obligado" color="energia" size="xl" delay={0.4} />
         </div>
+
+        <p className="text-xs xl:text-sm text-center max-w-4xl text-slate-400">
+          Del total apropiado, el <strong className="text-title-energia">{pct_comprometido.toFixed(1)}%</strong> ya está comprometido y el{" "}
+          <strong className="text-title-energia">{pct_obligado.toFixed(1)}%</strong> obligado (legalizado) — quedan{" "}
+          <strong className="text-title-energia">{fmtFull(montoDisponible)}</strong> sin comprometer para lo que resta del año.
+        </p>
       </div>
     </div>
   );
@@ -1718,40 +1905,48 @@ function SlideComunidades({ d, depts }: { d: HomeSliderProps["cemData"]; depts?:
       .reverse(); // Nivo horizontal dibuja de abajo hacia arriba; reverse para que el mayor quede arriba
   }, [depts]);
 
+  // Hallazgo: departamento que concentra más comunidades energéticas implementadas.
+  const deptTop = useMemo(() => {
+    if (!depts || depts.length === 0 || !d.implementadas) return null;
+    const top = depts.slice().sort((a, b) => b.count - a.count)[0];
+    return { nombre: top.name, pct: (top.count / d.implementadas) * 100 };
+  }, [depts, d.implementadas]);
+
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-theme-primary overflow-hidden">
+    <div className="relative w-full h-full flex flex-col items-center justify-center bg-portal-gradient overflow-hidden">
       <TopAccent color="#3B82F6" />
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/15 via-transparent to-slate-900/10 pointer-events-none" />
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[50%] h-[25%] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 w-full h-full max-w-7xl px-4 xl:px-8 py-3 overflow-y-auto flex flex-col items-center justify-center gap-3">
+      <div className="relative z-10 w-full h-full max-w-[1600px] px-4 xl:px-10 py-3 overflow-y-auto flex flex-col items-center justify-evenly gap-2">
         <div className="text-center">
-          <SectionBadge label="Comunidades Energéticas" dot="#3B82F6" titleColorClass="text-title-energia" category="energia" />
+          <SectionBadge label="Comunidades Energéticas" dot="#3B82F6" titleColorClass="text-gradient-energia" category="energia" />
           <p className="text-theme-muted text-base xl:text-lg">
             Transición energética · Acceso a energía limpia
           </p>
         </div>
 
-        <div className="grid grid-cols-3 w-full gap-3">
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-3 w-full gap-3">
           <KpiBlock
             label="CE Implementadas"
             value={fmtNum(d.implementadas)}
             unit="Comunidades"
-            valueClass="text-emerald-400"
+            valueClass="text-theme-primary"
           />
           <KpiBlock
             label="Inversión Estimada"
             value={fmtFull(d.inversionEstimada)}
             unit="En proyectos activos"
-            valueClass="text-violet-400"
+            valueClass="text-chart-teal"
+            valueSizeClass="text-2xl xl:text-3xl 2xl:text-4xl"
           />
           <KpiBlock
             label="Capacidad Instalada"
             value={Math.round(d.capacidadKwp).toLocaleString("es-CO")}
             unit="kWp instalados"
-            valueClass="text-teal-400"
+            valueClass="text-theme-secondary"
           />
-        </div>
+        </motion.div>
 
         <div className="w-full max-w-3xl">
           <p className="text-[10px] text-theme-muted uppercase tracking-wider mb-1 text-center">
@@ -1769,7 +1964,7 @@ function SlideComunidades({ d, depts }: { d: HomeSliderProps["cemData"]; depts?:
                 margin={{ top: 4, right: 16, bottom: 20, left: 130 }}
                 valueScale={{ type: "linear" }}
                 indexScale={{ type: "band", round: true }}
-                colors={["#F59E0B", "#06B6D4"]}
+                colors={["#3B82F6", "#14B8A6"]}
                 borderRadius={3}
                 padding={0.25}
                 enableLabel={false}
@@ -1781,18 +1976,16 @@ function SlideComunidades({ d, depts }: { d: HomeSliderProps["cemData"]; depts?:
                 axisBottom={{ tickSize: 0, tickPadding: 5 }}
                 tooltip={({ id, value, indexValue }) => (
                   <div className="px-2 py-1 bg-theme-secondary border border-theme-primary rounded text-xs text-theme-primary">
-                    <strong>{indexValue}</strong> — {id}: <strong style={{ color: id === "CEs" ? "#F59E0B" : "#06B6D4" }}>{value}</strong>
+                    <strong>{indexValue}</strong> — {id}: <strong style={{ color: id === "CEs" ? "#3B82F6" : "#14B8A6" }}>{value}</strong>
                   </div>
                 )}
               />
             ) : (
-              <div className="h-full flex items-center justify-center">
-                <span className="text-slate-500 text-sm">Cargando…</span>
-              </div>
+              <SkeletonBlock className="h-full w-full" />
             )}
           </div>
           <div className="flex justify-center gap-4 mt-1">
-            {[{ label: "N° CEs", c: "#F59E0B" }, { label: "kWp instalados ÷10", c: "#06B6D4" }].map(({ label, c }) => (
+            {[{ label: "N° CEs", c: "#3B82F6" }, { label: "kWp instalados ÷10", c: "#14B8A6" }].map(({ label, c }) => (
               <div key={label} className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-sm" style={{ background: c }} />
                 <span className="text-[10px] text-slate-500">{label}</span>
@@ -1800,6 +1993,13 @@ function SlideComunidades({ d, depts }: { d: HomeSliderProps["cemData"]; depts?:
             ))}
           </div>
         </div>
+
+        {deptTop && (
+          <p className="text-xs xl:text-sm text-center max-w-4xl text-slate-400">
+            <strong className="text-title-energia">{deptTop.nombre}</strong> concentra el{" "}
+            <strong className="text-title-energia">{deptTop.pct.toFixed(0)}%</strong> de las comunidades energéticas implementadas en el país.
+          </p>
+        )}
       </div>
     </div>
   );
@@ -1807,46 +2007,63 @@ function SlideComunidades({ d, depts }: { d: HomeSliderProps["cemData"]; depts?:
 
 // ─── Slide 4: Contratos OR ─────────────────────────────────────────────────────
 function SlideContratosOR({ d }: { d: HomeSliderProps["orData"] }) {
+  // Hallazgo: mayor brecha entre los 3 frentes de avance — señal de qué podría retrasar el cierre.
+  const avances = [
+    { label: "financiero", valor: d.avanceFinanciero },
+    { label: "físico", valor: d.avanceFisico },
+    { label: "documental", valor: d.avanceGeneral },
+  ];
+  const avanceMax = avances.reduce((a, b) => (b.valor > a.valor ? b : a));
+  const avanceMin = avances.reduce((a, b) => (b.valor < a.valor ? b : a));
+
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-theme-primary overflow-hidden">
+    <div className="relative w-full h-full flex flex-col items-center justify-center bg-portal-gradient overflow-hidden">
       <TopAccent color="#3B82F6" />
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/15 via-transparent to-slate-900/10 pointer-events-none" />
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[50%] h-[25%] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 w-full h-full max-w-7xl px-4 xl:px-8 py-3 overflow-y-auto flex flex-col items-center justify-center gap-3">
+      <div className="relative z-10 w-full h-full max-w-[1600px] px-4 xl:px-10 py-3 overflow-y-auto flex flex-col items-center justify-evenly gap-2">
         <div className="text-center">
-          <SectionBadge label="Contratos OR 2025" dot="#3B82F6" titleColorClass="text-title-energia" category="energia" />
+          <SectionBadge label="Contratos OR 2025" dot="#3B82F6" titleColorClass="text-gradient-energia" category="energia" />
           <p className="text-theme-muted text-base xl:text-lg">
             Obras de Reconexión · Energía Rural Colombiana
           </p>
         </div>
 
-        <div className="grid grid-cols-3 w-full gap-3">
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-3 w-full gap-3">
           <KpiBlock
             label="Contratos Activos"
             value={fmtNum(d.nContratos)}
-            valueClass="text-purple-400"
+            valueClass="text-theme-primary"
           />
           <KpiBlock
             label="Usuarios Beneficiados"
             value={fmtNum(d.nUsuarios)}
             unit="hogares"
-            valueClass="text-teal-400"
+            valueClass="text-chart-teal"
           />
           <KpiBlock
             label="N° Comunidades"
             value={fmtNum(d.nCEs)}
             unit="CEs beneficiadas"
-            valueClass="text-emerald-400"
+            valueClass="text-theme-secondary"
           />
-        </div>
+        </motion.div>
 
         {/* SemiGauges */}
         <div className="flex justify-around w-full max-w-3xl">
-          <SemiGauge rawValue={d.avanceFinanciero} label="Avance Financiero" color="gold" size="xl" delay={0.3} />
-          <SemiGauge rawValue={d.avanceFisico} label="Avance Físico" color="warning" size="xl" delay={0.35} />
-          <SemiGauge rawValue={d.avanceGeneral} label="Avance Documental" color="success" size="xl" delay={0.4} />
+          <SemiGauge rawValue={d.avanceFinanciero} label="Avance Financiero" color="energia" size="xl" delay={0.3} />
+          <SemiGauge rawValue={d.avanceFisico} label="Avance Físico" color="energia" size="xl" delay={0.35} />
+          <SemiGauge rawValue={d.avanceGeneral} label="Avance Documental" color="energia" size="xl" delay={0.4} />
         </div>
+
+        {avanceMax.valor > avanceMin.valor && (
+          <p className="text-xs xl:text-sm text-center max-w-4xl text-slate-400">
+            El avance <strong className="text-title-energia">{avanceMin.label}</strong> ({avanceMin.valor.toFixed(1)}%) va muy por detrás del{" "}
+            <strong className="text-title-energia">{avanceMax.label}</strong> ({avanceMax.valor.toFixed(1)}%) — una brecha de{" "}
+            <strong className="text-title-energia">{(avanceMax.valor - avanceMin.valor).toFixed(1)} puntos</strong> que podría retrasar el cierre de los contratos.
+          </p>
+        )}
       </div>
     </div>
   );
@@ -1884,7 +2101,7 @@ function SlideSubsidios({ d, deficitFssri, deficitSeries, subBarData }: { d: Hom
   const lineData = [
     {
       id: "Asignado",
-      color: "#8B5CF6",
+      color: "#14B8A6",
       data: anios.map(a => ({ x: String(a), y: +(historicoPorAnio[a].asignado / 1e9).toFixed(1) })),
     },
     {
@@ -1895,49 +2112,52 @@ function SlideSubsidios({ d, deficitFssri, deficitSeries, subBarData }: { d: Hom
   ];
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center bg-theme-primary overflow-hidden">
+    <div className="relative w-full h-full flex flex-col items-center justify-center bg-portal-gradient overflow-hidden">
       <TopAccent color="#3B82F6" />
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900/15 via-transparent to-slate-900/10 pointer-events-none" />
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[50%] h-[25%] bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 w-full h-full max-w-7xl px-4 xl:px-8 py-3 overflow-y-auto flex flex-col items-center justify-center gap-3">
+      <div className="relative z-10 w-full h-full max-w-[1600px] px-4 xl:px-10 py-3 overflow-y-auto flex flex-col items-center justify-evenly gap-2">
         <div className="text-center">
-          <SectionBadge label="Subsidios Energéticos" dot="#3B82F6" titleColorClass="text-title-energia" category="energia" />
+          <SectionBadge label="Subsidios Energéticos" dot="#3B82F6" titleColorClass="text-gradient-energia" category="energia" />
           <p className="text-theme-muted text-base xl:text-lg">
             Seguimiento a la deuda del fondo de subsidios — corte {d.ultimaActualizacion ?? "1 de abril 2026"}
           </p>
         </div>
 
         {/* Fila superior: APROPIADO 2026, ASIGNADO 2026, DISPONIBLE 2026 */}
-        <div className="grid grid-cols-3 w-full gap-3">
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-3 w-full gap-3">
           <KpiBlock
             label="APROPIADO 2026"
             value={fmtFull(totalApropiado)}
             valueClass="text-theme-primary"
+            valueSizeClass="text-2xl xl:text-3xl 2xl:text-4xl"
           />
           <KpiBlock
             label="COMPROMETIDO EN RESOLUCIONES 2026"
             value={fmtFull(asig)}
-            valueClass="text-purple-400"
+            valueClass="text-chart-teal"
+            valueSizeClass="text-2xl xl:text-3xl 2xl:text-4xl"
           />
           <KpiBlock
             label="DISPONIBLE 2026"
             value={fmtFull(totalDisponible)}
-            valueClass="text-emerald-400"
+            valueClass="text-theme-secondary"
+            valueSizeClass="text-2xl xl:text-3xl 2xl:text-4xl"
           />
-        </div>
+        </motion.div>
 
         {/* Fila inferior: RESOLUCIONES 2026 y PENDIENTE DE PAGO 2026 */}
-        <div className="grid grid-cols-2 w-full gap-3">
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-2 w-full gap-3">
           <KpiBlock
             label="RESOLUCIONES 2026"
             value={fmtNum(d.anio2026.resoluciones)}
             unit="expedidas"
-            valueClass="text-cyan-400"
+            valueClass="text-theme-secondary"
           />
           {/* KPI Pendiente de pago 2026 con barra de porcentaje integrada - mismo estilo que KpiBlock */}
-          <div className="flex flex-col items-center justify-center text-center gap-0.5 px-2 py-2 bg-theme-secondary border border-card-energia rounded-xl">
-            <p className="text-theme-muted text-lg xl:text-xl 2xl:text-2xl uppercase tracking-[0.2em] font-medium">
+          <div className="flex flex-col items-center justify-center text-center gap-0.5 px-2 py-2 bg-card-glow-energia border border-card-energia rounded-xl">
+            <p className="text-theme-muted text-xs xl:text-sm uppercase tracking-[0.14em] font-semibold">
               PENDIENTE DE PAGO 2026
             </p>
             <div className="inline-flex items-center gap-2 font-black leading-none text-xl xl:text-2xl 2xl:text-3xl text-red-400">
@@ -1963,13 +2183,13 @@ function SlideSubsidios({ d, deficitFssri, deficitSeries, subBarData }: { d: Hom
                   title={`Pendiente: ${pctPend.toFixed(2)}%`}
                 />
               </div>
-              <div className="flex justify-between mt-1 text-xs">
-                <span className="text-emerald-400 font-semibold">{pctPag.toFixed(2)}% Pagado</span>
-                <span className="text-red-400 font-semibold">{pctPend.toFixed(2)}% Pendiente</span>
+              <div className="flex justify-between mt-1 text-xs xl:text-sm font-medium">
+                <span className="text-emerald-400">{pctPag.toFixed(2)}% Pagado</span>
+                <span className="text-red-400">{pctPend.toFixed(2)}% Pendiente</span>
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Gráficas históricas — Asignado vs Pagado + Déficit Acumulado */}
         {mostrarGraficas && (
@@ -1990,7 +2210,7 @@ function SlideSubsidios({ d, deficitFssri, deficitSeries, subBarData }: { d: Hom
                     groupMode="grouped"
                     valueScale={{ type: "linear" }}
                     indexScale={{ type: "band", round: true }}
-                    colors={["#F59E0B", "#8B5CF6"]}
+                    colors={["#3B82F6", "#14B8A6"]}
                     borderRadius={2}
                     padding={0.2}
                     innerPadding={2}
@@ -2024,10 +2244,10 @@ function SlideSubsidios({ d, deficitFssri, deficitSeries, subBarData }: { d: Hom
                           <p className="font-semibold mb-1 text-theme-secondary">Año {indexValue}</p>
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-1.5">
-                              <span className="inline-block w-2 h-2 rounded-full" style={{ background: id === "Subsidios" ? "#F59E0B" : "#8B5CF6" }} />
+                              <span className="inline-block w-2 h-2 rounded-full" style={{ background: id === "Subsidios" ? "#3B82F6" : "#14B8A6" }} />
                               <span>{id}</span>
                             </div>
-                            <strong style={{ color: id === "Subsidios" ? "#F59E0B" : "#8B5CF6" }}>{fmtCOP(exacto || 0)}</strong>
+                            <strong style={{ color: id === "Subsidios" ? "#3B82F6" : "#14B8A6" }}>{fmtCOP(exacto || 0)}</strong>
                           </div>
                         </div>
                       );
@@ -2091,6 +2311,13 @@ function SlideSubsidios({ d, deficitFssri, deficitSeries, subBarData }: { d: Hom
         )}
 
         {/* Barra de progreso movida dentro del KPI Pendiente 2026 */}
+
+        {asig > 0 && (
+          <p className="text-xs xl:text-sm text-center max-w-4xl text-slate-400">
+            Del total comprometido en resoluciones 2026, el <strong className="text-title-energia">{pctPag.toFixed(1)}%</strong> ya está pagado —
+            quedan <strong className="text-title-energia">{fmtFull(pend)}</strong> pendientes de desembolso por parte del Ministerio de Hacienda y Crédito Público.
+          </p>
+        )}
       </div>
     </div>
   );
@@ -2115,7 +2342,7 @@ function SlideNoticia({
   const isEnergia = tag !== "HIDROCARBUROS";
 
   return (
-    <div className="relative w-full h-full flex items-center bg-theme-primary overflow-hidden">
+    <div className="relative w-full h-full flex items-center bg-portal-gradient overflow-hidden">
       <TopAccent color={isEnergia ? "#3B82F6" : "#D97706"} />
       <div className={`absolute inset-0 bg-gradient-to-br ${isEnergia ? "from-blue-900/20" : "from-amber-900/20"} via-transparent to-slate-900/10 pointer-events-none`} />
 
@@ -2284,12 +2511,27 @@ export default function HomeSlider(props: HomeSliderProps) {
     if (idx === 2) {
       if (!termicaData) {
         return (
-          <div className="w-full h-full flex items-center justify-center bg-theme-primary text-theme-muted">
-            Cargando generación térmica…
+          <div className="w-full h-full flex items-center justify-center bg-portal-gradient px-6 xl:px-10">
+            <div className="w-full max-w-[1600px] flex flex-col items-center gap-2 xl:gap-4">
+              <div className="flex flex-col items-center gap-2">
+                <SkeletonBlock className="h-6 w-64" />
+                <SkeletonBlock className="h-3 w-48" />
+              </div>
+              <div className="grid grid-cols-3 gap-3 w-full">
+                <SkeletonKpiCard />
+                <SkeletonKpiCard />
+                <SkeletonKpiCard />
+              </div>
+              <div className="grid grid-cols-3 gap-3 xl:gap-4 w-full">
+                <SkeletonChart heightClass="h-[20vh]" />
+                <SkeletonChart heightClass="h-[20vh]" />
+                <SkeletonChart heightClass="h-[20vh]" />
+              </div>
+            </div>
           </div>
         );
       }
-      return <SlideGeneracionTermica d={termicaData} />;
+      return <SlideGeneracionTermica d={termicaData} detalle={sectorDetalle} />;
     }
     if (idx === 3) return <SlidePresupuesto d={presuData} />;
     if (idx === 4) return <SlideComunidades d={cemData} depts={cemDepts} />;
@@ -2359,7 +2601,7 @@ export default function HomeSlider(props: HomeSliderProps) {
   return (
     <section
       className="relative w-full overflow-hidden"
-      style={{ height: "calc(100vh - 5rem)" }}
+      style={{ height: "calc(100vh - var(--header-height, 5rem))" }}
       aria-label="Carrusel de indicadores clave del sector energético"
     >
       {/* Informes XM — visible en todos los slides */}

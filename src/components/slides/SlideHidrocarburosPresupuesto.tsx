@@ -7,10 +7,12 @@ import { fmtCOPShort } from "@/lib/format";
 import { getNivoTheme } from "@/lib/nivo-theme";
 import { useTheme } from "@/providers/ThemeProvider";
 import type { HomeSliderProps } from "@/types/home-slider";
-import { TopAccent, SectionBadge } from "./SlideUI";
+import { motion } from "framer-motion";
+import { TopAccent, SectionBadge, containerVariants, itemVariants } from "./SlideUI";
 import SemiGauge from "@/components/ui/SemiGauge";
+import { SkeletonBlock } from "@/components/ui/Skeleton";
 
-const KPI_CARD = "bg-theme-secondary border border-card-hidrocarburos rounded-xl px-2 py-2 overflow-hidden";
+const KPI_CARD = "bg-card-glow-hidrocarburos border border-card-hidrocarburos rounded-xl px-3 py-2.5 overflow-hidden";
 
 function riskColor(pct: number): string {
   if (pct < 20) return "#EF4444";
@@ -61,7 +63,7 @@ export function SlideHidrocarburosPresupuesto({ d }: { d?: HomeSliderProps["hidr
 
       <div className="relative z-10 w-full h-full max-w-7xl px-4 xl:px-8 pt-3 pb-14 overflow-y-auto flex flex-col items-center justify-evenly gap-2">
         <div className="text-center">
-          <SectionBadge label="Ejecución Presupuestal Hidrocarburos" dot="#D97706" titleColorClass="text-title-hidrocarburos" category="hidrocarburos" />
+          <SectionBadge label="Ejecución Presupuestal Hidrocarburos" dot="#D97706" titleColorClass="text-gradient-hidrocarburos" category="hidrocarburos" />
           <p className="text-slate-500 text-base xl:text-lg">
             {resumen?.fecha_actualizacion
               ? `Corte: ${new Date(resumen.fecha_actualizacion).toLocaleDateString("es-CO")}`
@@ -69,30 +71,32 @@ export function SlideHidrocarburosPresupuesto({ d }: { d?: HomeSliderProps["hidr
           </p>
         </div>
 
-        <div className="grid grid-cols-4 w-full gap-3">
-          <div className={KPI_CARD}>
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-4 w-full gap-3">
+          <motion.div variants={itemVariants} whileHover={{ y: -4, boxShadow: "0 8px 30px -8px var(--glow-gold)", transition: { duration: 0.2 } }} className={KPI_CARD}>
             <KpiBlock label="Apropiación Vigente" value={fmtCOPShort(resumen?.apropiacion_vigente ?? 0)} valueClass="text-gold" />
-          </div>
-          <div className={KPI_CARD}>
+          </motion.div>
+          <motion.div variants={itemVariants} whileHover={{ y: -4, boxShadow: "0 8px 30px -8px var(--glow-gold)", transition: { duration: 0.2 } }} className={KPI_CARD}>
             <KpiBlock
               label="Compromisos"
               value={fmtCOPShort(resumen?.compromisos ?? 0)}
               unit={`${pctComprometido.toFixed(1)}% ejecutado`}
-              valueClass="text-amber-400"
+              valueClass="text-theme-primary"
+              progressPct={pctComprometido}
             />
-          </div>
-          <div className={KPI_CARD}>
+          </motion.div>
+          <motion.div variants={itemVariants} whileHover={{ y: -4, boxShadow: "0 8px 30px -8px var(--glow-gold)", transition: { duration: 0.2 } }} className={KPI_CARD}>
             <KpiBlock
               label="Obligaciones"
               value={fmtCOPShort(resumen?.obligaciones ?? 0)}
               unit={`${pctObligado.toFixed(1)}% ejecutado`}
-              valueClass="text-orange-400"
+              valueClass="text-chart-orange"
+              progressPct={pctObligado}
             />
-          </div>
-          <div className={KPI_CARD}>
+          </motion.div>
+          <motion.div variants={itemVariants} whileHover={{ y: -4, boxShadow: "0 8px 30px -8px var(--glow-gold)", transition: { duration: 0.2 } }} className={KPI_CARD}>
             <KpiBlock label="Por Comprometer" value={fmtCOPShort(resumen?.por_comprometer ?? 0)} valueClass="text-slate-300" />
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Barra segmentada + gauges — mismo patrón que "Ejecución Presupuestal 2026" */}
         <div className="w-full max-w-4xl">
@@ -121,20 +125,21 @@ export function SlideHidrocarburosPresupuesto({ d }: { d?: HomeSliderProps["hidr
           </div>
         </div>
 
-        {/* Gauges + ejecución por proyecto en una sola fila — aprovecha el ancho disponible.
+        {/* Gauges lado a lado (igual que en los slides de Energía) + ejecución por proyecto
+            a la derecha, con la MISMA altura que un gauge — no un bloque alto y desproporcionado.
             % obligación (no monto absoluto: "Subsidios Gas por red" concentra 81% del
             presupuesto y aplastaría cualquier escala en $) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 w-full gap-3 items-center">
-          <div className="flex md:flex-col items-center justify-center gap-2">
-            <SemiGauge rawValue={pctComprometido} label="% Comprometido" color="gold" size="md" delay={0.2} />
-            <SemiGauge rawValue={pctObligado} label="% Obligado" color="muted" size="md" delay={0.3} />
+        <div className="flex flex-col md:flex-row items-center w-full gap-6">
+          <div className="flex items-center justify-center gap-8 shrink-0">
+            <SemiGauge rawValue={pctComprometido} label="% Comprometido" color="hidrocarburos" size="2xl" delay={0.2} />
+            <SemiGauge rawValue={pctObligado} label="% Obligado" color="hidrocarburos" size="2xl" delay={0.3} />
           </div>
 
-          <div className="md:col-span-2">
+          <div className="flex-1 w-full min-w-0">
             <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1 text-center">
               % Obligación por proyecto (peor desempeño primero)
             </p>
-            <div className="h-[20vh]">
+            <div className="h-[210px]">
               {barData.length > 0 ? (
                 <ResponsiveBar
                   data={barData}
@@ -166,9 +171,7 @@ export function SlideHidrocarburosPresupuesto({ d }: { d?: HomeSliderProps["hidr
                   )}
                 />
               ) : (
-                <div className="h-full flex items-center justify-center">
-                  <span className="text-slate-500 text-sm">Cargando…</span>
-                </div>
+                <SkeletonBlock className="h-full w-full" />
               )}
             </div>
           </div>

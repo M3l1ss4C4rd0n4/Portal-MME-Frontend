@@ -7,7 +7,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   return (
     <>
       <Header />
-      {children}
+      <div className="app-content">{children}</div>
       <ChatbotWidget />
     </>
   );

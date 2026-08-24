@@ -81,7 +81,7 @@ export default function PredictionLineChart({
     if (hasOni) {
       result.push({
         id: "ONI (El Niño)",
-        color: "#F97316",
+        color: "#14B8A6",
         data: data
           .filter((d) => d.oni != null)
           .map((d) => ({ x: d.fecha, y: oniToVisual(d.oni as number) })),
@@ -118,7 +118,7 @@ export default function PredictionLineChart({
         axis: "x",
         value: peakDate,
         lineStyle: {
-          stroke: "#F59E0B",
+          stroke: "#1D4ED8",
           strokeWidth: 2,
           strokeDasharray: "6,4",
         },
@@ -175,7 +175,31 @@ export default function PredictionLineChart({
         pointSize={0}
         enablePoints={false}
         enableGridX={false}
-        enableArea={false}
+        enableArea
+        areaBaselineValue={0}
+        areaOpacity={1}
+        defs={[
+          {
+            id: "gradienteEmbalses",
+            type: "linearGradient",
+            colors: [
+              { offset: 0, color: "#3B82F6", opacity: 0.4 },
+              { offset: 100, color: "#3B82F6", opacity: 0 },
+            ],
+          },
+          {
+            id: "sinRelleno",
+            type: "linearGradient",
+            colors: [
+              { offset: 0, color: "#000000", opacity: 0 },
+              { offset: 100, color: "#000000", opacity: 0 },
+            ],
+          },
+        ]}
+        fill={[
+          { match: { id: "Embalses" }, id: "gradienteEmbalses" },
+          { match: "*", id: "sinRelleno" },
+        ]}
         useMesh
         crosshairType="x"
         markers={markers}
@@ -194,7 +218,7 @@ export default function PredictionLineChart({
             symbolShape: "circle",
             data: [
               { id: "Embalses", label: "Embalses", color: "#3B82F6" },
-              ...(hasOni ? [{ id: "ONI (El Niño)", label: "ONI El Niño", color: "#F97316" }] : []),
+              ...(hasOni ? [{ id: "ONI (El Niño)", label: "ONI El Niño", color: "#14B8A6" }] : []),
             ],
             effects: [
               {
@@ -263,8 +287,8 @@ export default function PredictionLineChart({
                 <div
                   className="flex items-center justify-between gap-4 mt-0.5"
                 >
-                  <span style={{ color: "#A855F7" }}>PDO:</span>
-                  <span className="font-bold" style={{ color: "#A855F7" }}>
+                  <span style={{ color: "#94A3B8" }}>PDO:</span>
+                  <span className="font-bold" style={{ color: "#94A3B8" }}>
                     {d.pdo > 0 ? "+" : ""}
                     {d.pdo.toFixed(2)}{" "}
                     <span className="font-normal text-[10px]">
@@ -277,8 +301,8 @@ export default function PredictionLineChart({
                 <div
                   className="flex items-center justify-between gap-4 mt-0.5"
                 >
-                  <span style={{ color: "#14B8A6" }}>SOI:</span>
-                  <span className="font-bold" style={{ color: "#14B8A6" }}>
+                  <span style={{ color: "#94A3B8" }}>SOI:</span>
+                  <span className="font-bold" style={{ color: "#94A3B8" }}>
                     {d.soi > 0 ? "+" : ""}
                     {d.soi.toFixed(1)}
                   </span>
@@ -288,8 +312,8 @@ export default function PredictionLineChart({
                 <div
                   className="flex items-center justify-between gap-4 mt-0.5"
                 >
-                  <span style={{ color: "#FB7185" }}>GMST:</span>
-                  <span className="font-bold" style={{ color: "#FB7185" }}>
+                  <span style={{ color: "#94A3B8" }}>GMST:</span>
+                  <span className="font-bold" style={{ color: "#94A3B8" }}>
                     +{d.gmst.toFixed(2)}°C
                     <span className="font-normal text-[10px] ml-1">(anom. global)</span>
                   </span>

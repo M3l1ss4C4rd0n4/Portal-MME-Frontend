@@ -7,9 +7,11 @@ import { fmtNum } from "@/lib/format";
 import { getNivoTheme } from "@/lib/nivo-theme";
 import { useTheme } from "@/providers/ThemeProvider";
 import type { HomeSliderProps } from "@/types/home-slider";
-import { TopAccent, SectionBadge } from "./SlideUI";
+import { motion } from "framer-motion";
+import { TopAccent, SectionBadge, containerVariants, itemVariants } from "./SlideUI";
+import { SkeletonBlock } from "@/components/ui/Skeleton";
 
-const KPI_CARD = "bg-theme-secondary border border-card-hidrocarburos rounded-xl px-2 py-2 overflow-hidden";
+const KPI_CARD = "bg-card-glow-hidrocarburos border border-card-hidrocarburos rounded-xl px-3 py-2.5 overflow-hidden";
 
 function formatVariacion(abs: number | null | undefined, pct: number | null | undefined): string {
   if (abs == null) return "";
@@ -129,7 +131,7 @@ export function SlideHidrocarburosProduccion({ d }: { d?: HomeSliderProps["hidro
 
       <div className="relative z-10 w-full h-full max-w-7xl px-4 xl:px-8 pt-3 pb-14 overflow-y-auto flex flex-col items-center justify-evenly gap-2">
         <div className="text-center">
-          <SectionBadge label="Producción de Petróleo y Gas" dot="#D97706" titleColorClass="text-title-hidrocarburos" category="hidrocarburos" />
+          <SectionBadge label="Producción de Petróleo y Gas" dot="#D97706" titleColorClass="text-gradient-hidrocarburos" category="hidrocarburos" />
           <p className="text-slate-500 text-base xl:text-lg">
             {ultimaProduccion
               ? `Producción y gas · corte ${new Date(ultimaProduccion.fecha).toLocaleDateString("es-CO")} · Fuente: ANH (Dirección de Hidrocarburos)`
@@ -137,72 +139,73 @@ export function SlideHidrocarburosProduccion({ d }: { d?: HomeSliderProps["hidro
           </p>
         </div>
 
-        <div className="grid grid-cols-3 w-full gap-3">
-          <div className={KPI_CARD}>
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-3 w-full gap-3">
+          <motion.div variants={itemVariants} whileHover={{ y: -4, boxShadow: "0 8px 30px -8px var(--glow-gold)", transition: { duration: 0.2 } }} className={KPI_CARD}>
             <KpiBlock
               label="Petróleo WTI"
               value={wti?.valorUsd != null ? `US$${wti.valorUsd.toFixed(2)}` : "—"}
               unit={formatVariacion(wti?.variacionAbs, wti?.variacionPct)}
-              valueClass="text-amber-400"
+              valueClass="text-theme-primary"
+              sparklineData={wti?.historico?.map((p) => p.valor)}
+              sparklineColor="#D97706"
             />
             {wti?.fechaCarga && (
-              <p className="text-[11px] text-slate-500 mt-0.5 text-center">La República · act. {formatFechaHora(wti.fechaCarga)}</p>
+              <p className="text-xs xl:text-sm font-medium text-slate-500 mt-0.5 text-center">La República · act. {formatFechaHora(wti.fechaCarga)}</p>
             )}
-          </div>
-          <div className={KPI_CARD}>
+          </motion.div>
+          <motion.div variants={itemVariants} whileHover={{ y: -4, boxShadow: "0 8px 30px -8px var(--glow-gold)", transition: { duration: 0.2 } }} className={KPI_CARD}>
             <KpiBlock
               label="Petróleo BRENT"
               value={brent?.valorUsd != null ? `US$${brent.valorUsd.toFixed(2)}` : "—"}
               unit={formatVariacion(brent?.variacionAbs, brent?.variacionPct)}
-              valueClass="text-orange-400"
+              valueClass="text-chart-orange"
+              sparklineData={brent?.historico?.map((p) => p.valor)}
+              sparklineColor="#FCD34D"
             />
             {brent?.fechaCarga && (
-              <p className="text-[11px] text-slate-500 mt-0.5 text-center">La República · act. {formatFechaHora(brent.fechaCarga)}</p>
+              <p className="text-xs xl:text-sm font-medium text-slate-500 mt-0.5 text-center">La República · act. {formatFechaHora(brent.fechaCarga)}</p>
             )}
-          </div>
-          <div className={KPI_CARD}>
+          </motion.div>
+          <motion.div variants={itemVariants} whileHover={{ y: -4, boxShadow: "0 8px 30px -8px var(--glow-gold)", transition: { duration: 0.2 } }} className={KPI_CARD}>
             <KpiBlock
               label="Producción Petróleo"
               value={ultimaProduccion ? fmtNum(ultimaProduccion.petroleo_bbl) : "—"}
               unit="bbl/día"
               valueClass="text-gold"
             />
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* KPIs de gas + rankings Top 5 en una sola fila — los rankings son compactos
             y caben cómodos junto a las 3 tarjetas */}
-        <div className="grid grid-cols-5 w-full gap-3 items-stretch">
-          <div className={KPI_CARD}>
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-5 w-full gap-3 items-stretch">
+          <motion.div variants={itemVariants} whileHover={{ y: -4, boxShadow: "0 8px 30px -8px var(--glow-gold)", transition: { duration: 0.2 } }} className={KPI_CARD}>
             <KpiBlock
               label="Gas Fiscalizado"
               value={ultimaProduccion ? fmtNum(ultimaProduccion.gas_fiscalizado_mpc) : "—"}
               unit="Mpcd"
-              valueClass="text-cyan-400"
-              labelSizeClass="text-xs xl:text-sm 2xl:text-base"
+              valueClass="text-theme-primary"
             />
-          </div>
-          <div className={KPI_CARD}>
+          </motion.div>
+          <motion.div variants={itemVariants} whileHover={{ y: -4, boxShadow: "0 8px 30px -8px var(--glow-gold)", transition: { duration: 0.2 } }} className={KPI_CARD}>
             <KpiBlock
               label="Gas Comercializado"
               value={ultimaProduccion ? fmtNum(ultimaProduccion.gas_comercializado_mpc) : "—"}
               unit="Mpcd"
-              valueClass="text-teal-400"
-              labelSizeClass="text-xs xl:text-sm 2xl:text-base"
+              valueClass="text-chart-orange"
             />
-          </div>
-          <div className={KPI_CARD}>
+          </motion.div>
+          <motion.div variants={itemVariants} whileHover={{ y: -4, boxShadow: "0 8px 30px -8px var(--glow-gold)", transition: { duration: 0.2 } }} className={KPI_CARD}>
             <KpiBlock
               label="Brecha Fisc.-Comerc."
               value={brecha ? fmtNum(brecha.mpcd) : "—"}
               unit={brecha?.pct != null ? `Mpcd · ${brecha.pct.toFixed(0)}% no comerc.` : "Mpcd"}
-              valueClass="text-red-400"
-              labelSizeClass="text-xs xl:text-sm 2xl:text-base"
+              valueClass="text-theme-secondary"
             />
-          </div>
+          </motion.div>
           <TopRanking title={`Top 5 Campos · Petróleo (BLS/mes)${top5Periodo ? ` · ${top5Periodo}` : ""}`} items={top5CamposPetroleo} color="#D97706" />
-          <TopRanking title={`Top 5 Campos · Gas (MPC/mes)${top5Periodo ? ` · ${top5Periodo}` : ""}`} items={top5CamposGas} color="#06B6D4" />
-        </div>
+          <TopRanking title={`Top 5 Campos · Gas (MPC/mes)${top5Periodo ? ` · ${top5Periodo}` : ""}`} items={top5CamposGas} color="#EA580C" />
+        </motion.div>
 
         {/* Gráficas de línea solas en su propia fila — necesitan más espacio horizontal */}
         <div className="grid grid-cols-1 md:grid-cols-2 w-full gap-3">
@@ -255,9 +258,7 @@ export function SlideHidrocarburosProduccion({ d }: { d?: HomeSliderProps["hidro
                   )}
                 />
               ) : (
-                <div className="h-full flex items-center justify-center">
-                  <span className="text-slate-500 text-xs">Cargando…</span>
-                </div>
+                <SkeletonBlock className="h-full w-full" />
               )}
             </div>
           </div>
@@ -314,9 +315,7 @@ export function SlideHidrocarburosProduccion({ d }: { d?: HomeSliderProps["hidro
                   )}
                 />
               ) : (
-                <div className="h-full flex items-center justify-center">
-                  <span className="text-slate-500 text-xs">Cargando…</span>
-                </div>
+                <SkeletonBlock className="h-full w-full" />
               )}
             </div>
           </div>
@@ -324,8 +323,8 @@ export function SlideHidrocarburosProduccion({ d }: { d?: HomeSliderProps["hidro
 
         {concentracionGas && (
           <p className="text-xs xl:text-sm text-center max-w-4xl text-slate-400">
-            <strong className="text-cyan-400">{concentracionGas.nombre}</strong> concentra el{" "}
-            <strong className="text-cyan-400">{concentracionGas.pct.toFixed(0)}%</strong> de todo el gas fiscalizado nacional del mes.
+            <strong className="text-theme-primary">{concentracionGas.nombre}</strong> concentra el{" "}
+            <strong className="text-theme-primary">{concentracionGas.pct.toFixed(0)}%</strong> de todo el gas fiscalizado nacional del mes.
           </p>
         )}
       </div>

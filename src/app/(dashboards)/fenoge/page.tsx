@@ -8,10 +8,14 @@ import { ResponsiveLine } from "@nivo/line";
 import * as XLSX from "xlsx";
 import { useTheme } from "@/providers/ThemeProvider";
 import DashboardLayout from "@/components/DashboardLayout";
+import Card from "@/components/dashboard/Card";
+import BaseKpiChip, { type KpiChipProps } from "@/components/dashboard/KpiChip";
 import { getNivoTheme } from "@/lib/nivo-theme";
 import { useGeoFilter } from "@/context/GeoFilterContext";
 import { fetchDepartamentos } from "@/services/apiService";
+import { normDeptKey } from "@/lib/departamentos";
 import type { FenogePunto } from "./FenogeCEMap";
+import type { DptoRow } from "@/types/mapa-departamentos";
 
 const FenogeCEMap = dynamic(() => import("./FenogeCEMap"), {
   ssr: false,
@@ -23,35 +27,8 @@ const FenogeCEMap = dynamic(() => import("./FenogeCEMap"), {
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function Card({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay }}
-      className={`bg-theme-secondary border border-theme-card rounded-2xl p-5 hover:border-amber-500/40 transition-colors duration-300 ${className}`}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-function KpiChip({ label, value, avg, avgLabel, accent = false }: {
-  label: string; value: string | number; avg?: string; avgLabel?: string; accent?: boolean;
-}) {
-  const strLen = String(value).length;
-  const fontClass = strLen <= 8 ? "text-xl" : strLen <= 13 ? "text-base" : "text-sm";
-  return (
-    <div className="bg-dash-chip rounded-xl px-4 py-3">
-      <div className={`${fontClass} font-bold leading-tight break-all ${accent ? "text-gold" : "text-theme-primary"}`}>{value}</div>
-      <div className="text-[11px] text-theme-muted mt-1.5 leading-tight">{label}</div>
-      {avg && (
-        <div className="mt-2 pt-2 border-t border-white/[0.07] flex items-baseline gap-1">
-          <span className="text-[10px] font-bold text-gold/90 leading-none">{avg}</span>
-          <span className="text-[9px] text-theme-muted leading-none">{avgLabel ?? "/ CE"}</span>
-        </div>
-      )}
-    </div>
-  );
+function KpiChip(props: Omit<KpiChipProps, "padding" | "dynamicSize">) {
+  return <BaseKpiChip padding="lg" dynamicSize {...props} />;
 }
 
 const fmtCOP = (v: number) => `$ ${Math.round(v).toLocaleString("es-CO")}`;
@@ -88,13 +65,6 @@ interface DetalleFase {
   departamento: string;
   departamentoGeo: string;
   fase: string;
-  count: number;
-  capacidad: number;
-  inversion: number;
-}
-interface DptoRow {
-  departamento: string;
-  departamentoGeo: string;
   count: number;
   capacidad: number;
   inversion: number;
@@ -175,10 +145,6 @@ export default function FenogePage() {
   const { codigoDaneDepartamento, setCodigoDaneDepartamento } = useGeoFilter();
   const [deptCodeByName, setDeptCodeByName] = useState<Record<string, string>>({});
   const [deptNameByCode, setDeptNameByCode] = useState<Record<string, string>>({});
-
-  function normDeptKey(name: string): string {
-    return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
-  }
 
   useEffect(() => {
     fetchDepartamentos()

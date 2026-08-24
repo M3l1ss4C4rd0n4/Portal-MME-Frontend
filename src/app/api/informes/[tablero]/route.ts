@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
+import { backendGetPdf } from "@/lib/backendClient";
 
 export const dynamic = "force-dynamic";
-
-const BACKEND_BASE = process.env.BACKEND_URL || "http://localhost:8000";
-const API_KEY = process.env.API_KEY || "";
 
 export async function GET(
   req: Request,
@@ -27,36 +25,26 @@ export async function GET(
 
     // Forward query params (filtros activos) al backend
     const incomingUrl = new URL(req.url);
-    const backendUrl = new URL(`${BACKEND_BASE}/v1/informes/${tablero}`);
-    incomingUrl.searchParams.forEach((value, key) => {
-      backendUrl.searchParams.set(key, value);
-    });
+    const query = new URLSearchParams(incomingUrl.search);
+    const path = `/v1/informes/${tablero}${query.toString() ? `?${query}` : ""}`;
 
-    const res = await fetch(
-      backendUrl.toString(),
-      {
-        headers: {
-          "X-API-Key": API_KEY,
-        },
-        signal: AbortSignal.timeout(180000),
-      }
-    );
-    
+    const res = await backendGetPdf(path);
+
     if (!res.ok) {
       const errorText = await res.text();
       throw new Error(`Backend error: ${res.status} - ${errorText}`);
     }
-    
+
     const pdfBuffer = await res.arrayBuffer();
-    
+
     const headers = new Headers({
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="Informe_${tablero}_${new Date().toISOString().split("T")[0]}.pdf"`,
       "Cache-Control": "no-store, no-cache, must-revalidate",
     });
-    
+
     return new Response(pdfBuffer, { headers });
-    
+
   } catch (err) {
     console.error("[api/informes/tablero]", err);
     return NextResponse.json(

@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import ReactMarkdown from "react-markdown";
-
-interface Mensaje {
-  role: "user" | "assistant";
-  content: string;
-}
+import { AnimatePresence } from "framer-motion";
+import { useAsistenteVoz } from "@/hooks/useAsistenteVoz";
+import { useTheme } from "@/providers/ThemeProvider";
+import {
+  useAsistenteChat,
+  nombreHumanoTool,
+  MIME_TYPES_PERMITIDOS,
+} from "@/hooks/useAsistenteChat";
+import { Burbuja } from "@/components/asistente/Burbuja";
+import { SECTION_PROMPTS } from "@/lib/asistenteSecciones";
 
 const PREGUNTAS_SUGERIDAS = [
   "¿Cuántas comunidades energéticas hay en el Chocó?",
@@ -16,143 +19,57 @@ const PREGUNTAS_SUGERIDAS = [
   "¿Cómo está la generación eléctrica del sistema hoy?",
 ];
 
-function Burbuja({ mensaje }: { mensaje: Mensaje }) {
-  const esUsuario = mensaje.role === "user";
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`flex ${esUsuario ? "justify-end" : "justify-start"}`}
-    >
-      <div
-        className={`max-w-[85%] sm:max-w-[70%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-          esUsuario
-            ? "bg-amber-500/15 border border-amber-500/30 text-theme-primary"
-            : "bg-theme-secondary border border-theme-card text-theme-primary"
-        }`}
-      >
-        {esUsuario ? (
-          <span className="whitespace-pre-wrap">{mensaje.content}</span>
-        ) : mensaje.content ? (
-          <div className="prose-chat">
-            <ReactMarkdown
-              components={{
-                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                ul: ({ children }) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
-                ol: ({ children }) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
-                strong: ({ children }) => <strong className="font-bold text-gold">{children}</strong>,
-                code: ({ children }) => (
-                  <code className="bg-dash-chip px-1.5 py-0.5 rounded text-xs">{children}</code>
-                ),
-              }}
-            >
-              {mensaje.content}
-            </ReactMarkdown>
-          </div>
-        ) : (
-          <span className="inline-flex gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-theme-muted animate-bounce [animation-delay:-0.3s]" />
-            <span className="w-1.5 h-1.5 rounded-full bg-theme-muted animate-bounce [animation-delay:-0.15s]" />
-            <span className="w-1.5 h-1.5 rounded-full bg-theme-muted animate-bounce" />
-          </span>
-        )}
-      </div>
-    </motion.div>
-  );
-}
-
 export default function AsistentePage() {
-  const [mensajes, setMensajes] = useState<Mensaje[]>([]);
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme !== "light";
+  const {
+    mensajes, enviando, herramientaActiva,
+    archivo, errorArchivo, fileInputRef,
+    seleccionarArchivo, setArchivo,
+    enviar, regenerar, enviarFeedback,
+  } = useAsistenteChat();
   const [input, setInput] = useState("");
-  const [enviando, setEnviando] = useState(false);
-  const [herramientaActiva, setHerramientaActiva] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const voz = useAsistenteVoz();
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [mensajes]);
 
-  const enviar = useCallback(
+  const enviarTexto = useCallback(
     async (texto: string) => {
-      const limpio = texto.trim();
-      if (!limpio || enviando) return;
-
-      const historial = mensajes.map(({ role, content }) => ({ role, content }));
-      setMensajes((prev) => [...prev, { role: "user", content: limpio }, { role: "assistant", content: "" }]);
       setInput("");
-      setEnviando(true);
-      setHerramientaActiva(null);
-
-      try {
-        const res = await fetch("/api/asistente", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mensaje: limpio, historial }),
-        });
-
-        if (!res.ok || !res.body) {
-          throw new Error(`Error del servidor (${res.status})`);
-        }
-
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-
-          const lineas = buffer.split("\n\n");
-          buffer = lineas.pop() ?? "";
-
-          for (const linea of lineas) {
-            if (!linea.startsWith("data: ")) continue;
-            try {
-              const evento = JSON.parse(linea.slice(6));
-              if (evento.tool) {
-                setHerramientaActiva(evento.tool);
-              } else if (evento.delta) {
-                setMensajes((prev) => {
-                  const copia = [...prev];
-                  copia[copia.length - 1] = {
-                    role: "assistant",
-                    content: copia[copia.length - 1].content + evento.delta,
-                  };
-                  return copia;
-                });
-              } else if (evento.error) {
-                setMensajes((prev) => {
-                  const copia = [...prev];
-                  copia[copia.length - 1] = { role: "assistant", content: `⚠️ ${evento.error}` };
-                  return copia;
-                });
-              }
-            } catch {
-              // línea SSE incompleta/no-JSON — se ignora, ya llegará completa en el próximo chunk
-            }
-          }
-        }
-      } catch (err) {
-        setMensajes((prev) => {
-          const copia = [...prev];
-          copia[copia.length - 1] = {
-            role: "assistant",
-            content: "⚠️ No se pudo generar la respuesta. Intenta de nuevo.",
-          };
-          return copia;
-        });
-        console.error("[Asistente]", err);
-      } finally {
-        setEnviando(false);
-        setHerramientaActiva(null);
-      }
+      await enviar(texto);
     },
-    [mensajes, enviando]
+    [enviar]
   );
 
   return (
-    <div className="h-screen flex flex-col bg-theme-primary pt-24">
+    <div className="h-screen flex bg-theme-primary pt-24">
+      {/* ── Barra lateral permanente — mismos accesos a secciones que el drawer del
+          portal, siempre visibles para aprovechar el ancho disponible en esta página ── */}
+      <aside className="hidden lg:flex w-72 shrink-0 flex-col gap-2 border-r border-theme-card px-4 py-6 overflow-y-auto">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-theme-muted px-1 mb-1">
+          Secciones del portal
+        </p>
+        {SECTION_PROMPTS.map((s) => (
+          <button
+            key={s.label}
+            type="button"
+            onClick={() => enviarTexto(s.prompt)}
+            disabled={enviando}
+            className="flex items-start gap-2.5 text-left px-3 py-2.5 rounded-xl bg-theme-secondary border border-theme-card hover:border-amber-500/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <s.icon className="w-4 h-4 text-gold shrink-0 mt-0.5" />
+            <span className="min-w-0">
+              <span className="block text-xs font-semibold text-theme-primary leading-tight">{s.label}</span>
+              <span className="block text-[10px] text-theme-muted leading-snug mt-0.5">{s.description}</span>
+            </span>
+          </button>
+        ))}
+      </aside>
+
+      <div className="flex-1 flex flex-col min-w-0">
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto py-6 space-y-4">
           {mensajes.length === 0 && (
@@ -166,7 +83,7 @@ export default function AsistentePage() {
                 {PREGUNTAS_SUGERIDAS.map((p) => (
                   <button
                     key={p}
-                    onClick={() => enviar(p)}
+                    onClick={() => enviarTexto(p)}
                     className="text-left text-xs px-4 py-3 rounded-xl bg-theme-secondary border border-theme-card hover:border-amber-500/40 transition-colors text-theme-secondary"
                   >
                     {p}
@@ -178,48 +95,139 @@ export default function AsistentePage() {
 
           <AnimatePresence initial={false}>
             {mensajes.map((m, i) => (
-              <Burbuja key={i} mensaje={m} />
+              <Burbuja
+                key={i}
+                mensaje={m}
+                isDark={isDark}
+                mostrarFeedback={
+                  m.role === "assistant" && !!m.content && (i < mensajes.length - 1 || !enviando)
+                }
+                onFeedback={(util) => enviarFeedback(i, util)}
+                onRegenerar={() => regenerar(i)}
+              />
             ))}
           </AnimatePresence>
 
           {herramientaActiva && (
-            <div className="text-[10px] text-theme-muted uppercase tracking-wide pl-1">
-              consultando {herramientaActiva}…
+            <div className="flex items-center gap-1.5 text-xs text-gold pl-1 animate-pulse-gold">
+              <span>✨</span>
+              <span>{nombreHumanoTool(herramientaActiva)}</span>
             </div>
           )}
         </div>
       </div>
 
       <div className="border-t border-theme-card bg-theme-primary px-4 sm:px-6 lg:px-8 py-4">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            enviar(input);
-          }}
-          className="max-w-3xl mx-auto flex items-end gap-2"
-        >
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
+        <div className="max-w-3xl mx-auto">
+          {(archivo || errorArchivo) && (
+            <div className="mb-2 flex items-center gap-2">
+              {archivo && (
+                <div className="inline-flex items-center gap-2 text-xs bg-dash-chip border border-theme-card rounded-lg px-3 py-1.5">
+                  <span className="text-theme-secondary">📎 {archivo.nombre}</span>
+                  <button
+                    type="button"
+                    onClick={() => setArchivo(null)}
+                    className="text-theme-muted hover:text-theme-primary"
+                    aria-label="Quitar archivo"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+              {errorArchivo && <span className="text-xs text-red-400">{errorArchivo}</span>}
+            </div>
+          )}
+
+          {voz.error && <div className="mb-2 text-xs text-red-400">{voz.error}</div>}
+
+          {voz.estado !== "inactivo" ? (
+            <div className="flex items-center justify-between gap-4 bg-dash-chip border border-amber-500/30 rounded-xl px-4 py-3">
+              <div className="flex items-center gap-3">
+                <span
+                  className={`w-3 h-3 rounded-full ${
+                    voz.estado === "respondiendo" ? "bg-amber-500 animate-pulse" : "bg-green-500 animate-pulse"
+                  }`}
+                />
+                <span className="text-sm text-theme-primary">
+                  {voz.estado === "conectando" && "Conectando…"}
+                  {voz.estado === "escuchando" && "Escuchando…"}
+                  {voz.estado === "respondiendo" && "Respondiendo…"}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={voz.detener}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 transition-colors"
+              >
+                Colgar
+              </button>
+            </div>
+          ) : (
+            <form
+              onSubmit={(e) => {
                 e.preventDefault();
-                enviar(input);
-              }
-            }}
-            placeholder="Escribe tu pregunta…"
-            rows={1}
-            disabled={enviando}
-            className="flex-1 resize-none bg-dash-chip border border-theme-card rounded-xl px-4 py-3 text-sm text-theme-primary placeholder:text-theme-muted focus:outline-none focus:border-amber-500/50 disabled:opacity-60"
-          />
-          <button
-            type="submit"
-            disabled={enviando || !input.trim()}
-            className="px-4 py-3 rounded-xl text-xs font-bold bg-amber-500/10 text-gold hover:bg-amber-500/20 border border-amber-500/20 disabled:opacity-40 transition-colors"
-          >
-            {enviando ? "…" : "Enviar"}
-          </button>
-        </form>
+                enviarTexto(input);
+              }}
+              className="flex items-center gap-1 bg-dash-chip border border-theme-card rounded-full pl-2 pr-1.5 py-1.5 shadow-sm focus-within:border-amber-500/50 transition-colors"
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={MIME_TYPES_PERMITIDOS.join(",")}
+                className="hidden"
+                onChange={(e) => seleccionarArchivo(e.target.files?.[0] ?? null)}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={enviando}
+                title="Adjuntar imagen o PDF"
+                className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-theme-secondary hover:bg-theme-hover disabled:opacity-40 transition-colors"
+              >
+                📎
+              </button>
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    enviarTexto(input);
+                  }
+                }}
+                onPaste={(e) => {
+                  const item = Array.from(e.clipboardData.items).find((it) =>
+                    it.type.startsWith("image/")
+                  );
+                  if (!item) return;
+                  e.preventDefault();
+                  seleccionarArchivo(item.getAsFile());
+                }}
+                placeholder="Escribe tu pregunta…"
+                rows={1}
+                disabled={enviando}
+                className="flex-1 resize-none bg-transparent border-none px-2 py-1.5 text-sm text-theme-primary placeholder:text-theme-muted focus:outline-none disabled:opacity-60"
+              />
+              <button
+                type="button"
+                onClick={voz.iniciar}
+                disabled={enviando}
+                title="Hablar con el asistente"
+                className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-theme-secondary hover:bg-theme-hover disabled:opacity-40 transition-colors"
+              >
+                🎙️
+              </button>
+              <button
+                type="submit"
+                disabled={enviando || (!input.trim() && !archivo)}
+                className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-xs font-bold bg-amber-500 text-black hover:bg-amber-400 disabled:opacity-30 disabled:bg-theme-hover disabled:text-theme-muted transition-colors"
+              >
+                {enviando ? "…" : "➤"}
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
       </div>
     </div>
   );

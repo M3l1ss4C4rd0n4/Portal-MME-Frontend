@@ -146,21 +146,29 @@ export function diagnosticoTermico(
   precioPPP: number,
   _precioEscasez: number,
   precios?: PreciosEscasezOpciones,
+  /** % de participación térmica promedio de los últimos 7 días (dato de otro
+   * slide del portal) — si se pasa, el texto aclara explícitamente que su
+   * propio dato es "de hoy" y contrasta contra el promedio semanal, para que
+   * no parezcan dos cifras contradictorias sobre "lo mismo". */
+  promedio7dPct?: number,
 ): string {
   const pe = precios?.pe ?? PRECIO_ESCASEZ_PE_REF_2026_01;
   const pct = participacionPct.toFixed(1);
+  const comparativo = promedio7dPct != null
+    ? ` (el promedio de los últimos 7 días fue ${promedio7dPct.toFixed(1)}%)`
+    : "";
 
   if (participacionPct > 35) {
-    return `Despacho crítico — térmica al ${pct}% supera el umbral estructural CND (35%).`;
+    return `Despacho crítico — térmica al ${pct}% hoy, supera el umbral estructural CND (35%)${comparativo}.`;
   }
   if (participacionPct > 25) {
     if (precioPPP > pe) {
-      return `Despacho en alerta media — térmica al ${pct}% con precio PPP sobre escasez.`;
+      return `Despacho en alerta media — térmica al ${pct}% hoy, con precio PPP sobre escasez${comparativo}.`;
     }
-    return `Despacho en alerta media — térmica al ${pct}% indica presión sobre la generación hídrica.`;
+    return `Despacho en alerta media — térmica al ${pct}% hoy, indica presión sobre la generación hídrica${comparativo}.`;
   }
   if (participacionPct > 15) {
-    return `Despacho térmico normal — soporte complementario al ${pct}% de la generación del SIN.`;
+    return `Despacho térmico normal — soporte complementario al ${pct}% de la generación del SIN hoy${comparativo}.`;
   }
-  return `Despacho térmico sostenible — participación ${pct}% dentro del rango base del SIN.`;
+  return `Despacho térmico sostenible — participación ${pct}% hoy, dentro del rango base del SIN${comparativo}.`;
 }

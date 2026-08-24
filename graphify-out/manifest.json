@@ -47,13 +47,21 @@
     "mtime": 1781055234.562165,
     "hash": "b26464151822f2b4f443d64b445c4608"
   },
+  "/home/admonctrlxm/portal-direccion-mme/public/audio-worklets/pcm-capture-processor.js": {
+    "mtime": 1785881085.8920827,
+    "hash": "c1eb46d0022738fb08df258a891b873d"
+  },
+  "/home/admonctrlxm/portal-direccion-mme/public/audio-worklets/pcm-playback-processor.js": {
+    "mtime": 1785881096.1138797,
+    "hash": "c585630ab6c4d87578ba7228161a3916"
+  },
   "/home/admonctrlxm/portal-direccion-mme/src/app/layout.tsx": {
     "mtime": 1785561974.3383925,
     "hash": "210e6686fb3ead54fa6cbaa7cfa71b2f"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/page.tsx": {
-    "mtime": 1785253576.9330504,
-    "hash": "959dd54da4bf6e3959179e4e1f8f7354"
+    "mtime": 1786402283.160642,
+    "hash": "29796715037fe87f758aa3107f959b47"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/api/sector/route.ts": {
     "mtime": 1777145827.942333,
@@ -68,12 +76,16 @@
     "hash": "3a786d6086b411b8c2cb3f1167f9a480"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/api/sector/termica/route.ts": {
-    "mtime": 1783358342.0487456,
-    "hash": "7485b47a91cce2b9f7894d657df921db"
+    "mtime": 1786550959.307521,
+    "hash": "9c1d2e2398c215bd5b8a0213dc2a6044"
+  },
+  "/home/admonctrlxm/portal-direccion-mme/src/app/api/sector/diagnosticos-ia/route.ts": {
+    "mtime": 1785775158.8615735,
+    "hash": "1df4d2e4b36a049ec9cde1c16ed9879f"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/api/sector/detalle/route.ts": {
-    "mtime": 1778821177.018,
-    "hash": "8f133ec12e1a760e5f9d638f4a086162"
+    "mtime": 1786550954.3136451,
+    "hash": "fd829ac9b83219e90b7a32ea1e48b4b4"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/api/chart-mensual/route.ts": {
     "mtime": 1782396137.071717,
@@ -115,6 +127,10 @@
     "mtime": 1785564164.4115434,
     "hash": "64429b9d9886a08d784bf1b640da35f7"
   },
+  "/home/admonctrlxm/portal-direccion-mme/src/app/api/ontologia/metricas/route.ts": {
+    "mtime": 1785809867.1492488,
+    "hash": "40dc8cdd82991e5cfcff9a3bb1d05c52"
+  },
   "/home/admonctrlxm/portal-direccion-mme/src/app/api/ontologia/grafo/empresa/[id]/route.ts": {
     "mtime": 1785564177.3132322,
     "hash": "fa0241f366ac04af758ec76b2643a27a"
@@ -138,6 +154,10 @@
   "/home/admonctrlxm/portal-direccion-mme/src/app/api/asistente/route.ts": {
     "mtime": 1785724569.3939402,
     "hash": "891dd6e9ab6e71012b45fc0b7fbcd891"
+  },
+  "/home/admonctrlxm/portal-direccion-mme/src/app/api/asistente/feedback/route.ts": {
+    "mtime": 1786105396.947284,
+    "hash": "e9a64187e80f4f9ec72c47ea8491fb54"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/api/cu/route.ts": {
     "mtime": 1777145855.395333,
@@ -172,8 +192,8 @@
     "hash": "3288109b28c00d7aa10df389c735a2f9"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/api/contratos-or/actas/descargar/route.ts": {
-    "mtime": 1782449177.698861,
-    "hash": "e8bff7764be4992784bbc33615e03568"
+    "mtime": 1786105459.2029314,
+    "hash": "d940080518c5edf20d391c7115824400"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/api/health/route.ts": {
     "mtime": 1778930561.761,
@@ -182,6 +202,10 @@
   "/home/admonctrlxm/portal-direccion-mme/src/app/api/tabla-or-inicial/route.ts": {
     "mtime": 1782396138.663717,
     "hash": "65c4a14c008c1dd42ecde463b52e6812"
+  },
+  "/home/admonctrlxm/portal-direccion-mme/src/app/api/voz/token/route.ts": {
+    "mtime": 1786105408.6680295,
+    "hash": "eb72c52aa2c8c878b6be7f1b432026a9"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/api/informe-diario/route.ts": {
     "mtime": 1780330862.97087,
@@ -192,8 +216,8 @@
     "hash": "5013a45dcbbe2e8fa52622dda6f20073"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/api/informes-diarios/route.ts": {
-    "mtime": 1779859477.8825493,
-    "hash": "aeaaeb497e12c6ffcee0027b587cf677"
+    "mtime": 1786105438.1053898,
+    "hash": "ed6bc0079f1fbb3e374ae5b7c9b66d2d"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/api/informes-diarios/extracto/route.ts": {
     "mtime": 1781057185.9204357,
@@ -204,8 +228,8 @@
     "hash": "d2fd5204a20d2ae4b7762775847081f1"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/api/informes-diarios/descargar/route.ts": {
-    "mtime": 1779859477.9225497,
-    "hash": "f715c3a4a6e92a7e2a01f8d6f9034428"
+    "mtime": 1786105448.3821666,
+    "hash": "d52b0d9cb530eae9b13c5189e40c96f1"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/api/eficiencia-programa/route.ts": {
     "mtime": 1782396136.231717,
@@ -248,8 +272,8 @@
     "hash": "63f518a39a06387786513d79c22a410d"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/api/informe-empalme/route.ts": {
-    "mtime": 1782492314.1067727,
-    "hash": "6a42044aa91a48c24bde5944f8cf77bc"
+    "mtime": 1786039106.540074,
+    "hash": "2f35b0fff08f0b2d420be529a75f2359"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/api/informes/boletines/lista/route.ts": {
     "mtime": 1781368166.810757,
@@ -264,8 +288,8 @@
     "hash": "5bf816b9717a1789058ea53a2b1d6688"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/api/informes/[tablero]/route.ts": {
-    "mtime": 1782625678.5048506,
-    "hash": "1bfb714d696ffc394fa3e08d27b25d0d"
+    "mtime": 1786105469.4517088,
+    "hash": "1108321f3d21f9b9ddabb3c64ccd4680"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/api/predicciones/route.ts": {
     "mtime": 1782229092.174763,
@@ -284,108 +308,120 @@
     "hash": "2bbd2ee6dd4e37e08562638e9fed52ee"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/asistente/page.tsx": {
-    "mtime": 1785724639.2045133,
-    "hash": "459def0df1fed9a34e4e62dbc8d9e7a0"
+    "mtime": 1786406562.9887557,
+    "hash": "b9ac10c21a55a9027afa30ba306d39c5"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/error.tsx": {
     "mtime": 1779937059.912735,
     "hash": "30ea7f50bc2ee93f82693ad26afd5c27"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/subsidios/page.tsx": {
-    "mtime": 1782634283.754761,
-    "hash": "7f970ccc0256a40bf9a2577532bf7c73"
+    "mtime": 1786073548.959692,
+    "hash": "9912f7b363d08a355ba68e4ac196a8eb"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/energia/page.tsx": {
-    "mtime": 1783385253.3487177,
-    "hash": "075d87440ebc424a53f075a1dea58954"
+    "mtime": 1786134679.3329034,
+    "hash": "9e7d134674760b60c603bd5ce22a6987"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/energia/informes/page.tsx": {
     "mtime": 1782633646.8347542,
     "hash": "ab21ae3398c01ad0fcd6f3b9b79fb702"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/energia/predicciones/page.tsx": {
-    "mtime": 1782633646.8357542,
-    "hash": "2788bd450693916c3f6150bfed7e287d"
+    "mtime": 1786134686.4027424,
+    "hash": "ebf5940a59a516ceb598b08f96528f66"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/explorador-red/page.tsx": {
-    "mtime": 1785706381.5318577,
-    "hash": "84a1e5354ebab554475073d0dacf589e"
+    "mtime": 1786073535.7239823,
+    "hash": "ee1456e42c2262cd1c179ead4f103083"
+  },
+  "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/explorador-red/RelationshipGraph.tsx": {
+    "mtime": 1785981423.7791874,
+    "hash": "5c8b5234d1d3eb55a8b9329d64383681"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/pagos/page.tsx": {
-    "mtime": 1782633646.8327541,
-    "hash": "49a64bccc8d5a1603f56c68f519230a6"
+    "mtime": 1786073593.943687,
+    "hash": "d35419cbff2580895aefbba1d256b0fb"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/comunidades/ComunidadesMap.tsx": {
-    "mtime": 1785561756.8941138,
-    "hash": "15fdc7095c91684c141ab49c9306c9e1"
+    "mtime": 1785814291.2983546,
+    "hash": "e8914bad6c8f3e36584ffc1d2c12a3f3"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/comunidades/page.tsx": {
-    "mtime": 1785707406.6804698,
-    "hash": "fefe87910bce260a2015162713c16378"
+    "mtime": 1786073888.7837143,
+    "hash": "63b9ba6bc75bb258bfcdcf6abd5be68a"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/contratos-or/page.tsx": {
-    "mtime": 1785251090.0226367,
-    "hash": "d949d548f014797f8b0768c5144b0038"
+    "mtime": 1786073699.6240308,
+    "hash": "7b86640b258c251ae3b4597a025713a1"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/salud-datos/page.tsx": {
-    "mtime": 1785698100.1432397,
-    "hash": "70357dee1b83c006283197046e6743bc"
+    "mtime": 1786073491.4949524,
+    "hash": "160c4d6a49aa797a2cc2775ce0a4d222"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/validaciones/page.tsx": {
-    "mtime": 1782633646.8277543,
-    "hash": "b1c18e6282163ef55b5c84fafd4cfe6c"
+    "mtime": 1786073836.4039254,
+    "hash": "90f5acc90c16015aa8cef264bc0dacc6"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/fenoge/page.tsx": {
-    "mtime": 1785708444.846744,
-    "hash": "98ea67215f13d7affb637ac6b7d79e81"
+    "mtime": 1786073919.4470825,
+    "hash": "681d9492f6ce653aca5ce8f4a9d48097"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/fenoge/FenogeCEMap.tsx": {
-    "mtime": 1785561781.3875272,
-    "hash": "40d13ea408a21a0de0b450f4ca3ba8d8"
+    "mtime": 1785814320.756722,
+    "hash": "732019912202965e5773e0755be043f9"
+  },
+  "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/catalogo-metricas/page.tsx": {
+    "mtime": 1786073500.4107568,
+    "hash": "1dfcf203bd6d62398c50333a5d4be332"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/supervision/page.tsx": {
-    "mtime": 1782633646.8307543,
-    "hash": "5efdba725d1db422aa9987a6e88b1576"
+    "mtime": 1786073867.806166,
+    "hash": "6f1fc5f2866ebe5fc465587498cf519a"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/hidrocarburos/presupuesto/page.tsx": {
-    "mtime": 1785118494.9653258,
-    "hash": "089109cfb10a3d6cda69e815ae0de264"
+    "mtime": 1786073743.7359345,
+    "hash": "18d6b42a530c7d7a7174d0785c0baf4c"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/hidrocarburos/exploracion/page.tsx": {
-    "mtime": 1785118542.9561813,
-    "hash": "dc19ffe449c3e0291398efd5bdd630e6"
+    "mtime": 1786073565.801316,
+    "hash": "9c0ab2a69367b6439e3374137e0b3d4a"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/colombia-solar/page.tsx": {
     "mtime": 1782635352.4487572,
     "hash": "fac3474d1af774beec32bf9020707960"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/vista-departamental/page.tsx": {
-    "mtime": 1785562002.5778115,
-    "hash": "9fca9b79bb839bb8603e62ff5b5393f2"
+    "mtime": 1786073606.4774067,
+    "hash": "169d3b71d3d9fcc45eca3c0291984b34"
+  },
+  "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/vista-departamental/VistaDepartamentalMap.tsx": {
+    "mtime": 1785979503.8574476,
+    "hash": "034d91dbbb6b073f75742fc85f42d5f8"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/app/(dashboards)/presupuesto/page.tsx": {
-    "mtime": 1782633646.8347542,
-    "hash": "fff468bd86dd91bff5b4fa2968f450dd"
+    "mtime": 1786073721.1554465,
+    "hash": "b6dafa54875aebe142fadf140c70fdc4"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/services/index.ts": {
     "mtime": 1777770691.664,
     "hash": "d214acd35e215025a90805df3426f0d9"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/services/apiService.ts": {
-    "mtime": 1785698077.5647235,
-    "hash": "527e2a1421ad5fe0a17d8b6ee8570bb8"
+    "mtime": 1785809911.9402807,
+    "hash": "3200d487b00f02d3c95bbb52c7abbf99"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/HomeSlider.tsx": {
-    "mtime": 1785252423.878826,
-    "hash": "aaadcefb29dd5c82397615704d83bc34"
+    "mtime": 1786577030.7537587,
+    "hash": "fbcb89b64fc5377c9842231ea402ca45"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/ResumenEjecutivoFab.tsx": {
-    "mtime": 1782620142.2528074,
-    "hash": "1c8899403f81a60fbcbe431baab428de"
+    "mtime": 1786420372.7372084,
+    "hash": "6fd482084abe8f87adeb06690efd6dea"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/PanoramaInformeFab.tsx": {
-    "mtime": 1782495032.055748,
-    "hash": "e44c6fd94c7e2b869450e0ed47a2db51"
+    "mtime": 1786420356.7365954,
+    "hash": "2b3d09df8b4e18dc92d04e004b754ac1"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/SlideRedesX.tsx": {
     "mtime": 1779078879.844,
@@ -396,8 +432,8 @@
     "hash": "d011392ef6d2c0c810d05027f8d44c18"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/Header.tsx": {
-    "mtime": 1785724657.427127,
-    "hash": "3d8f322865b0615450a280e0302dbf40"
+    "mtime": 1786135799.2204714,
+    "hash": "c34a2b9bd627e1d243c754c9a6f986ce"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/DashboardLayout.tsx": {
     "mtime": 1782633646.8097541,
@@ -408,36 +444,40 @@
     "hash": "01195600819c7bfd8d1496b7acf3d086"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/InformesDiariosSlider.tsx": {
-    "mtime": 1780330466.2936254,
-    "hash": "d1e2d5ce9cef8af5b290eb2b8a7ea220"
+    "mtime": 1786423345.42725,
+    "hash": "b01a6d9c39607402802e25f3242afc20"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/MapaEmbalses.tsx": {
     "mtime": 1782580898.992769,
     "hash": "9adb2b02977a91b156f3fa8f5ee4275b"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/ChatbotWidget.tsx": {
-    "mtime": 1785251970.6784112,
-    "hash": "a4a49a4afa485042989bfea43e9699be"
+    "mtime": 1786422536.8656867,
+    "hash": "13d56a545fcf84d7324330c48ae9b4a5"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/InformeEmpalmeFab.tsx": {
-    "mtime": 1782496541.7007418,
-    "hash": "ad338ca129a71787d4d74bec4c24d551"
+    "mtime": 1786421574.6520467,
+    "hash": "bc697d9721c932c7c355e445c05116f5"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/ClientLayout.tsx": {
-    "mtime": 1776134828.879333,
-    "hash": "03bfe64c5adc36ef860479b5eb05078a"
+    "mtime": 1786405705.1452713,
+    "hash": "b734c09b75adac7d164756657a9ceef7"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/ui/ChartCard.tsx": {
     "mtime": 1774987015.991333,
     "hash": "4f6752e08df3347e6c9f011f6ac64cb1"
+  },
+  "/home/admonctrlxm/portal-direccion-mme/src/components/ui/Sparkline.tsx": {
+    "mtime": 1786402395.582921,
+    "hash": "5e4fe7b551f1a5c23eb93f6f4946f743"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/ui/InfoTooltip.tsx": {
     "mtime": 1782580927.647769,
     "hash": "b04cb3f7800890f9c398e4df4e277b0b"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/ui/SemiGauge.tsx": {
-    "mtime": 1776809494.013333,
-    "hash": "a71c681e34ce66932f2b7dff6c6f4e45"
+    "mtime": 1786574130.2782593,
+    "hash": "ae32a530d69b0221933212c95ae64c0a"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/ui/SemiPieChart.tsx": {
     "mtime": 1774987015.991333,
@@ -448,12 +488,16 @@
     "hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/ui/TrendBadge.tsx": {
-    "mtime": 1782603604.7877555,
+    "mtime": 1786117739.1303918,
     "hash": "49f30b24ebec2e6b3cd27d632e5c3f15"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/ui/KPICard.tsx": {
     "mtime": 1782633646.8127542,
     "hash": "359a89a6b86c5decc2e2d97617d8b41d"
+  },
+  "/home/admonctrlxm/portal-direccion-mme/src/components/ui/Skeleton.tsx": {
+    "mtime": 1786395281.9315298,
+    "hash": "fe2c905ff025b72e572232f6c8bef1ac"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/ui/ThemeToggle.tsx": {
     "mtime": 1774987015.991333,
@@ -463,25 +507,41 @@
     "mtime": 1782633646.8127542,
     "hash": "1dcd814179076611e6784e25dc9f1a69"
   },
+  "/home/admonctrlxm/portal-direccion-mme/src/components/asistente/Burbuja.tsx": {
+    "mtime": 1786405536.6488893,
+    "hash": "9315a178af4c877f36a5eb67b1946ac3"
+  },
+  "/home/admonctrlxm/portal-direccion-mme/src/components/dashboard/index.ts": {
+    "mtime": 1786073377.1094809,
+    "hash": "cfaeac869f9d7202a4f2cdd20638fe5a"
+  },
+  "/home/admonctrlxm/portal-direccion-mme/src/components/dashboard/Card.tsx": {
+    "mtime": 1786073264.2139385,
+    "hash": "e7d5354da4887c5891668bb94dfec2cc"
+  },
+  "/home/admonctrlxm/portal-direccion-mme/src/components/dashboard/KpiChip.tsx": {
+    "mtime": 1786073370.7996213,
+    "hash": "00d401e8787edc35774ed367464b6680"
+  },
   "/home/admonctrlxm/portal-direccion-mme/src/components/slides/SlideUI.tsx": {
-    "mtime": 1783485805.457762,
-    "hash": "3d9ad01d706138076c79e5146ecbaa9f"
+    "mtime": 1786469867.8557963,
+    "hash": "c1584fc297fc502fdcee40a18826d646"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/slides/SlideHidrocarburosPresupuesto.tsx": {
-    "mtime": 1783485612.9777617,
-    "hash": "521bb327e375fbdb5687f35e4b7c558e"
+    "mtime": 1786574145.1458828,
+    "hash": "b1ca7b965a2f0be8cba57ae02446df97"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/slides/index.ts": {
     "mtime": 1783484020.681761,
     "hash": "989d7bf5a6c95dbbf3eb9da8579eec4b"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/slides/SlideSupervision.tsx": {
-    "mtime": 1783487645.3327646,
-    "hash": "627a07c131aa544f8c15cc1806120561"
+    "mtime": 1786575580.545402,
+    "hash": "a8ce9b59ecc126317492c32e81e5ad35"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/slides/SlideHidrocarburosProduccion.tsx": {
-    "mtime": 1784647814.1217132,
-    "hash": "31458e96e9e9c4148602fd41cb27c1b5"
+    "mtime": 1786572350.8408942,
+    "hash": "e883444e2b8c1e1b1b5730a466671557"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/predictions/MetricPredictionCard.tsx": {
     "mtime": 1782633646.8197541,
@@ -492,20 +552,24 @@
     "hash": "001d34a6a3e80efc4f33ec7fcd437514"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/predictions/PredictionKpiBlock.tsx": {
-    "mtime": 1783393323.5307322,
-    "hash": "d26b08ef96b159e7d35197ecd4d7850f"
+    "mtime": 1786572086.371436,
+    "hash": "661b6810cdbebf6536c9d77137e2c1af"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/predictions/PredictionLineChart.tsx": {
-    "mtime": 1783389060.2557218,
-    "hash": "befd4f41e6c05f440290ef2332104cc0"
+    "mtime": 1786569626.8432677,
+    "hash": "c7a255ce3f10a83e2b02d412d7f74242"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/maps/mapUtils.ts": {
     "mtime": 1785560264.7067742,
     "hash": "db3936c61964db119f50055759ce5d32"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/maps/DepartmentGeoJsonLayer.tsx": {
-    "mtime": 1785561698.1225212,
-    "hash": "b84f8bf28206408bfb4c815edc61cb9f"
+    "mtime": 1785979453.181537,
+    "hash": "97370d735f3dbc4333d0b1861e5911c3"
+  },
+  "/home/admonctrlxm/portal-direccion-mme/src/components/maps/useDepartmentMapGeo.ts": {
+    "mtime": 1785814267.2358713,
+    "hash": "ae2e98eda75593a05fdd71704dc74559"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/colombia-solar/ChartMensual.tsx": {
     "mtime": 1782396365.5917177,
@@ -560,15 +624,15 @@
     "hash": "61c5cc17ff40dc1b7427865b63e51771"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/kpi/StatusChip.tsx": {
-    "mtime": 1777754505.053,
+    "mtime": 1786117734.7894878,
     "hash": "01ac970e97ba1c6c58d4e0f7090cb672"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/kpi/KpiBlock.tsx": {
-    "mtime": 1783480045.2927558,
-    "hash": "35d49a8ccbbd0ba93b7259543eb9218a"
+    "mtime": 1786573159.9509585,
+    "hash": "26f6493ec1c7b0aa86dd4e1dccc80899"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/components/kpi/HydroKpiBlock.tsx": {
-    "mtime": 1782145829.7477267,
+    "mtime": 1786117758.4549642,
     "hash": "3b73d9f1f8bae33630bab11d2bce3129"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/providers/ThemeProvider.tsx": {
@@ -588,8 +652,8 @@
     "hash": "0b21d671a1f8e0e5fe7d8bae470f6d43"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/lib/backendClient.ts": {
-    "mtime": 1780331056.364427,
-    "hash": "28f979e5777671279694ca1dd3af6ce3"
+    "mtime": 1786105388.5214672,
+    "hash": "f837a1961481cba21c841ac5b3c52023"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/lib/nivo-theme.ts": {
     "mtime": 1782615413.2939851,
@@ -604,12 +668,12 @@
     "hash": "b3298165e2701cdd70569e66c099cc88"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/lib/kpi-logic.ts": {
-    "mtime": 1782633646.8127542,
-    "hash": "652650f0e30cef1d2b98f812e869d57e"
+    "mtime": 1785770501.2754996,
+    "hash": "c20b130b17ad9122a73b6735f14e3acf"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/lib/termica-combustible.ts": {
-    "mtime": 1779860659.1097476,
-    "hash": "b9d7ff7ec0ec682722b657b6ba55a6f2"
+    "mtime": 1786550967.3343215,
+    "hash": "32a7234dc59bcac047a235ff0492731d"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/lib/embalse-utils.ts": {
     "mtime": 1777943314.208,
@@ -622,6 +686,14 @@
   "/home/admonctrlxm/portal-direccion-mme/src/lib/oni.ts": {
     "mtime": 1783389047.8287218,
     "hash": "8cf580f37523ad740cf3afc8d8c3053a"
+  },
+  "/home/admonctrlxm/portal-direccion-mme/src/lib/asistenteSecciones.ts": {
+    "mtime": 1787431261.8444376,
+    "hash": "3ae3580fa326442bffa1332a5b639932"
+  },
+  "/home/admonctrlxm/portal-direccion-mme/src/lib/departamentos.ts": {
+    "mtime": 1785814591.733896,
+    "hash": "21eba649d215472c9c4cb36421df3146"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/lib/db.ts": {
     "mtime": 1778974549.156,
@@ -647,6 +719,10 @@
     "mtime": 1785561962.5986383,
     "hash": "b8ae83569ca844357e806cc38f2ad97f"
   },
+  "/home/admonctrlxm/portal-direccion-mme/src/types/mapa-departamentos.ts": {
+    "mtime": 1785813949.9906847,
+    "hash": "7248c832ea8cbe24f7b5ca38c9bd6d64"
+  },
   "/home/admonctrlxm/portal-direccion-mme/src/types/home-slider.ts": {
     "mtime": 1784647008.1997073,
     "hash": "5db2e4fa704b7a920364fabcbbb6efd1"
@@ -656,8 +732,8 @@
     "hash": "9d8fb0e184ad4a96039886ee481c26c1"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/types/ontologia.ts": {
-    "mtime": 1785715526.666859,
-    "hash": "e0353945895ef17dc9ce8e0c3b95059b"
+    "mtime": 1785809888.556786,
+    "hash": "ba23ebf6c0799ac46aa2ee20a1b284e0"
   },
   "/home/admonctrlxm/portal-direccion-mme/src/mocks/home-data.ts": {
     "mtime": 1782406447.9978657,
@@ -667,13 +743,25 @@
     "mtime": 1778820270.601,
     "hash": "5d63a872f49f98a29c93d064dd949937"
   },
+  "/home/admonctrlxm/portal-direccion-mme/src/hooks/useDiagnosticosIA.ts": {
+    "mtime": 1785775199.7596836,
+    "hash": "db204c516a733ab0e16a03dc17531711"
+  },
+  "/home/admonctrlxm/portal-direccion-mme/src/hooks/useAsistenteChat.ts": {
+    "mtime": 1786405508.4975362,
+    "hash": "c24c3806a76d2a830d570e63bae32680"
+  },
+  "/home/admonctrlxm/portal-direccion-mme/src/hooks/useAsistenteVoz.ts": {
+    "mtime": 1785881149.9106643,
+    "hash": "a978fa874c03a2a8c8938ea929d2ae3d"
+  },
   "/home/admonctrlxm/portal-direccion-mme/src/hooks/useHomeSlider.ts": {
     "mtime": 1784645661.8617113,
     "hash": "0ffd5c6ba49c9a767bea38021ee7b5fa"
   },
   "/home/admonctrlxm/portal-direccion-mme/README.md": {
-    "mtime": 1782230881.4707618,
-    "hash": "485b1baa5e6a632abf4c0269ed5b9acc"
+    "mtime": 1785728965.5968142,
+    "hash": "57ca3a1ed8dd515b923df544bfe91a9b"
   },
   "/home/admonctrlxm/portal-direccion-mme/SKILL_PACK_COMPACTO.md": {
     "mtime": 1777889194.031,
@@ -684,8 +772,8 @@
     "hash": "96eb3e884cf1e69042ee7f44f04dc28c"
   },
   "/home/admonctrlxm/portal-direccion-mme/AGENTS.md": {
-    "mtime": 1781042697.1259637,
-    "hash": "60967a520701a806296bcc377f07ef3b"
+    "mtime": 1785729770.575301,
+    "hash": "f8583056df38123cd3de1115cca46b95"
   },
   "/home/admonctrlxm/portal-direccion-mme/SKILL_PACK_V5.0.md": {
     "mtime": 1782231307.8617618,
@@ -694,6 +782,10 @@
   "/home/admonctrlxm/portal-direccion-mme/PROPUESTA_MAESTRA.md": {
     "mtime": 1782230918.876762,
     "hash": "0eab8da0425dd31dc74ae429fa7cb10a"
+  },
+  "/home/admonctrlxm/portal-direccion-mme/INFORME_BRECHAS_PALANTIR.md": {
+    "mtime": 1786040668.6061883,
+    "hash": "a6db230559cc9c299192940e02fd3a33"
   },
   "/home/admonctrlxm/portal-direccion-mme/INFORME_DETALLADO DEL SISTEMA DE ALERTAS.md": {
     "mtime": 1779759506.272114,
@@ -712,11 +804,11 @@
     "hash": "c80a9b4e1a1a887d47d4c536f9d36a0b"
   },
   "/home/admonctrlxm/portal-direccion-mme/graphify-out/converted/INFORME MENSUAL DE ACTIVIDADES - JUNIO 2026_5ec22782.md": {
-    "mtime": 1785728832.693682,
+    "mtime": 1787615080.557639,
     "hash": "46f7f1a242c4f432ed05d6f0fd88d0ce"
   },
   "/home/admonctrlxm/portal-direccion-mme/graphify-out/converted/INFORME MENSUAL DE ACTIVIDADES - Mayo 2026_fed23f89.md": {
-    "mtime": 1785728832.8356788,
+    "mtime": 1787615080.7766325,
     "hash": "5553b66e4e5caceece119abfd8c697ef"
   },
   "/home/admonctrlxm/portal-direccion-mme/informes del mes/INFORME MENSUAL DE ACTIVIDADES - MAYO 2026.md": {
@@ -724,7 +816,7 @@
     "hash": "50847538798fd966d2d0089396def3e1"
   },
   "/home/admonctrlxm/portal-direccion-mme/graphify-out/converted/INFORME MENSUAL DE ACTIVIDADES - MARZO 2026_c89ba291.md": {
-    "mtime": 1785728832.9936752,
+    "mtime": 1787615080.9876263,
     "hash": "05622adfed67bf75413058b7d4648002"
   },
   "/home/admonctrlxm/portal-direccion-mme/informes del mes/INFORME MENSUAL DE ACTIVIDADES - MAYO 2026 - COPIAR A WORD.md": {
@@ -736,11 +828,11 @@
     "hash": "45f637aee023405bd0065526671cab18"
   },
   "/home/admonctrlxm/portal-direccion-mme/graphify-out/converted/INFORME MENSUAL DE ACTIVIDADES - FEBRERO 2026_b2592a64.md": {
-    "mtime": 1785728833.1726713,
+    "mtime": 1787615081.2556183,
     "hash": "7a1b6f12aa0e228b6452f6548ccb4ce9"
   },
   "/home/admonctrlxm/portal-direccion-mme/graphify-out/converted/INFORME MENSUAL DE ACTIVIDADES - ABRIL 2026_51b03d02.md": {
-    "mtime": 1785728833.3386679,
+    "mtime": 1787615081.4926112,
     "hash": "065b89c9b13e53753045a46b9bd0e783"
   },
   "/home/admonctrlxm/portal-direccion-mme/informes del mes/INFORME_ESTRUCTURA_FEBRERO.md": {
@@ -748,7 +840,7 @@
     "hash": "d07a462c82d71ddbf439479f0df1e6f8"
   },
   "/home/admonctrlxm/portal-direccion-mme/graphify-out/converted/INFORME MENSUAL DE ACTIVIDADES - JULIO 2026_e53dbb6e.md": {
-    "mtime": 1785728833.4616652,
+    "mtime": 1787615081.6516066,
     "hash": "451d39aa1832db9a2fb99f7b870d80a7"
   },
   "/home/admonctrlxm/portal-direccion-mme/informes del mes/evidencias JUNIO/INFORME_VALIDACION_ARAUCA.md": {
@@ -756,7 +848,7 @@
     "hash": "2e00e52289b10fe9f47f57320ded80b4"
   },
   "/home/admonctrlxm/portal-direccion-mme/graphify-out/converted/Observaciones_Tablero_DEE_05_junio_7d59755a.md": {
-    "mtime": 1785728833.4826646,
+    "mtime": 1787615081.701605,
     "hash": "2fa425527ca23da3e96772ab0f8d1ce5"
   },
   "/home/admonctrlxm/portal-direccion-mme/informes del mes/evidencias JUNIO/INFORME_VALIDACION_SANTANDER.md": {
@@ -764,12 +856,12 @@
     "hash": "72f8f15e9305ebd4399ed7923e1a8828"
   },
   "/home/admonctrlxm/portal-direccion-mme/graphify-out/converted/Observaciones_Tablero_DEE_9c25d2af.md": {
-    "mtime": 1785728833.4956644,
+    "mtime": 1787615081.7456038,
     "hash": "45b6ad09d38ee2755acd02354d60bd15"
   },
   "/home/admonctrlxm/portal-direccion-mme/graphify-out/converted/Colombia_Solar_OR_58461d20.md": {
-    "mtime": 1785728833.8186574,
-    "hash": "8e560c345527394ae60531af09cdeaa4"
+    "mtime": 1787615082.660578,
+    "hash": "3c2af12134a44a15c7e85fde75a090f4"
   },
   "/home/admonctrlxm/portal-direccion-mme/informes del mes/INFORME MENSUAL DE ACTIVIDADES - FEBRERO 2026.pdf": {
     "mtime": 1774991044.570333,

@@ -6,32 +6,14 @@ import { ResponsiveBar } from "@nivo/bar";
 import * as XLSX from 'xlsx';
 import { useTheme } from "@/providers/ThemeProvider";
 import DashboardLayout from "@/components/DashboardLayout";
+import Card from "@/components/dashboard/Card";
+import KpiChip from "@/components/dashboard/KpiChip";
 import SemiGauge from "@/components/ui/SemiGauge";
 import BulletChart from "@/components/ui/BulletChart";
 import SemiPieChart from "@/components/ui/SemiPieChart";
 
 import { getNivoTheme } from "@/lib/nivo-theme";
 import { fmtCortePresupuesto } from "@/lib/format";
-
-// ─── Local helpers ────────────────────────────────────────────────────────
-function Card({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
-  return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay }}
-      className={`bg-theme-secondary border border-theme-card rounded-2xl p-5 hover:border-amber-500/40 transition-colors duration-300 ${className}`}>
-      {children}
-    </motion.div>
-  );
-}
-
-function KpiChip({ label, value, accent = false, subvalue }: { label: string; value: string | number; accent?: boolean; subvalue?: string }) {
-  return (
-    <div className="bg-dash-chip rounded-xl px-3 py-2.5">
-      <div className={`text-base font-bold leading-none ${accent ? "text-gold" : "text-theme-primary"}`}>{value}</div>
-      {subvalue && <div className={`text-[9px] mt-0.5 ${accent ? "text-gold/70" : "text-theme-muted"}`}>{subvalue}</div>}
-      <div className="text-[10px] text-theme-muted mt-1 leading-tight">{label}</div>
-    </div>
-  );
-}
 
 // ─── Progress Ring Component ──────────────────────────────────────────────
 function ProgressRing({ 

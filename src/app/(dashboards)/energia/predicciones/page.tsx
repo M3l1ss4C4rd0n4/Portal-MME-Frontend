@@ -86,7 +86,7 @@ export default function PrediccionesSinPage() {
   }
 
   return (
-    <div className="min-h-screen bg-theme-primary pt-20">
+    <div className="min-h-screen bg-theme-primary pt-20" style={{ paddingTop: "var(--header-height, 5rem)" }}>
       <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-2">
         <div className="flex items-center justify-between">
           <div>

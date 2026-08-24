@@ -5,18 +5,9 @@ import { motion } from "framer-motion";
 import { ResponsiveLine } from "@nivo/line";
 import { useTheme } from "@/providers/ThemeProvider";
 import DashboardLayout from "@/components/DashboardLayout";
+import Card from "@/components/dashboard/Card";
 import { getNivoTheme } from "@/lib/nivo-theme";
 import { fmtNum } from "@/lib/format";
-
-// ─── Local helpers (mismo patrón que presupuesto/subsidios/comunidades) ────
-function Card({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
-  return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay }}
-      className={`bg-theme-secondary border border-theme-card rounded-2xl p-5 hover:border-amber-500/40 transition-colors duration-300 ${className}`}>
-      {children}
-    </motion.div>
-  );
-}
 
 function formatVariacion(abs: number | null | undefined, pct: number | null | undefined): string {
   if (abs == null) return "";

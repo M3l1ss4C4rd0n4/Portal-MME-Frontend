@@ -11,6 +11,7 @@ import type {
   Empresa,
   VecindarioEmpresa,
   SaludDatos,
+  Metrica,
 } from "@/types/ontologia";
 
 /* ─── Error estandarizado ───────────────────────────────────────────────── */
@@ -336,6 +337,10 @@ export async function fetchVecindarioEmpresa(
 
 export async function fetchSaludDatos(): Promise<SaludDatos> {
   return apiGet<SaludDatos>("/api/ontologia/salud");
+}
+
+export async function fetchCatalogoMetricas(): Promise<{ metricas: Metrica[] }> {
+  return apiGet<{ metricas: Metrica[] }>("/api/ontologia/metricas");
 }
 
 export async function fetchNoticias(): Promise<NoticiasResponse> {

@@ -198,10 +198,10 @@ export async function GET() {
     // Formatear datos para gráfico de generación por fuente
     const coloresPorTipo: Record<string, string> = {
       'HIDRAULICA': '#3B82F6',
-      'TERMICA': '#EF4444',
-      'SOLAR': '#F59E0B',
-      'EOLICA': '#10B981',
-      'COGENERADOR': '#8B5CF6'
+      'TERMICA': '#1D4ED8',
+      'SOLAR': '#14B8A6',
+      'EOLICA': '#94A3B8',
+      'COGENERADOR': '#64748B'
     };
 
     const generacionPorFuente = generacionPorTipo.rows.map(row => ({

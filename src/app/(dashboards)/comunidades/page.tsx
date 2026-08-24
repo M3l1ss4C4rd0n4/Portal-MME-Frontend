@@ -7,8 +7,12 @@ import { ResponsiveBar } from "@nivo/bar";
 import * as XLSX from 'xlsx';
 import { useTheme } from "@/providers/ThemeProvider";
 import DashboardLayout from "@/components/DashboardLayout";
+import Card from "@/components/dashboard/Card";
+import BaseKpiChip, { type KpiChipProps } from "@/components/dashboard/KpiChip";
 import { useGeoFilter } from "@/context/GeoFilterContext";
 import { fetchDepartamentos } from "@/services/apiService";
+import { normDeptKey } from "@/lib/departamentos";
+import type { DptoRow } from "@/types/mapa-departamentos";
 
 const ComunidadesMap = dynamic(() => import("./ComunidadesMap"), {
   ssr: false,
@@ -23,29 +27,8 @@ import type { CePunto } from "./ComunidadesMap";
 import { getNivoTheme } from "@/lib/nivo-theme";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
-function Card({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
-  return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay }}
-      className={`bg-theme-secondary border border-theme-card rounded-2xl p-5 hover:border-amber-500/40 transition-colors duration-300 ${className}`}>
-      {children}
-    </motion.div>
-  );
-}
-function KpiChip({ label, value, avg, avgLabel, accent = false }: { label: string; value: string | number; avg?: string; avgLabel?: string; accent?: boolean }) {
-  const strLen = String(value).length;
-  const fontClass = strLen <= 8 ? "text-xl" : strLen <= 13 ? "text-base" : "text-sm";
-  return (
-    <div className="bg-dash-chip rounded-xl px-4 py-3">
-      <div className={`${fontClass} font-bold leading-tight break-all ${accent ? "text-gold" : "text-theme-primary"}`}>{value}</div>
-      <div className="text-[11px] text-theme-muted mt-1.5 leading-tight">{label}</div>
-      {avg && (
-        <div className="mt-2 pt-2 border-t border-white/[0.07] flex items-baseline gap-1">
-          <span className="text-[10px] font-bold text-gold/90 leading-none">{avg}</span>
-          <span className="text-[9px] text-theme-muted leading-none">{avgLabel ?? "/ CE"}</span>
-        </div>
-      )}
-    </div>
-  );
+function KpiChip(props: Omit<KpiChipProps, "padding" | "dynamicSize">) {
+  return <BaseKpiChip padding="lg" dynamicSize {...props} />;
 }
 
 // ─── AccordionSection (collapsible filter panel) ─────────────────────────
@@ -148,13 +131,6 @@ interface DeptAvg {
   avgInv: number | null;
   sumUsu: number;
   sumBenef: number;
-}
-interface DptoRow {
-  departamento: string;
-  departamentoGeo: string;
-  count: number;
-  capacidad: number;
-  inversion: number;
 }
 interface EstadoRow {
   estado: string;
@@ -536,12 +512,6 @@ export default function ComunidadesPage() {
     }
     return data.porDepartamento;
   }, [filteredPuntos, data.porDepartamento]);
-
-  // Normalizar nombres de departamento: quitar acentos y mayusculizar
-  // (el backend devuelve "ATLÁNTICO" pero el GeoJSON usa "ATLANTICO")
-  function normDeptKey(name: string): string {
-    return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
-  }
 
   // Colores de departamento para el GeoJSON
   const deptColors = useMemo(() => {

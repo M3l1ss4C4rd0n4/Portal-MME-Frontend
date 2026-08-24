@@ -1,34 +1,20 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { motion } from "framer-motion";
 import { ResponsivePie } from "@nivo/pie";
 import { ResponsiveLine } from "@nivo/line";
 import * as XLSX from "xlsx";
 import { useTheme } from "@/providers/ThemeProvider";
 import DashboardLayout from "@/components/DashboardLayout";
+import Card from "@/components/dashboard/Card";
+import BaseKpiChip, { type KpiChipProps } from "@/components/dashboard/KpiChip";
 import SemiGauge from "@/components/ui/SemiGauge";
 import { getNivoTheme } from "@/lib/nivo-theme";
 import { fmtCOP, fmtCOPShort, fmtNum } from "@/lib/format";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
-function Card({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
-  return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay }}
-      className={`bg-theme-secondary border border-theme-card rounded-2xl p-5 hover:border-amber-500/40 transition-colors duration-300 ${className}`}>
-      {children}
-    </motion.div>
-  );
-}
-function KpiChip({ label, value, accent = false, colorClass, pct, note }: { label: string; value: string | number; accent?: boolean; colorClass?: string; pct?: string; note?: string }) {
-  return (
-    <div className="bg-dash-chip rounded-xl px-3 py-3 hover:bg-dash-chip/80 transition-colors">
-      <div className={`text-lg font-bold leading-none ${accent ? "text-gold" : colorClass ?? "text-theme-primary"}`}>{value}</div>
-      {pct && <div className="text-[9px] text-theme-muted/70 mt-0.5 leading-none">{pct}</div>}
-      <div className="text-[10px] text-theme-muted mt-0.5 leading-tight">{label}</div>
-      {note && <div className="text-[8px] text-gold/50 mt-0.5 leading-tight">{note}</div>}
-    </div>
-  );
+function KpiChip(props: Omit<KpiChipProps, "padding" | "valueSize">) {
+  return <BaseKpiChip padding="md" valueSize="lg" {...props} />;
 }
 
 // ─── Year Range Slider ────────────────────────────────────────────────────

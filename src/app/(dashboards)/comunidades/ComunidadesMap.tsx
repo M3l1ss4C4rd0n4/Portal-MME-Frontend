@@ -3,16 +3,10 @@ import "leaflet/dist/leaflet.css";
 import { useMemo } from "react";
 import { MapContainer, CircleMarker, Popup, ZoomControl, Marker } from "react-leaflet";
 import L from "leaflet";
-import {
-  COL_BOUNDS,
-  SAN_ANDRES_KEY,
-  SA_LNG_OFFSET,
-  shiftGeometryLng,
-  applyJitter,
-  computeDeptCentroids,
-  MAP_TOOLTIP_STYLES,
-} from "@/components/maps/mapUtils";
+import { COL_BOUNDS, MAP_TOOLTIP_STYLES } from "@/components/maps/mapUtils";
 import DepartmentGeoJsonLayer from "@/components/maps/DepartmentGeoJsonLayer";
+import { useDepartmentMapGeo } from "@/components/maps/useDepartmentMapGeo";
+import type { DptoRow } from "@/types/mapa-departamentos";
 
 export interface CePunto {
   nombre: string;
@@ -36,14 +30,6 @@ const ZONA_DOT: Record<string, string> = {
   ZNI:              "#8B5CF6",
   "Sin clasificar": "#475569",
 };
-
-interface DptoRow {
-  departamento: string;
-  departamentoGeo: string;
-  count: number;
-  capacidad: number;
-  inversion: number;
-}
 
 interface DeptAvg {
   avgInv: number | null;
@@ -84,29 +70,7 @@ interface Props {
 }
 
 export default function ComunidadesMap({ geoData, puntos, selectedDept, isDark, deptColors, onSelectDept, porDepartamento, deptAvgs }: Props) {
-  // Clonar GeoJSON y trasladar San Andrés a posición de inset
-  const transformedGeoData = useMemo(() => {
-    if (!geoData) return null;
-    const clone = JSON.parse(JSON.stringify(geoData));
-    for (const feat of (clone as any).features) {
-      if (feat.properties?.NOMBRE_DPT === SAN_ANDRES_KEY) {
-        shiftGeometryLng(feat.geometry, SA_LNG_OFFSET);
-      }
-    }
-    return clone;
-  }, [geoData]);
-
-  // Trasladar también los puntos de San Andrés por el mismo offset
-  const jittered = useMemo(() => {
-    const adjusted = puntos.map(p =>
-      p.departamentoGeo === SAN_ANDRES_KEY
-        ? { ...p, lng: p.lng + SA_LNG_OFFSET }
-        : p
-    );
-    return applyJitter(adjusted);
-  }, [puntos]);
-
-  const deptLabels = useMemo(() => computeDeptCentroids(transformedGeoData), [transformedGeoData]);
+  const { transformedGeoData, jittered, deptLabels } = useDepartmentMapGeo(geoData, puntos);
 
   // Leyenda de estado: solo muestra los colores que realmente aparecen entre
   // los puntos visibles — evita listar estados que no existen en la fuente actual.

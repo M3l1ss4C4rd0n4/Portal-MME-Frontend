@@ -6,30 +6,12 @@ import { ResponsiveBar } from "@nivo/bar";
 import * as XLSX from "xlsx";
 import { useTheme } from "@/providers/ThemeProvider";
 import DashboardLayout from "@/components/DashboardLayout";
+import Card from "@/components/dashboard/Card";
+import KpiChip from "@/components/dashboard/KpiChip";
 import SemiPieChart from "@/components/ui/SemiPieChart";
 import BulletChart from "@/components/ui/BulletChart";
 import { getNivoTheme } from "@/lib/nivo-theme";
-import { fmtCOPShort } from "@/lib/format";
-
-// ─── Local helpers (mismo patrón que presupuesto/subsidios/comunidades) ────
-function Card({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
-  return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay }}
-      className={`bg-theme-secondary border border-theme-card rounded-2xl p-5 hover:border-amber-500/40 transition-colors duration-300 ${className}`}>
-      {children}
-    </motion.div>
-  );
-}
-
-function KpiChip({ label, value, accent = false, subvalue }: { label: string; value: string | number; accent?: boolean; subvalue?: string }) {
-  return (
-    <div className="bg-dash-chip rounded-xl px-3 py-2.5">
-      <div className={`text-base font-bold leading-none ${accent ? "text-gold" : "text-theme-primary"}`}>{value}</div>
-      {subvalue && <div className={`text-[9px] mt-0.5 ${accent ? "text-gold/70" : "text-theme-muted"}`}>{subvalue}</div>}
-      <div className="text-[10px] text-theme-muted mt-1 leading-tight">{label}</div>
-    </div>
-  );
-}
+import { fmtCOP } from "@/lib/format";
 
 function riskColor(pct: number): string {
   if (pct < 20) return "#EF4444";
@@ -111,22 +93,22 @@ export default function HidrocarburosPresupuestoPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
         <Card delay={0.05} className="!p-4">
           <div className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Apropiación Vigente</div>
-          <div className="text-xl font-bold text-gold truncate">{fmtCOPShort(resumen.apropiacion_vigente)}</div>
+          <div className="text-xl font-bold text-gold truncate">{fmtCOP(resumen.apropiacion_vigente)}</div>
           <div className="text-[10px] text-theme-muted mt-1">Dirección de Hidrocarburos</div>
         </Card>
         <Card delay={0.08} className="!p-4">
           <div className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Compromisos</div>
-          <div className="text-xl font-bold text-gold truncate">{fmtCOPShort(resumen.compromisos)}</div>
+          <div className="text-xl font-bold text-gold truncate">{fmtCOP(resumen.compromisos)}</div>
           <div className="text-[10px] text-gold/70 mt-1">{pctComprometido.toFixed(1)}% ejecutado</div>
         </Card>
         <Card delay={0.11} className="!p-4">
           <div className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Obligaciones</div>
-          <div className="text-xl font-bold text-red-400 truncate">{fmtCOPShort(resumen.obligaciones)}</div>
+          <div className="text-xl font-bold text-red-400 truncate">{fmtCOP(resumen.obligaciones)}</div>
           <div className="text-[10px] text-red-400/70 mt-1">{pctObligado.toFixed(1)}% ejecutado</div>
         </Card>
         <Card delay={0.14} className="!p-4">
           <div className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Por Comprometer</div>
-          <div className="text-xl font-bold text-emerald-400 truncate">{fmtCOPShort(resumen.por_comprometer)}</div>
+          <div className="text-xl font-bold text-emerald-400 truncate">{fmtCOP(resumen.por_comprometer)}</div>
           <div className="text-[10px] text-emerald-400/70 mt-1">{pctDisponible.toFixed(1)}% disponible</div>
         </Card>
       </div>
@@ -138,7 +120,7 @@ export default function HidrocarburosPresupuestoPage() {
 
           <div className="bg-gradient-to-r from-amber-500/10 to-amber-600/5 border border-amber-500/20 rounded-xl p-4 mb-4">
             <div className="text-[10px] text-gold/70 uppercase tracking-wider mb-1">Apropiación Vigente</div>
-            <div className="text-2xl font-bold text-gold">{fmtCOPShort(resumen.apropiacion_vigente)}</div>
+            <div className="text-2xl font-bold text-gold">{fmtCOP(resumen.apropiacion_vigente)}</div>
             <div className="text-[10px] text-theme-muted mt-1">Dirección de Hidrocarburos</div>
           </div>
 
@@ -149,7 +131,7 @@ export default function HidrocarburosPresupuestoPage() {
                 <SemiPieChart value={pctComprometido} color="#F59E0B" delay={0.2} />
               </div>
               <div className="text-xl font-bold text-gold">{pctComprometido.toFixed(1)}%</div>
-              <div className="text-[10px] text-gold/70">{fmtCOPShort(resumen.compromisos)}</div>
+              <div className="text-[10px] text-gold/70">{fmtCOP(resumen.compromisos)}</div>
             </div>
             <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-3 text-center">
               <div className="text-[9px] text-red-400/70 uppercase tracking-wider mb-1">Obligado</div>
@@ -157,7 +139,7 @@ export default function HidrocarburosPresupuestoPage() {
                 <SemiPieChart value={pctObligado} color="#EF4444" delay={0.3} />
               </div>
               <div className="text-xl font-bold text-red-400">{pctObligado.toFixed(1)}%</div>
-              <div className="text-[10px] text-red-400/70">{fmtCOPShort(resumen.obligaciones)}</div>
+              <div className="text-[10px] text-red-400/70">{fmtCOP(resumen.obligaciones)}</div>
             </div>
             <div className="bg-theme-tertiary border border-theme-secondary rounded-xl p-3 text-center">
               <div className="text-[9px] text-theme-muted uppercase tracking-wider mb-1">Disponible</div>
@@ -165,7 +147,7 @@ export default function HidrocarburosPresupuestoPage() {
                 <SemiPieChart value={pctDisponible} color="#64748B" delay={0.4} />
               </div>
               <div className="text-xl font-bold text-slate-400">{pctDisponible.toFixed(1)}%</div>
-              <div className="text-[10px] text-slate-400/70">{fmtCOPShort(resumen.por_comprometer)}</div>
+              <div className="text-[10px] text-slate-400/70">{fmtCOP(resumen.por_comprometer)}</div>
             </div>
           </div>
 
@@ -281,8 +263,8 @@ export default function HidrocarburosPresupuestoPage() {
                   <motion.tr key={p.proyecto} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + i * 0.03 }}
                     className="text-theme-secondary hover:bg-dash-chip/50 transition-colors">
                     <td className="py-3 pr-3 font-medium text-theme-primary">{p.proyecto}</td>
-                    <td className="py-3 pr-3 text-right">{fmtCOPShort(p.apropiacion_vigente)}</td>
-                    <td className="py-3 pr-3 text-right text-gold font-semibold">{fmtCOPShort(p.compromisos)}</td>
+                    <td className="py-3 pr-3 text-right">{fmtCOP(p.apropiacion_vigente)}</td>
+                    <td className="py-3 pr-3 text-right text-gold font-semibold">{fmtCOP(p.compromisos)}</td>
                     <td className="py-3 pr-2 w-24">
                       <div className="h-2 bg-theme-tertiary rounded-full overflow-hidden">
                         <motion.div style={{ width: `${Math.min(pctComp, 100)}%` }} className="h-full bg-gradient-to-r from-amber-600 to-amber-400 rounded-full"
@@ -290,7 +272,7 @@ export default function HidrocarburosPresupuestoPage() {
                       </div>
                     </td>
                     <td className="py-3 pr-3 text-right"><span className="text-gold font-semibold tabular-nums">{pctComp.toFixed(1)}%</span></td>
-                    <td className="py-3 pr-3 text-right text-red-400">{fmtCOPShort(p.obligaciones)}</td>
+                    <td className="py-3 pr-3 text-right text-red-400">{fmtCOP(p.obligaciones)}</td>
                     <td className="py-3 pr-2 w-24">
                       <div className="h-2 bg-theme-tertiary rounded-full overflow-hidden">
                         <motion.div style={{ width: `${Math.min(pctObl, 100)}%` }} className="h-full bg-gradient-to-r from-red-600 to-red-400 rounded-full"
@@ -298,29 +280,29 @@ export default function HidrocarburosPresupuestoPage() {
                       </div>
                     </td>
                     <td className="py-3 pr-3 text-right"><span className="text-red-400 font-semibold tabular-nums">{pctObl.toFixed(1)}%</span></td>
-                    <td className="py-3 text-right text-emerald-400 font-medium">{fmtCOPShort(p.por_comprometer)}</td>
+                    <td className="py-3 text-right text-emerald-400 font-medium">{fmtCOP(p.por_comprometer)}</td>
                   </motion.tr>
                 );
               })}
               {proyectos.length > 0 && (
                 <tr className="font-bold text-theme-primary border-t-2 border-amber-500/30 bg-amber-500/5">
                   <td className="py-3 pr-3">TOTAL</td>
-                  <td className="py-3 pr-3 text-right">{fmtCOPShort(resumen.apropiacion_vigente)}</td>
-                  <td className="py-3 pr-3 text-right text-gold">{fmtCOPShort(resumen.compromisos)}</td>
+                  <td className="py-3 pr-3 text-right">{fmtCOP(resumen.apropiacion_vigente)}</td>
+                  <td className="py-3 pr-3 text-right text-gold">{fmtCOP(resumen.compromisos)}</td>
                   <td className="py-3 pr-2 w-24">
                     <div className="h-2 bg-theme-tertiary rounded-full overflow-hidden">
                       <div style={{ width: `${Math.min(pctComprometido, 100)}%` }} className="h-full bg-amber-400 rounded-full" />
                     </div>
                   </td>
                   <td className="py-3 pr-3 text-right text-gold">{pctComprometido.toFixed(1)}%</td>
-                  <td className="py-3 pr-3 text-right text-red-400">{fmtCOPShort(resumen.obligaciones)}</td>
+                  <td className="py-3 pr-3 text-right text-red-400">{fmtCOP(resumen.obligaciones)}</td>
                   <td className="py-3 pr-2 w-24">
                     <div className="h-2 bg-theme-tertiary rounded-full overflow-hidden">
                       <div style={{ width: `${Math.min(pctObligado, 100)}%` }} className="h-full bg-red-400 rounded-full" />
                     </div>
                   </td>
                   <td className="py-3 pr-3 text-right text-red-400">{pctObligado.toFixed(1)}%</td>
-                  <td className="py-3 text-right text-emerald-400">{fmtCOPShort(resumen.por_comprometer)}</td>
+                  <td className="py-3 text-right text-emerald-400">{fmtCOP(resumen.por_comprometer)}</td>
                 </tr>
               )}
             </tbody>
