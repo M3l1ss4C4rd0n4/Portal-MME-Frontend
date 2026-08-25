@@ -56,7 +56,7 @@ Rules:
 ---
 
 ## Stack del proyecto
-Next.js 15 · TypeScript · Tailwind · Nivo · PostgreSQL · FastAPI (Python) · PM2
+Next.js 16.2.1 · TypeScript · Tailwind · Nivo · PostgreSQL · FastAPI (Python) · PM2
 
 ## Herramientas instaladas — SIEMPRE USAR
 

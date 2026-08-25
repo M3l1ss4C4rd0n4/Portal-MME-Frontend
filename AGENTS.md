@@ -62,7 +62,7 @@ src/
 
 ### Nota de Arquitectura (Grafo 2026-05-01)
 
-- `src/components/HomeSlider.tsx` es un **god component** (1.663 líneas). No añadir más lógica a este archivo. Extraer nuevas funciones a `src/lib/` o `src/services/`.
+- `src/components/HomeSlider.tsx` es un **god component** (2.730 líneas, 2026-08-25). No añadir más lógica a este archivo. Extraer nuevas funciones a `src/lib/` o `src/services/`.
 - `src/components/dashboard/` existe pero está vacío. Si creas componentes de dashboard, colócalos ahí en lugar de la raíz de `src/components/`.
 - Los API routes no comparten una capa de servicios común. Cada `route.ts` repite `backendGet()` o `getPool()`. Si creas un nuevo endpoint, evalúa si merece una abstracción en `src/services/apiService.ts`.
 ```
@@ -467,7 +467,7 @@ Usar para: búsqueda web, generación de imágenes/video/audio, documentos (xlsx
 - `verify_table.py` — Snapshot de tabla PostgreSQL (métodos A-D)
 - `check_cycles.py` — Detección de ciclos estáticos y lógicos
 
-### Conocimiento del Grafo (Graphify 2026-08-02)
-- 479 nodos · 448 aristas · 23 comunidades (solo frontend; ver `graphify-out/merged-full-graph.json` para el grafo unificado con el backend)
+### Conocimiento del Grafo (Graphify 2026-08-24)
+- 529 nodos · 485 aristas · 25 comunidades, 190 archivos (solo frontend; ver `graphify-out/merged-full-graph.json` para el grafo unificado con el backend)
 - BFF pattern: mezcla `backendGet()` + `getPool()` sin patrón unificado — sigue siendo deuda técnica documentada
 - Frontend: ✅ ZERO ciclos | Backend: ⚠️ Ciclos lógicos en `container.py`

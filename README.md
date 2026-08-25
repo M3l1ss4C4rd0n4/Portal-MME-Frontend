@@ -38,7 +38,7 @@ El **Portal de Dirección MME** es una plataforma de business intelligence que i
 
 | Componente | Tecnología | Puerto | Función |
 |------------|------------|--------|---------|
-| **Portal Web** | Next.js 16 + React 19 | 3000 | Dashboards interactivos modernos |
+| **Portal Web** | Next.js 16 + React 19 | 3001 | Dashboards interactivos modernos |
 | **API REST** | FastAPI (Python) | 8000 | Endpoints para datos en tiempo real |
 | **Dashboard Legacy** | Dash (Python) | 8050 | 17 tableros analíticos legacy |
 | **Base de Datos** | PostgreSQL 16 | 5432 | Almacenamiento centralizado |
@@ -81,7 +81,7 @@ El **Portal de Dirección MME** es una plataforma de business intelligence que i
            ▼                   ▼                   ▼
 ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
 │   Next.js       │  │   FastAPI       │  │   Dash          │
-│   (Puerto 3000) │  │   (Puerto 8000) │  │   (Puerto 8050) │
+│   (Puerto 3001) │  │   (Puerto 8000) │  │   (Puerto 8050) │
 │                 │  │                 │  │                 │
 │ • Dashboards    │  │ • API REST      │  │ • Tableros      │
 │ • Visualización │  │ • Autenticación │  │ • Análisis      │
@@ -363,7 +363,7 @@ Dashboards:
 │   └── 17 tableros analíticos
 │   └── Usuarios internos MME
 │
-├── Portal Next.js (Puerto 3000) [NUEVO]
+├── Portal Next.js (Puerto 3001)
 │   └── 6 dashboards modernos
 │   └── Público externo
 │   └── API REST intermediaria
@@ -523,7 +523,7 @@ sudo tail -f /var/log/nginx/portal-direccion-ee.*.log
 
 | Servicio | URL Interna | URL Pública |
 |----------|-------------|-------------|
-| Portal | http://localhost:3000 | https://portaldireccionee.minenergia.gov.co |
+| Portal | http://localhost:3001 | https://portaldireccionee.minenergia.gov.co |
 | API | http://localhost:8000 | https://portaldireccionee.minenergia.gov.co/api |
 | Dashboard | http://localhost:8050 | No expuesto públicamente |
 
@@ -563,7 +563,7 @@ tar -czf backup-files-$(date +%Y%m%d).tar.gz server/ portal-direccion-mme/ --exc
 # Estado de servicios
 curl http://localhost:8000/health
 curl http://localhost:8050/
-curl http://localhost:3000/api/comunidades/
+curl http://localhost:3001/api/comunidades/
 
 # Uso de recursos
 htop
