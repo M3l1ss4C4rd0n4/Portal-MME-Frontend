@@ -88,3 +88,10 @@ venv_*/
 
 # Caché de PDFs generados on-demand por los botones de descarga (se regenera)
 public/generated-pdfs/*
+
+# Grafo de conocimiento (graphify) — regenerable con `graphify update .`, no necesita versionarse
+graphify-out/
+docs/documentacion-tecnica/graph-global.json
+
+# Documentos de trabajo internos (informes mensuales, evidencias) — no son código del portal
+informes del mes/
