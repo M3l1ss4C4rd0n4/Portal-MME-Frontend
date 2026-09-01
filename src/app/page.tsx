@@ -24,7 +24,7 @@ import {
   getEmbalseEstado,
 } from "@/mocks/colombia-data";
 import { embalseDepartamento } from "@/lib/embalses-coords";
-import { fmtCortePresupuesto } from "@/lib/format";
+import { fmtCortePresupuesto, formatPct } from "@/lib/format";
 
 // ─── Mapa embalses SVG (no SSR) ───────────────────────────────────────────
 const MapaEmbalsesSVG = dynamic(
@@ -575,8 +575,8 @@ export default function Home() {
         setCuEvolucionData(cue);
         if (cue.latest) {
           setCuData({
-            cuMayoristaLac: cue.latest.cu_total,
-            cuUsuarioFinal: cue.latest.cu_usuario_final,
+            cuMayoristaLac: Number(cue.latest.cu_total ?? 0),
+            cuUsuarioFinal: Number(cue.latest.cu_usuario_final ?? 0),
             fecha: cue.latest.fecha,
           });
         }
@@ -875,14 +875,22 @@ export default function Home() {
               <div>
                 <div className="flex items-center justify-between mb-0.5">
                   <p className="text-[11px] text-theme-secondary">% Embalses</p>
+                  {/* Preferir estadoSin/colorSin del backend (ya corregido,
+                      server/core/umbrales_oficiales.py::clasificar_visual_embalse)
+                      en vez de getEmbalseColor/getEmbalseEstado (umbrales fijos
+                      locales) — encontrado en producción (2026-08-24): para el
+                      mismo pctEmbalses, esta tarjeta y el slider de abajo podían
+                      mostrar una etiqueta distinta (ej. "Estable" aquí vs.
+                      "RIESGO — DESABASTECIMIENTO" en el slider) porque cada uno
+                      usaba un esquema de clasificación distinto. */}
                   <span
                     className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                     style={{
-                      background: getEmbalseColor(sectorData.pctEmbalses),
+                      background: sectorData.colorSin ?? getEmbalseColor(sectorData.pctEmbalses),
                       color: sectorData.pctEmbalses >= 60 ? "#000" : "#fff",
                     }}
                   >
-                    {sectorData.pctEmbalses.toFixed(2)}% · {getEmbalseEstado(sectorData.pctEmbalses)}
+                    {sectorData.pctEmbalses.toFixed(2)}% · {sectorData.estadoSin ?? getEmbalseEstado(sectorData.pctEmbalses)}
                   </span>
                 </div>
                 {sectorData.fechaEmbalse && <p className="text-[9px] text-theme-muted mb-1">Dato: {sectorData.fechaEmbalse}</p>}
@@ -1209,7 +1217,7 @@ export default function Home() {
                   colorBy="indexValue"
                   borderRadius={5}
                   enableLabel
-                  label={(d) => `${d.value}%`}
+                  label={(d) => formatPct(Number(d.value))}
                   labelSkipHeight={14}
                   labelTextColor="#fff"
                   enableGridY
@@ -1220,7 +1228,7 @@ export default function Home() {
                   axisBottom={{ tickSize: 0, tickPadding: 8 }}
                   tooltip={({ indexValue, value }) => (
                     <div className="nt">
-                      {indexValue}: <strong className="text-gold">{value}%</strong>
+                      {indexValue}: <strong className="text-gold">{formatPct(Number(value))}</strong>
                     </div>
                   )}
                 />

@@ -76,7 +76,10 @@ export async function GET() {
         intent: "noticias_sector",
         parameters: {},
       }),
-      signal: AbortSignal.timeout(15_000),
+      // 20s: mismo presupuesto que usa informe_handler.py para este mismo
+      // intent en el backend (SERVICE_TIMEOUT=10 de get_enriched_news +
+      // hasta 8s del resumen IA opcional).
+      signal: AbortSignal.timeout(20_000),
     });
 
     if (!res.ok) {

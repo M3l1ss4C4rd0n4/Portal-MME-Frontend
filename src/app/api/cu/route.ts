@@ -19,15 +19,36 @@ interface CUCurrentRaw {
   notas: string | null;
 }
 
+interface CuMinoristaNacional {
+  status: string;
+  cu_minorista_promedio: number;
+}
+
 export async function GET() {
   try {
     const raw = await backendGet<CUCurrentRaw>("/v1/cu/current");
     const cuTotal = Number(raw.cu_total);
 
+    // CU Usuario Final: promedio nacional REAL (26 operadores reales,
+    // cu_tarifas_or, fuente SSPD) — reemplaza el multiplicador ×1.42 sin
+    // fuente que se usaba antes. Si el backend no tiene el dato, se omite
+    // en vez de fabricar un número.
+    let cuUsuarioFinal: number | null = null;
+    try {
+      const minorista = await backendGet<CuMinoristaNacional>(
+        "/v1/cu/minorista/promedio-nacional"
+      );
+      cuUsuarioFinal = minorista.cu_minorista_promedio;
+    } catch (err) {
+      if (!(err instanceof BackendError && err.status === 404)) {
+        console.error("[api/cu] Error obteniendo CU minorista nacional:", err);
+      }
+    }
+
     return NextResponse.json({
       fecha:          raw.fecha,
       cuMayoristaLac: parseFloat(cuTotal.toFixed(2)),
-      cuUsuarioFinal: parseFloat((cuTotal * 1.42).toFixed(2)),
+      cuUsuarioFinal,
       componentes: {
         generacion:       raw.componente_g != null ? parseFloat(Number(raw.componente_g).toFixed(4)) : null,
         transmision:      parseFloat(Number(raw.componente_t).toFixed(4)),

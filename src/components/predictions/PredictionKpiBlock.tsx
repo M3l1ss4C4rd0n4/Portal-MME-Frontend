@@ -11,6 +11,11 @@ interface PredictionKpiBlockProps {
   metaFecha: string | null;
   mape: number;
   confianza: number;
+  coberturaCi?: number | null;
+  mapeEsRiguroso?: boolean;
+  nDiasBacktest?: number | null;
+  mapeRangoMin?: number | null;
+  mapeRangoMax?: number | null;
   climaPico?: PredictionPoint;
   climaMeta?: PredictionPoint;
 }
@@ -34,9 +39,22 @@ export default function PredictionKpiBlock({
   metaFecha,
   mape,
   confianza,
+  coberturaCi,
+  mapeEsRiguroso,
+  nDiasBacktest,
+  mapeRangoMin,
+  mapeRangoMax,
   climaPico,
   climaMeta,
 }: PredictionKpiBlockProps) {
+  // Fase 41 (2026-08-30): el error real varía según el año de corte usado
+  // para entrenar — cuando hay más de un año evaluado, se muestra el rango
+  // en vez de un solo número que sugeriría más certeza de la que hay.
+  const hayRangoReal =
+    mapeRangoMin != null && mapeRangoMax != null && mapeRangoMax > mapeRangoMin;
+  const mapeTexto = hayRangoReal
+    ? `${(mapeRangoMin * 100).toFixed(1)}%–${(mapeRangoMax * 100).toFixed(1)}%`
+    : `${(mape * 100).toFixed(1)}%`;
   const picoTitle = pico
     ? `El modelo de predicción proyecta que los embalses alcanzarán su nivel más alto de los próximos meses el ${fmtDate(pico.fecha)}, con ${pico.valor.toFixed(2)}% de la capacidad total. Después de esa fecha, se espera que empiecen a bajar de nuevo.`
     : undefined;
@@ -45,9 +63,17 @@ export default function PredictionKpiBlock({
     ? `El 80% es el umbral que XM y el Gobierno usan como referencia de un nivel saludable de reservas hídricas para el sistema eléctrico. Según el modelo, los embalses superarán ese umbral el ${fmtDate(metaFecha)} y se mantendrán por encima durante varios meses.`
     : `El modelo no proyecta que los embalses alcancen el umbral saludable del 80% en el horizonte calculado.`;
 
-  const confianzaTitle =
-    `MAPE es el error promedio que ha tenido este modelo al predecir el pasado: un MAPE de ${(mape * 100).toFixed(1)}% significa que, en promedio, sus proyecciones se desvían solo eso del valor real, es decir que es bastante preciso. ` +
-    `La confianza del ${(confianza * 100).toFixed(0)}% indica qué tan seguro está el modelo de este pronóstico, considerando la variabilidad histórica de las lluvias y otros factores climáticos.`;
+  const confianzaTitle = hayRangoReal
+    ? `El error real varía según el año usado para entrenar el modelo — se corrió esta misma validación con distintos años de corte y el error observado fue entre ${mapeTexto}, no un valor fijo. Depende de qué tan parecidas fueron las condiciones climáticas del período validado a las del entrenamiento.`
+    : mapeEsRiguroso
+    ? `MAPE de una validación rigurosa: el modelo se entrenó solo con datos de un año de corte hacia atrás y se comparó contra ${nDiasBacktest ?? "cientos de"} días reales que vinieron después, sin haberlos visto — un MAPE de ${(mape * 100).toFixed(1)}% en esa prueba real. ` +
+      (coberturaCi != null
+        ? `De cada 100 de esos días reales, el valor real cayó dentro del rango sombreado del gráfico en ${(coberturaCi * 100).toFixed(0)} de ellos.`
+        : "")
+    : `MAPE es el error promedio que tuvo este modelo en una prueba interna con 180 días de historia: un MAPE de ${(mape * 100).toFixed(1)}% ahí. ` +
+      (coberturaCi != null
+        ? `De cada 100 días de esa prueba interna, el valor real cayó dentro del rango sombreado del gráfico en ${(coberturaCi * 100).toFixed(0)} de ellos.`
+        : "");
 
   const climaIntro =
     "Estos son los indicadores climáticos que alimenta el modelo de predicción. " +
@@ -151,7 +177,13 @@ export default function PredictionKpiBlock({
       {/* Metadato al pie */}
       <div className="mt-auto">
         <p className="text-slate-500 text-[11px] xl:text-xs font-medium" title={confianzaTitle}>
-          MAPE {(mape * 100).toFixed(1)}% · confianza {(confianza * 100).toFixed(0)}%
+          MAPE {mapeTexto}{" "}
+          {hayRangoReal
+            ? "(rango histórico validado)"
+            : mapeEsRiguroso
+              ? "(validación rigurosa)"
+              : "(prueba interna)"}
+          {!hayRangoReal && coberturaCi != null && ` · ${(coberturaCi * 100).toFixed(0)}% cobertura`}
         </p>
       </div>
     </div>

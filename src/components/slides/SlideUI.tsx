@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, type Variants } from "framer-motion";
+import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { useTheme } from "@/providers/ThemeProvider";
 
 // Misma curva de easing que slideVariants.center (HomeSlider.tsx) — el título,
@@ -62,17 +62,19 @@ export function CategoryTag({
 
 export function SectionBadge({
   label,
-  pulse = false,
-  dot = "#F59E0B",
+  dot,
   titleColorClass = "text-gold",
   category,
 }: {
   label: string;
-  pulse?: boolean;
+  /** Color del punto indicador. Si se omite, no se muestra ningún punto. */
   dot?: string;
   titleColorClass?: string;
   category?: "energia" | "hidrocarburos";
 }) {
+  const reduceMotion = useReducedMotion();
+  const glowColor = category === "hidrocarburos" ? "#F59E0B" : "#3B82F6";
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -80,19 +82,59 @@ export function SectionBadge({
       transition={{ duration: 0.5, ease: EASE_SLIDE }}
       className="flex items-center justify-center flex-wrap gap-3 mb-2"
     >
-      <span className="relative inline-block w-3.5 h-3.5 shrink-0">
-        <span
-          className="absolute -inset-2.5 rounded-full blur-md"
-          style={{ background: `radial-gradient(circle, ${dot}55, transparent 70%)` }}
-          aria-hidden="true"
-        />
-        <span
-          className={`relative inline-block w-3.5 h-3.5 rounded-full ${pulse ? "animate-pulse" : ""}`}
-          style={{ backgroundColor: dot }}
-        />
-      </span>
-      <span className={`${titleColorClass} font-black tracking-[0.22em] text-xl xl:text-2xl 2xl:text-3xl uppercase`}>
-        {label}
+      {dot && (
+        <span className="relative inline-block w-3.5 h-3.5 shrink-0">
+          <span
+            className="absolute -inset-2.5 rounded-full blur-md"
+            style={{ background: `radial-gradient(circle, ${dot}55, transparent 70%)` }}
+            aria-hidden="true"
+          />
+          <span
+            className="relative inline-block w-3.5 h-3.5 rounded-full"
+            style={{ backgroundColor: dot }}
+          />
+        </span>
+      )}
+      <span className="relative inline-block">
+        <motion.span
+          className={`${titleColorClass} font-black tracking-[0.22em] text-xl xl:text-2xl 2xl:text-3xl uppercase`}
+          animate={
+            reduceMotion
+              ? undefined
+              : {
+                  textShadow: [
+                    `0 0 6px ${glowColor}00`,
+                    `0 0 22px ${glowColor}CC`,
+                    `0 0 6px ${glowColor}00`,
+                  ],
+                }
+          }
+          transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+        >
+          {label}
+        </motion.span>
+        {/* Brillo que recorre el texto — superpuesto exacto sobre el título,
+            visible incluso con el degradado base (a diferencia de solo animar
+            la sombra, que quedaba casi imperceptible sobre el fondo oscuro). */}
+        {!reduceMotion && (
+          <motion.span
+            aria-hidden="true"
+            className="absolute inset-0 font-black tracking-[0.22em] text-xl xl:text-2xl 2xl:text-3xl uppercase pointer-events-none select-none"
+            style={{
+              backgroundImage:
+                "linear-gradient(100deg, transparent 35%, rgba(255,255,255,0.95) 50%, transparent 65%)",
+              backgroundSize: "260% 100%",
+              WebkitBackgroundClip: "text",
+              backgroundClip: "text",
+              color: "transparent",
+              WebkitTextFillColor: "transparent",
+            }}
+            animate={{ backgroundPosition: ["160% 0%", "-160% 0%"] }}
+            transition={{ duration: 2.8, repeat: Infinity, repeatDelay: 1.6, ease: "easeInOut" }}
+          >
+            {label}
+          </motion.span>
+        )}
       </span>
       {category && <CategoryTag category={category} />}
     </motion.div>

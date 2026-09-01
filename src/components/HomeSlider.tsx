@@ -35,7 +35,6 @@ import {
   clasificarVisualPrecioBolsa,
   clasificarIndiceNE,
   obtenerSendaReferencia,
-  NE_UMBRAL_SUPERIOR_ABSOLUTO_PCT,
   OBJETIVO_XM_EMBALSE_ANTE_NINO_PCT,
   HSIN_UMBRAL_NORMAL,
   HSIN_UMBRAL_DEFICIT_SEVERO,
@@ -248,7 +247,7 @@ function KpiBlock({
   label, value, unit, date, valueClass = "text-gold", large = false,
   valueSizeClass,
   progressPct,
-  chipLabel, chipColor, tendencia, metrica,
+  chipLabel, chipColor, chipNota, tendencia, metrica,
   valueTitle, chipTitle, trendTitle,
   sparklineData, sparklineColor,
 }: {
@@ -268,6 +267,12 @@ function KpiBlock({
   progressPct?: number;
   chipLabel?: string;
   chipColor?: string;
+  /** Nota corta y visible bajo el chip de estado — usar cuando el chip se
+      calcula (total o parcialmente) con un criterio operativo del CND
+      (XM) que NO es normativa de la CREG, para que quede claro sin tener
+      que pasar el cursor sobre el tooltip. Ver estadoGeneracion()/
+      estadoI3Termica() en este mismo archivo. */
+  chipNota?: string;
   tendencia?: MetricaTendencia | null;
   metrica?: "precio" | "generacion" | "embalses" | "aportes" | "valor";
   /** Tooltip nativo al pasar cursor sobre el valor numérico */
@@ -321,7 +326,16 @@ function KpiBlock({
         <p className="text-theme-muted text-xs xl:text-sm uppercase tracking-[0.14em] font-semibold text-left">
           {label}
         </p>
-        {chipLabel && chipColor && <StatusChip label={chipLabel} color={chipColor} title={chipTitle} />}
+        {chipLabel && chipColor && (
+          <div className="flex flex-col items-end gap-0.5">
+            <StatusChip label={chipLabel} color={chipColor} title={chipTitle} />
+            {chipNota && (
+              <span className="text-slate-500 text-[9px] xl:text-[10px] leading-tight text-right max-w-[9rem]">
+                {chipNota}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Valor principal + tendencia — la mini-tendencia (si hay) va a la izquierda del valor */}
@@ -814,6 +828,11 @@ interface EmbalsesPrediccionData {
   pico: { fecha: string; valor: number; dias_desde_hoy: number } | null;
   mape: number;
   confianza: number;
+  cobertura_ci?: number | null;
+  mape_es_riguroso?: boolean;
+  mape_rango_min?: number | null;
+  mape_rango_max?: number | null;
+  backtest?: { n_dias_test: number } | null;
 }
 
 function SlideReservasEmbalses({ d }: { d: HomeSliderProps["sectorData"] }) {
@@ -845,7 +864,17 @@ function SlideReservasEmbalses({ d }: { d: HomeSliderProps["sectorData"] }) {
     aportes && aportes.historicoGwh > 0 ? (aportes.actualGwh / aportes.historicoGwh) * 100 : null
   );
 
-  const stRes = estadoReservas(d.pctEmbalses);
+  // Preferir la clasificación visual que ya calcula el backend (estadoSin/
+  // colorSin, server/core/umbrales_oficiales.py::clasificar_visual_embalse)
+  // en vez de recalcularla aquí — mismo criterio ya usado abajo para
+  // sendaPct/neNivel. Encontrado en producción (2026-08-24): la copia local
+  // (clasificarVisualEmbalse) tenía una regla regulatoria derogada (70%
+  // absoluto, Res. CREG 210/2021) que el backend ya había corregido —
+  // preferir el valor del backend evita que ambas copias vuelvan a divergir
+  // si una se actualiza y la otra no.
+  const stRes = d.estadoSin && d.colorSin
+    ? { label: d.estadoSin, color: d.colorSin, tw: _TW_COLOR_MAP[d.colorSin] ?? "text-slate-400" }
+    : estadoReservas(d.pctEmbalses);
   const stAp  = aportesPct !== null ? estadoAportes(aportesPct) : null;
   const diagnosticosIA = useDiagnosticosIA();
   const diagnosticoDeterministico = diagnosticoReservas({
@@ -964,7 +993,7 @@ function SlideReservasEmbalses({ d }: { d: HomeSliderProps["sectorData"] }) {
       <div className="relative z-10 flex flex-col items-center h-full w-full max-w-[1600px] px-6 xl:px-10 py-3 justify-evenly gap-2">
         {/* Header con diagnóstico dinámico */}
         <div className="text-center">
-          <SectionBadge label="Gestión del Sector" pulse dot="#EF4444" titleColorClass="text-gradient-energia" category="energia" />
+          <SectionBadge label="Gestión del Sector" titleColorClass="text-gradient-energia" category="energia" />
           <p className="text-theme-secondary text-xs xl:text-sm font-medium">{diagnostico}</p>
           <p className="text-slate-600 text-[10px] xl:text-xs mt-0.5">
             {d.ultimaEjecucionETL
@@ -1029,6 +1058,11 @@ function SlideReservasEmbalses({ d }: { d: HomeSliderProps["sectorData"] }) {
               metaFecha={threshold80Date ?? null}
               mape={predData.mape}
               confianza={predData.confianza}
+              coberturaCi={predData.cobertura_ci}
+              mapeEsRiguroso={predData.mape_es_riguroso}
+              nDiasBacktest={predData.backtest?.n_dias_test}
+              mapeRangoMin={predData.mape_rango_min}
+              mapeRangoMax={predData.mape_rango_max}
               climaPico={climaPico}
               climaMeta={climaMeta}
             />
@@ -1179,7 +1213,8 @@ function SlidePrecioGeneracion({ d, detalle }: { d: HomeSliderProps["sectorData"
       detalle2 += `No hay datos de generación térmica para este día.`;
     }
 
-    detalle2 += `\n\nDe los tres indicadores, el peor es "${stGen.label}", y ese es el estado que se muestra.`;
+    detalle2 += `\n\nDe los tres indicadores, el peor es "${stGen.label}", y ese es el estado que se muestra. `;
+    detalle2 += `Nota: solo el precio de bolsa (I1) es un indicador oficial de la CREG. Los índices I2 y I3 son criterios operativos del CND (XM), no normativa de la CREG.`;
     return detalle2;
   }
 
@@ -1200,7 +1235,7 @@ function SlidePrecioGeneracion({ d, detalle }: { d: HomeSliderProps["sectorData"
       <div className="relative z-10 flex flex-col items-center h-full w-full max-w-[1600px] px-6 xl:px-10 py-3 justify-evenly gap-2">
         {/* Header con diagnóstico dinámico */}
         <div className="text-center">
-          <SectionBadge label="Gestión del Sector" pulse dot="#EF4444" titleColorClass="text-gradient-energia" category="energia" />
+          <SectionBadge label="Gestión del Sector" titleColorClass="text-gradient-energia" category="energia" />
           <p className="text-theme-secondary text-xs xl:text-sm font-medium">{diagnostico}</p>
           <p className="text-slate-600 text-[10px] xl:text-xs mt-0.5">
             {d.ultimaEjecucionETL
@@ -1237,6 +1272,7 @@ function SlidePrecioGeneracion({ d, detalle }: { d: HomeSliderProps["sectorData"
             valueClass="text-chart-teal"
             chipLabel={stGen.label}
             chipColor={stGen.color}
+            chipNota="Incluye criterio operativo CND, no solo CREG"
             tendencia={d.tendencias?.generacion}
             metrica="generacion"
             valueTitle={tGeneracionValor}
@@ -1429,7 +1465,8 @@ function SlideGeneracionTermica({
       ? `Las térmicas están generando el ${pct.toFixed(1)}% del total. Es un nivel normal de soporte complementario a la generación hidráulica.`
       : pct <= 35
       ? `Las térmicas están generando el ${pct.toFixed(1)}% del total. Esto indica que el sistema está dependiendo más de lo habitual de los combustibles fósiles, lo cual encarece la energía.`
-      : `Las térmicas están generando el ${pct.toFixed(1)}% del total. Esto supera el umbral del 35% que se considera crítico: el sistema está muy dependiente de plantas costosas y con emisiones altas.`);
+      : `Las térmicas están generando el ${pct.toFixed(1)}% del total. Esto supera el umbral del 35% que se considera crítico: el sistema está muy dependiente de plantas costosas y con emisiones altas.`) +
+    ` (Umbral operativo del CND — Boletín XM, no es una regla de la CREG.)`;
 
   const tTermicaTrend =
     d.generacionTermica.tendencia?.cambio7d != null
@@ -1545,7 +1582,7 @@ function SlideGeneracionTermica({
 
       <div className="relative z-10 flex flex-col items-center h-full w-full max-w-[1600px] px-6 xl:px-10 py-3 justify-evenly gap-2">
         <div className="text-center">
-          <SectionBadge label="Generación Térmica" pulse dot="#EF4444" titleColorClass="text-gradient-energia" category="energia" />
+          <SectionBadge label="Generación Térmica" titleColorClass="text-gradient-energia" category="energia" />
           <p className="text-theme-secondary text-xs xl:text-sm font-medium">{diagnostico}</p>
           <p className="text-slate-600 text-[10px] xl:text-xs mt-0.5">Datos XM · sector_energetico</p>
         </div>
@@ -1559,6 +1596,7 @@ function SlideGeneracionTermica({
             valueClass="text-theme-primary"
             chipLabel={stTerm.label}
             chipColor={stTerm.color}
+            chipNota="Criterio operativo CND, no CREG"
             tendencia={d.generacionTermica.tendencia}
             metrica="generacion"
             valueTitle={tTermicaValor}
@@ -1634,7 +1672,7 @@ function SlideGeneracionTermica({
         </motion.div>
 
         {/* Gráficos — 3 columnas: Plantas Térmicas (ranking) | Evolución | Generación por fuente */}
-        <div className="grid grid-cols-3 w-full gap-3 xl:gap-4 mt-2 xl:mt-3">
+        <div className="grid grid-cols-3 w-full gap-3 xl:gap-4">
           {/* Plantas Térmicas */}
           <div className="flex flex-col">
             <p className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Plantas Térmicas · Diaria</p>
@@ -2610,6 +2648,9 @@ export default function HomeSlider(props: HomeSliderProps) {
       </div>
 
       {/* ── Slides ── */}
+      {/* pb reservado para que el contenido de ningún slide quede tapado por
+          la barra de progreso + botón de reproducir/pausar, que flotan fijos
+          al fondo (~96-112px) sobre el mismo contenedor. */}
       <AnimatePresence initial={false} custom={direction} mode="wait">
         <motion.div
           key={`slide-${current}`}
@@ -2618,7 +2659,7 @@ export default function HomeSlider(props: HomeSliderProps) {
           initial="enter"
           animate="center"
           exit="exit"
-          className="absolute inset-0"
+          className="absolute inset-0 pb-24 xl:pb-28"
         >
           {renderSlide(current)}
         </motion.div>

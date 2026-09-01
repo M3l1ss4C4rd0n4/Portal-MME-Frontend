@@ -19,8 +19,14 @@ describe("estadoReservas (CREG)", () => {
     expect(estadoReservas(80).label).toBe("NORMAL");
   });
 
-  it("ESTABLE para >= 70%", () => {
-    expect(estadoReservas(75).label).toBe("ESTABLE");
+  it("70-80% ya no es 'ESTABLE' incondicional (regla derogada Res. CREG 210/2021) — depende de la senda", () => {
+    // La banda fija "ESTABLE >= 70%" se eliminó el 2026-08-24: esa regla
+    // absoluta fue derogada por la Res. CREG 101 112/2026, vigente desde
+    // 17-jun-2026. Ahora, sin importar el mes, un valor de 75% nunca debe
+    // devolver la etiqueta derogada.
+    const r = estadoReservas(75);
+    expect(r.label).not.toBe("ESTABLE");
+    expect(["SOBRE SENDA", "ALERTA — BAJO SENDA", "RIESGO — DESABASTECIMIENTO"]).toContain(r.label);
   });
 
   it("clasifica bajo senda como alerta o riesgo", () => {

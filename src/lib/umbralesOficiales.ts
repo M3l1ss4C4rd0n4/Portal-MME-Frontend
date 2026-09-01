@@ -36,14 +36,17 @@
 // La senda es el nivel diario MÍNIMO del embalse útil del SIN (% volumen útil
 // total ≈ 17 000 GWh) necesario para asegurar el suministro.
 //
-// Índice NE (Nivel de Embalse):
-//   • SUPERIOR: embalse ≥ senda  O  embalse ≥ 70% (regla absoluta CREG)
+// Índice NE (Nivel de Embalse) — Estatuto CREG 026/2014 art. 2 literal B, tal
+// como fue modificado por la Resolución CREG 101 112/2026 (vigente desde el
+// 17-jun-2026): comparación EXCLUSIVA contra la senda de referencia. La regla
+// alternativa "≥ 70% del volumen útil" (Res. CREG 210/2021) fue DEROGADA y ya
+// no se evalúa — este módulo tuvo esa regla activa varios meses después de
+// derogada (mismo bug ya corregido en el espejo Python, ver
+// server/core/umbrales_oficiales.py) hasta que se detectó y corrigió aquí.
+//   • SUPERIOR: embalse ≥ senda
 //   • ALERTA:   senda − X ≤ embalse < senda
 //   • INFERIOR: embalse < senda − X  (X = 0 en práctica reciente)
 // ─────────────────────────────────────────────────────────────────────────────
-
-/** Regla absoluta CREG 209/2020: por encima de 70% siempre nivel superior. */
-export const NE_UMBRAL_SUPERIOR_ABSOLUTO_PCT = 70.0;
 
 /** Objetivo XM ante El Niño (Boletín XM 10-abril-2026). NO regulatorio. */
 export const OBJETIVO_XM_EMBALSE_ANTE_NINO_PCT = 80.0;
@@ -79,6 +82,19 @@ export const SENDA_REFERENCIA: Record<number, number> = {
 };
 
 /** Devuelve el % mínimo de embalse según Senda CREG para el mes dado. */
+/**
+ * RESPALDO DEFENSIVO ÚNICAMENTE (Fase 39, ítem C.3) — tabla mensual estática,
+ * sin acceso a datos en vivo. El backend (server/core/umbrales_oficiales.py
+ * ::obtener_senda_referencia()) SIEMPRE consulta primero la senda diaria
+ * real de `sector_energetico.senda_referencia` en Postgres y solo cae a su
+ * propia tabla estática si la BD no responde — la senda real puede diferir
+ * bastante de esta tabla (verificado 2026-08-24: senda real de agosto
+ * 82.4% vs. 55.0% en ambas tablas estáticas). Esta función SOLO debe
+ * llamarse cuando el backend no envió `umbralesRegulatorios`/`sendaPct` en
+ * la respuesta — nunca como fuente primaria mientras haya un valor real
+ * disponible (ver el patrón `d.umbralesRegulatorios?.sendaReferenciaPct ??
+ * obtenerSendaReferencia()` en HomeSlider.tsx).
+ */
 export function obtenerSendaReferencia(fecha?: Date): number {
   const f = fecha ?? new Date();
   const mes = f.getMonth() + 1; // JS: 0-11 → 1-12
@@ -101,14 +117,6 @@ export function clasificarIndiceNE(
   fecha?: Date,
 ): ResultadoIndiceNE {
   const senda = obtenerSendaReferencia(fecha);
-
-  if (nivelEmbalsePct >= NE_UMBRAL_SUPERIOR_ABSOLUTO_PCT) {
-    return {
-      nivel: "SUPERIOR",
-      descripcion: `Embalse ${nivelEmbalsePct.toFixed(1)}% > 70% (regla absoluta CREG 209/2020).`,
-      sendaReferenciaPct: senda,
-    };
-  }
 
   if (nivelEmbalsePct >= senda) {
     return {
@@ -153,6 +161,15 @@ export const HSIN_VENTANA_SEMANAS = 4;
 // Valores de referencia enero 2026 (XM publicación oficial).
 // Estos valores se actualizan MENSUALMENTE por la CREG y deben venir del API
 // de XM en producción.
+//
+// RESPALDO DEFENSIVO ÚNICAMENTE (Fase 39, ítem C.3): el backend (server/
+// core/umbrales_oficiales.py::obtener_precios_escasez_vigentes()) consulta
+// primero PrecEscaInf/PrecEscaSup en `sector_energetico.metrics` (series
+// reales de XM) antes de caer a esta tabla estática. Los consumidores TS
+// (ej. estadoPrecio() en kpi-logic.ts) ya siguen el mismo patrón —
+// `precios?.pei ?? PRECIO_ESCASEZ_PEI_REF_2026_01` — prefiriendo siempre el
+// valor que envía el backend; estas constantes solo deben usarse si esa
+// respuesta no trae los precios vigentes.
 
 export const PRECIO_ESCASEZ_PEI_REF_2026_01 = 327.67; // COP/kWh
 export const PRECIO_ESCASEZ_PE_REF_2026_01 = 590.56;  // COP/kWh
@@ -185,13 +202,24 @@ export function clasificarVisualEmbalse(
       fuenteRegulatoria: `≥ ${OBJETIVO_XM_EMBALSE_ANTE_NINO_PCT}% (objetivo XM Boletín 04-2026).`,
     };
   }
-  if (nivelEmbalsePct >= NE_UMBRAL_SUPERIOR_ABSOLUTO_PCT) {
-    return {
-      label: "ESTABLE",
-      color: "#06B6D4",
-      fuenteRegulatoria: `≥ ${NE_UMBRAL_SUPERIOR_ABSOLUTO_PCT}% (regla absoluta CREG 209/2020).`,
-    };
-  }
+  // Banda "ESTABLE" (≥70% absoluto) eliminada — mismo bug regulatorio ya
+  // corregido arriba en clasificarIndiceNE(): la senda mensual (tabla
+  // SENDA_REFERENCIA) es solo un respaldo local y podría no coincidir con
+  // la senda real que usa el backend; esta banda podía mostrar "ESTABLE"
+  // (cian) incluso cuando la senda real superara el 70%, contradiciendo
+  // `ne.nivel` ya calculado arriba. Ahora el nivel regulatorio manda
+  // siempre, sin atajos.
+  //
+  // La banda intermedia NO delega en `ne.nivel === "ALERTA"`: con
+  // SENDA_TOLERANCIA_PP = 0 esa rama nunca se alcanza (clasificarIndiceNE
+  // solo devuelve SUPERIOR o INFERIOR), lo que colapsaba este visual de 4
+  // niveles a solo 2 — un embalse apenas por debajo de la senda saltaba
+  // directo a "RIESGO — DESABASTECIMIENTO" (rojo) en vez de "ALERTA"
+  // (naranja). Divergencia real encontrada por
+  // scripts/verificar_sincronia_umbrales.py (Fase 39) contra el espejo
+  // Python (core/umbrales_oficiales.py::clasificar_visual_embalse), que sí
+  // usa su propio margen independiente de 5pp para este gradiente visual
+  // gerencial — replicado aquí para que ambos coincidan.
   if (ne.nivel === "SUPERIOR") {
     return {
       label: "SOBRE SENDA",
@@ -199,7 +227,7 @@ export function clasificarVisualEmbalse(
       fuenteRegulatoria: `≥ senda CREG ${ne.sendaReferenciaPct.toFixed(1)}% (Estatuto CREG 026/2014).`,
     };
   }
-  if (ne.nivel === "ALERTA") {
+  if (nivelEmbalsePct >= ne.sendaReferenciaPct - 5.0) {
     return {
       label: "ALERTA — BAJO SENDA",
       color: "#F97316",
@@ -209,7 +237,7 @@ export function clasificarVisualEmbalse(
   return {
     label: "RIESGO — DESABASTECIMIENTO",
     color: "#EF4444",
-    fuenteRegulatoria: `< senda CREG ${ne.sendaReferenciaPct.toFixed(1)}% — NE Inferior (CREG 026/2014 art. 3).`,
+    fuenteRegulatoria: `< senda CREG ${ne.sendaReferenciaPct.toFixed(1)}% − 5pp — NE Inferior (CREG 026/2014 art. 3).`,
   };
 }
 

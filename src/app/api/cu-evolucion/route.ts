@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
+import { backendGet, BackendError } from "@/lib/backendClient";
+
+interface CuMinoristaNacional {
+  status: string;
+  cu_minorista_promedio: number;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +81,23 @@ export async function GET() {
     `);
 
     const latest = latestRes.rows[0];
+
+    // CU Usuario Final: promedio nacional REAL (26 operadores reales,
+    // cu_tarifas_or, fuente SSPD) del backend — reemplaza el multiplicador
+    // ×1.42 sin fuente que se usaba antes. Si el backend no responde
+    // (backend caído, sin datos), se omite el campo en vez de fabricar
+    // un número — mejor no mostrar el KPI que mostrar uno inventado.
+    let cuUsuarioFinal: number | null = null;
+    try {
+      const minorista = await backendGet<CuMinoristaNacional>(
+        "/v1/cu/minorista/promedio-nacional"
+      );
+      cuUsuarioFinal = minorista.cu_minorista_promedio;
+    } catch (err) {
+      if (!(err instanceof BackendError && err.status === 404)) {
+        console.error("[api/cu-evolucion] Error obteniendo CU minorista nacional:", err);
+      }
+    }
 
     // ── Formatear series para Nivo ──
     const componentes = [
@@ -153,7 +176,7 @@ export async function GET() {
         ? {
             fecha: latest.fecha.toISOString().split("T")[0],
             cu_total: parseFloat(Number(latest.cu_total).toFixed(2)),
-            cu_usuario_final: parseFloat((Number(latest.cu_total) * 1.42).toFixed(2)),
+            cu_usuario_final: cuUsuarioFinal,
             componentes: {
               g: parseFloat(Number(latest.componente_g).toFixed(4)),
               t: parseFloat(Number(latest.componente_t).toFixed(4)),

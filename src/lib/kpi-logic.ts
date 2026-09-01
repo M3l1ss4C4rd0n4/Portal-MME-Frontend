@@ -9,7 +9,6 @@ import {
   clasificarVisualEmbalse,
   clasificarVisualPrecioBolsa,
   HSIN_UMBRAL_NORMAL,
-  NE_UMBRAL_SUPERIOR_ABSOLUTO_PCT,
   OBJETIVO_XM_EMBALSE_ANTE_NINO_PCT,
   PRECIO_ESCASEZ_PEI_REF_2026_01,
   PRECIO_ESCASEZ_PE_REF_2026_01,
@@ -135,9 +134,6 @@ export function diagnosticoSIN(
   if (reservasPct >= OBJETIVO_XM_EMBALSE_ANTE_NINO_PCT) {
     return `Sistema en condiciones normales — embalse ≥ objetivo XM (${OBJETIVO_XM_EMBALSE_ANTE_NINO_PCT}%).`;
   }
-  if (reservasPct >= NE_UMBRAL_SUPERIOR_ABSOLUTO_PCT) {
-    return `Sistema estable — embalse ≥ 70% (regla absoluta CREG 209/2020).`;
-  }
   return `Sistema sobre senda CREG ${sendaPct.toFixed(1)}% — NE Superior.`;
 }
 
@@ -159,7 +155,7 @@ export function diagnosticoTermico(
     : "";
 
   if (participacionPct > 35) {
-    return `Despacho crítico — térmica al ${pct}% hoy, supera el umbral estructural CND (35%)${comparativo}.`;
+    return `Despacho crítico — térmica al ${pct}% hoy, supera el umbral operativo del CND (35%, no una regla de la CREG)${comparativo}.`;
   }
   if (participacionPct > 25) {
     if (precioPPP > pe) {

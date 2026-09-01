@@ -49,7 +49,39 @@ export default function PredictionLineChart({
   const isDark = resolvedTheme !== "light";
   const theme = getNivoTheme(isDark);
 
-  const hasOni = useMemo(() => data.some((d) => d.oni != null), [data]);
+  // La línea de ONI se divide en tramos coloreados por severidad (misma escala
+  // que classifyOni() y que las fichas de "Pronóstico ONI (NOAA)"), en vez de
+  // un color fijo — así el color siempre representa el valor real del tramo.
+  // Los puntos de frontera se duplican en ambos tramos para que la línea se
+  // vea continua al cambiar de color.
+  const oniSegments = useMemo(() => {
+    const points = data.filter(
+      (d): d is PredictionPoint & { oni: number } => d.oni != null
+    );
+    if (points.length === 0) return [];
+
+    const segments: Array<{ color: string; points: typeof points }> = [];
+    let currentColor: string | null = null;
+    let current: typeof points = [];
+
+    for (const d of points) {
+      const color = classifyOni(d.oni)?.color ?? "#94A3B8";
+      if (color !== currentColor) {
+        if (current.length > 0) {
+          current.push(d); // punto puente para continuidad visual
+          segments.push({ color: currentColor as string, points: current });
+        }
+        current = [d];
+        currentColor = color;
+      } else {
+        current.push(d);
+      }
+    }
+    if (current.length > 0) {
+      segments.push({ color: currentColor as string, points: current });
+    }
+    return segments;
+  }, [data]);
 
   const series = useMemo(() => {
     const base = data.map((d) => ({ x: d.fecha, y: d.valor }));
@@ -78,18 +110,16 @@ export default function PredictionLineChart({
       );
     }
 
-    if (hasOni) {
+    oniSegments.forEach((seg, i) => {
       result.push({
-        id: "ONI (El Niño)",
-        color: "#14B8A6",
-        data: data
-          .filter((d) => d.oni != null)
-          .map((d) => ({ x: d.fecha, y: oniToVisual(d.oni as number) })),
+        id: `ONI-tramo-${i}`,
+        color: seg.color,
+        data: seg.points.map((d) => ({ x: d.fecha, y: oniToVisual(d.oni) })),
       });
-    }
+    });
 
     return result;
-  }, [data, isDark, showConfidence, hasOni]);
+  }, [data, isDark, showConfidence, oniSegments]);
 
   const markers = useMemo(() => {
     const textStyle = { fill: isDark ? "#F1F5F9" : "#0F172A" };
@@ -118,7 +148,7 @@ export default function PredictionLineChart({
         axis: "x",
         value: peakDate,
         lineStyle: {
-          stroke: "#1D4ED8",
+          stroke: "#FBBF24",
           strokeWidth: 2,
           strokeDasharray: "6,4",
         },
@@ -203,31 +233,6 @@ export default function PredictionLineChart({
         useMesh
         crosshairType="x"
         markers={markers}
-        legends={[
-          {
-            anchor: "top-right",
-            direction: "row",
-            justify: false,
-            translateX: 0,
-            translateY: -16,
-            itemsSpacing: 12,
-            itemWidth: 110,
-            itemHeight: 16,
-            itemTextColor: isDark ? "#94A3B8" : "#475569",
-            symbolSize: 10,
-            symbolShape: "circle",
-            data: [
-              { id: "Embalses", label: "Embalses", color: "#3B82F6" },
-              ...(hasOni ? [{ id: "ONI (El Niño)", label: "ONI El Niño", color: "#14B8A6" }] : []),
-            ],
-            effects: [
-              {
-                on: "hover",
-                style: { itemTextColor: isDark ? "#E2E8F0" : "#0F172A" },
-              },
-            ],
-          },
-        ]}
         tooltip={({ point }) => {
           const d = data.find((x) => x.fecha === point.data.x);
           if (!d) return null;

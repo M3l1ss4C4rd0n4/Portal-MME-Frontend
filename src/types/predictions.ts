@@ -16,6 +16,15 @@ export interface MetricSummary {
   actual: number;
   prediccion_7d: number;
   mape: number;
+  mape_es_riguroso?: boolean;
+  mape_holdout?: number;
+  cobertura_ci?: number | null;
+  backtest?: {
+    anio_corte: number;
+    n_dias_test: number;
+    fecha_test_inicio: string;
+    fecha_test_fin: string;
+  } | null;
   modelo: string;
   tendencia: "alta" | "baja" | "estable";
 }
