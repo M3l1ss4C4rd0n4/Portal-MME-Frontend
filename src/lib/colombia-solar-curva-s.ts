@@ -96,6 +96,26 @@ function parseNum(val: string | number | null | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Fecha de "hoy" (America/Bogota) en formato ISO, para invalidar reportes "futuros". */
+export const TODAY_ISO = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Bogota" });
+
+/**
+ * Un dato "Real" (reportado) con fecha posterior a hoy no puede existir — un avance
+ * reportado nunca tiene fecha futura. Estas columnas aparecen por corrupción de datos
+ * en la fuente (headers de fecha duplicados que el ETL deduplica pegando un dígito al
+ * final, ej. "25/08/2026" repetida → col_25_08_2026 y col_25_08_20262; o fechas mal
+ * digitadas en el Excel, ej. columnas de 2027/2028 sueltas). Sin este filtro, ese único
+ * dato corrupto arrastra la curva "Real" (promedio) hasta esa fecha, haciéndola ver
+ * continua en vez de cortarse en el último reporte real.
+ */
+export function nullFutureReal(
+  values: (number | null)[],
+  fechasIso: string[],
+  todayIso: string = TODAY_ISO
+): (number | null)[] {
+  return values.map((v, j) => (fechasIso[j] > todayIso ? null : v));
+}
+
 /** Curva acumulada programado: siempre rellena desde 0 */
 function forwardFillPct(values: (number | null)[], total: number): number[] {
   let last = 0;
@@ -207,7 +227,19 @@ export async function loadCurvaSFromDb(pool: DbPool, programa?: string): Promise
     if (projRes.rows.length === 0) continue;
 
     const projDateCols = await getDateColumns(pool, cfg.tablaProyectado);
-    const repDateCols = hasRep ? await getDateColumns(pool, cfg.tablaReportado) : [];
+    const repDateColsRaw = hasRep ? await getDateColumns(pool, cfg.tablaReportado) : [];
+    // "Proyectado" define el horizonte real del proyecto. Una columna de
+    // "Reportado" con fecha posterior a ese horizonte es un encabezado
+    // corrupto en el Excel (año mal digitado, ej. 2027/2028/2029 en vez de
+    // 2026) — se excluye del eje compartido para que no lo estire ni
+    // desplace los ticks visibles, aunque su valor ya se anule aparte vía
+    // nullFutureReal.
+    const maxProjIso = projDateCols.length
+      ? projDateCols.map(colToIso).reduce((a, b) => (b > a ? b : a))
+      : null;
+    const repDateCols = maxProjIso
+      ? repDateColsRaw.filter((c) => colToIso(c) <= maxProjIso)
+      : repDateColsRaw;
     const dateColSet = new Set([...projDateCols, ...repDateCols]);
     const dateCols = [...dateColSet].sort((a, b) => colToIso(a).localeCompare(colToIso(b)));
     const fechasIso = dateCols.map(colToIso);
@@ -224,11 +256,13 @@ export async function loadCurvaSFromDb(pool: DbPool, programa?: string): Promise
       let realFuente: ProyectoCurva["realFuente"] = "sin_datos";
 
       if (repRow) {
-        const repMax = maxPositive(extractSeries(repRow, dateCols));
+        const repMax = maxPositive(nullFutureReal(extractSeries(repRow, dateCols), fechasIso));
         if (repMax > 0) {
           realFuente = "reportado";
         } else if (cfg.fallbackUsuarios && usuariosRepMap.has(nombre)) {
-          const uMax = maxPositive(extractSeries(usuariosRepMap.get(nombre)!, dateCols));
+          const uMax = maxPositive(
+            nullFutureReal(extractSeries(usuariosRepMap.get(nombre)!, dateCols), fechasIso)
+          );
           if (uMax > 0) {
             repRow = usuariosRepMap.get(nombre);
             realFuente = "reportado_usuarios";
@@ -239,7 +273,9 @@ export async function loadCurvaSFromDb(pool: DbPool, programa?: string): Promise
           realFuente = "sin_avance";
         }
       } else if (cfg.fallbackUsuarios && usuariosRepMap.has(nombre)) {
-        const uMax = maxPositive(extractSeries(usuariosRepMap.get(nombre)!, dateCols));
+        const uMax = maxPositive(
+          nullFutureReal(extractSeries(usuariosRepMap.get(nombre)!, dateCols), fechasIso)
+        );
         if (uMax > 0) {
           repRow = usuariosRepMap.get(nombre);
           realFuente = "reportado_usuarios";
@@ -249,7 +285,8 @@ export async function loadCurvaSFromDb(pool: DbPool, programa?: string): Promise
       }
 
       const progSeries = extractSeries(row, dateCols);
-      const realSeries = repRow ? extractSeries(repRow, dateCols) : dateCols.map(() => null);
+      const realSeriesRaw = repRow ? extractSeries(repRow, dateCols) : dateCols.map(() => null);
+      const realSeries = nullFutureReal(realSeriesRaw, fechasIso);
 
       // Si total=0 en Excel (celda vacía), derivar del máximo acumulado de la serie
       const rawTotalProg = rowTotal(row, cfg.denomProyectado);

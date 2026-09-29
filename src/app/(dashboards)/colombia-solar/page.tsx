@@ -182,7 +182,7 @@ export default function ColombiaSolarDashboard() {
     <ErrorBoundary>
     <Header />
     <DashboardLayout
-      title="Colombia Solar"
+      title="Comunidades Energéticas"
       subtitle="Seguimiento a la Implementación · Metas Cierre de Gobierno"
       downloadTablero="colombia-solar"
       downloadParams={{

@@ -6,6 +6,7 @@ import { getPool } from "@/lib/db";
 import {
   CURVA_S_CATEGORIAS,
   loadCurvaSFromDb,
+  TODAY_ISO,
   type CurvaSCategoria,
   type CurvaSPoint,
   type ProyectoCurva,
@@ -163,9 +164,19 @@ function buildCategoriaExcel(
     repByName.set(nombre, { datos: repData.datos[i], total: repData.totales[i] });
   });
 
-  const allFechas = [...new Set([...projData.fechas, ...repData.fechas].map(parseFecha))].sort();
+  // "Proyectado" define el horizonte real del proyecto. Una fecha de
+  // "Reportado" posterior a ese horizonte es un encabezado corrupto en el
+  // Excel (año mal digitado, ej. 2027/2028/2029 en vez de 2026) — se excluye
+  // del eje compartido para que no lo estire ni desplace los ticks visibles.
+  const projIsoFechas = projData.fechas.map(parseFecha);
+  const maxProjIso = projIsoFechas.length ? projIsoFechas.reduce((a, b) => (b > a ? b : a)) : null;
+  const repFechasFiltradas = maxProjIso
+    ? repData.fechas.filter((f) => parseFecha(f) <= maxProjIso)
+    : repData.fechas;
+
+  const allFechas = [...new Set([...projData.fechas, ...repFechasFiltradas].map(parseFecha))].sort();
   const rawByIso = new Map(
-    [...projData.fechas, ...repData.fechas].map((f) => [parseFecha(f), f])
+    [...projData.fechas, ...repFechasFiltradas].map((f) => [parseFecha(f), f])
   );
 
   const maxPositiveExcel = (values: number[]) =>
@@ -180,8 +191,12 @@ function buildCategoriaExcel(
       return projIdx >= 0 ? projData.datos[i][projIdx] : NaN;
     });
 
+    // "Real" son datos reportados: una fecha futura no puede tener un reporte real
+    // (columnas corruptas por deduplicación de headers duplicados en el Excel, o fechas
+    // mal digitadas) — se excluyen para que la línea "Real" no se arrastre más allá del
+    // último reporte legítimo.
     const realSeries = allFechas.map((iso) => {
-      if (!repEntry) return NaN;
+      if (!repEntry || iso > TODAY_ISO) return NaN;
       const rawFecha = rawByIso.get(iso) ?? iso;
       const repIdx = repData.fechas.indexOf(rawFecha);
       return repIdx >= 0 ? repEntry.datos[repIdx] : NaN;
@@ -196,7 +211,7 @@ function buildCategoriaExcel(
     const progPct = forwardFillPct(progSeries, totalProg);
     const realPct = forwardFillPctReal(realSeries, totalRep);
 
-    const hasPositiveReal = repEntry?.datos.some((v) => !Number.isNaN(v) && v > 0) ?? false;
+    const hasPositiveReal = realSeries.some((v) => !Number.isNaN(v) && v > 0);
     const realFuente: ProyectoCurva["realFuente"] = !repEntry
       ? "sin_datos"
       : hasPositiveReal
