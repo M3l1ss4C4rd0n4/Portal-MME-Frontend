@@ -21,7 +21,7 @@ import EmbalseHeroCard from "@/components/predictions/EmbalseHeroCard";
 import PredictionLineChart from "@/components/predictions/PredictionLineChart";
 import MetricPredictionCard from "@/components/predictions/MetricPredictionCard";
 import type { MetricSummary, PredictionPoint } from "@/types/predictions";
-import { fmtDate, fmtShortDate } from "@/types/predictions";
+import { fmtDate, fmtShortDate, clampPct } from "@/types/predictions";
 import { classifyOni } from "@/lib/oni";
 import * as XLSX from "xlsx";
 
@@ -328,8 +328,8 @@ export default function PrediccionesSinPage() {
                   const exportData = data.embalses.prediccion.map((p) => ({
                     Fecha: p.fecha,
                     "% Embalse (predicho)": p.valor,
-                    "IC Inferior 95%": p.lower,
-                    "IC Superior 95%": p.upper,
+                    "IC Inferior 95%": clampPct(p.lower),
+                    "IC Superior 95%": clampPct(p.upper),
                     "ONI (°C)": p.oni ?? "",
                     PDO: p.pdo ?? "",
                     SOI: p.soi ?? "",
@@ -418,10 +418,10 @@ export default function PrediccionesSinPage() {
                             </span>
                           </td>
                           <td className="py-2 pr-4 text-right tabular-nums text-blue-300/80">
-                            {p.lower.toFixed(1)}%
+                            {clampPct(p.lower).toFixed(1)}%
                           </td>
                           <td className="py-2 pr-4 text-right tabular-nums text-blue-300/80">
-                            {p.upper.toFixed(1)}%
+                            {clampPct(p.upper).toFixed(1)}%
                           </td>
                           <td
                             className="py-2 pr-4 text-right tabular-nums font-semibold"

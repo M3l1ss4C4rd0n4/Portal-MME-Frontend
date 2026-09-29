@@ -5,6 +5,7 @@ import { ResponsiveLine } from "@nivo/line";
 import { getNivoTheme } from "@/lib/nivo-theme";
 import { useTheme } from "@/providers/ThemeProvider";
 import { classifyOni } from "@/lib/oni";
+import { clampPct } from "@/types/predictions";
 import type { PredictionPoint } from "@/types/predictions";
 
 // Climate indicator normalization — all mapped to the lower 0-40% of the chart
@@ -99,13 +100,13 @@ export default function PredictionLineChart({
           id: "IC superior",
           color: isDark ? "#60A5FA" : "#93C5FD",
           dashed: true,
-          data: data.map((d) => ({ x: d.fecha, y: Math.min(d.upper, 100) })),
+          data: data.map((d) => ({ x: d.fecha, y: clampPct(d.upper) })),
         },
         {
           id: "IC inferior",
           color: isDark ? "#60A5FA" : "#93C5FD",
           dashed: true,
-          data: data.map((d) => ({ x: d.fecha, y: d.lower })),
+          data: data.map((d) => ({ x: d.fecha, y: clampPct(d.lower) })),
         }
       );
     }
@@ -267,7 +268,7 @@ export default function PredictionLineChart({
                     IC 95%:
                   </span>
                   <span style={{ color: isDark ? "#94A3B8" : "#64748B" }}>
-                    {d.lower.toFixed(1)}% – {Math.min(d.upper, 100).toFixed(1)}%
+                    {clampPct(d.lower).toFixed(1)}% – {clampPct(d.upper).toFixed(1)}%
                   </span>
                 </div>
               )}
