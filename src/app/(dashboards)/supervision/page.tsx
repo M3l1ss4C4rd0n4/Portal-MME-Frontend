@@ -9,6 +9,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import Card from "@/components/dashboard/Card";
 import BaseKpiChip, { type KpiChipProps } from "@/components/dashboard/KpiChip";
 import SemiGauge from "@/components/ui/SemiGauge";
+import { RangeSlider } from "@/components/ui/RangeSlider";
 import { getNivoTheme } from "@/lib/nivo-theme";
 import { fmtCOP, fmtCOPShort, fmtNum } from "@/lib/format";
 
@@ -17,67 +18,11 @@ function KpiChip(props: Omit<KpiChipProps, "padding" | "valueSize">) {
   return <BaseKpiChip padding="md" valueSize="lg" {...props} />;
 }
 
-// ─── Year Range Slider ────────────────────────────────────────────────────
+// ─── Rango de años (filtro de período) ─────────────────────────────────────
 const YEAR_MIN = 2003;
 const YEAR_MAX = 2026;
 const DEFAULT_ANO_MIN = 2015;
-
-function YearRangeSlider({ anoMin, anoMax, onChange }: {
-  anoMin: number; anoMax: number;
-  onChange: (min: number, max: number) => void;
-}) {
-  const pct = (v: number) => ((v - YEAR_MIN) / (YEAR_MAX - YEAR_MIN)) * 100;
-  const isDefault = anoMin === DEFAULT_ANO_MIN && anoMax === YEAR_MAX;
-  const TICKS = [2003, 2006, 2009, 2012, 2015, 2018, 2021, 2024, 2026];
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [minOnTop, setMinOnTop] = useState(false);
-
-  const handleTrackMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!trackRef.current) return;
-    const rect = trackRef.current.getBoundingClientRect();
-    const yearCursor = YEAR_MIN + ((e.clientX - rect.left) / rect.width) * (YEAR_MAX - YEAR_MIN);
-    setMinOnTop(Math.abs(yearCursor - anoMin) <= Math.abs(yearCursor - anoMax));
-  };
-
-  return (
-    <div className="px-1 mb-5">
-      <div className="flex items-center gap-3 mb-2">
-        <span className="text-[10px] text-gold/70 uppercase tracking-widest font-bold">PERÍODO</span>
-        <span className="font-mono text-gold text-xs bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">{anoMin}</span>
-        <div className="flex-1 h-px bg-amber-500/20" />
-        <span className="font-mono text-gold text-xs bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">{anoMax}</span>
-        {!isDefault && (
-          <button onClick={() => onChange(DEFAULT_ANO_MIN, YEAR_MAX)}
-            className="text-[10px] text-theme-muted hover:text-red-400 transition-colors">
-            ✕ Restablecer
-          </button>
-        )}
-      </div>
-      <div ref={trackRef} className="relative h-7 flex items-center mx-1" onMouseMove={handleTrackMouseMove}>
-        <div className="absolute w-full h-1.5 bg-theme-tertiary rounded-full pointer-events-none" />
-        <div className="absolute h-1.5 bg-amber-500/70 rounded-full pointer-events-none"
-          style={{ left: `${pct(anoMin)}%`, width: `${pct(anoMax) - pct(anoMin)}%` }} />
-        <div className="absolute w-3.5 h-3.5 rounded-full bg-amber-400 shadow pointer-events-none ring-2 ring-amber-400/30"
-          style={{ left: `calc(${pct(anoMin)}% - 7px)` }} />
-        <div className="absolute w-3.5 h-3.5 rounded-full bg-amber-400 shadow pointer-events-none ring-2 ring-amber-400/30"
-          style={{ left: `calc(${pct(anoMax)}% - 7px)` }} />
-        <input type="range" min={YEAR_MIN} max={YEAR_MAX} step={1} value={anoMin}
-          onChange={e => onChange(Math.min(+e.target.value, anoMax - 1), anoMax)}
-          className="absolute inset-0 w-full opacity-0 cursor-pointer"
-          style={{ zIndex: minOnTop ? 5 : 3 }} />
-        <input type="range" min={YEAR_MIN} max={YEAR_MAX} step={1} value={anoMax}
-          onChange={e => onChange(anoMin, Math.max(+e.target.value, anoMin + 1))}
-          className="absolute inset-0 w-full opacity-0 cursor-pointer"
-          style={{ zIndex: minOnTop ? 3 : 5 }} />
-      </div>
-      <div className="flex justify-between mt-1 px-0.5">
-        {TICKS.map(y => (
-          <span key={y} className="text-[8px] text-theme-muted/60">{y}</span>
-        ))}
-      </div>
-    </div>
-  );
-}
+const YEAR_TICKS = [2003, 2006, 2009, 2012, 2015, 2018, 2021, 2024, 2026];
 
 // ─── Types ────────────────────────────────────────────────────────────────
 interface FondoRow   { fondo: string; contratos: number }
@@ -481,7 +426,12 @@ export default function SupervisionPage() {
             </button>
           </div>
         </div>
-        <YearRangeSlider anoMin={anoMin} anoMax={anoMax} onChange={handleYearChange} />
+        <RangeSlider
+          min={YEAR_MIN} max={YEAR_MAX} valueMin={anoMin} valueMax={anoMax}
+          onChange={handleYearChange}
+          defaultMin={DEFAULT_ANO_MIN} defaultMax={YEAR_MAX}
+          ticks={YEAR_TICKS} label="PERÍODO"
+        />
         <SankeyFlow
           sankey={data.sankey}
           totalContratos={data.nContratos}
