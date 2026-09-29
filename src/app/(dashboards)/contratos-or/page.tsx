@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, Fragment } from "react";
 import { motion } from "framer-motion";
 import { ResponsiveBar } from "@nivo/bar";
 import { ResponsiveLine } from "@nivo/line";
@@ -10,8 +10,10 @@ import DashboardLayout from "@/components/DashboardLayout";
 import Card from "@/components/dashboard/Card";
 import KpiChip from "@/components/dashboard/KpiChip";
 import SemiGauge from "@/components/ui/SemiGauge";
+import DepartmentIcon from "@/components/ui/DepartmentIcon";
 
 import { getNivoTheme } from "@/lib/nivo-theme";
+import { MapPin, Landmark, ClipboardList, HardHat, Home, Users } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 interface Proyecto {
@@ -24,6 +26,9 @@ interface Proyecto {
   avanceFinanciero: number;
   totalDesembolsos: number;
   pagosRealizados: number;
+  valor: number;
+  usuarios: number;
+  potenciaMwp: number;
 }
 interface Desembolso {
   numero: number;
@@ -42,6 +47,26 @@ interface ContratosData {
   pctPagosRealizados: number;
   desembolsos: Desembolso[];
   proyectos: Proyecto[];
+}
+interface RatioConsolidadoFila {
+  ejecutor: string;
+  departamento: string;
+  municipio: string;
+  proyectado: number;
+  obrasCiviles: number;
+  instalacionesInternas: number;
+  usuariosEnergizados: number;
+}
+interface RatiosConsolidados {
+  kpis: {
+    departamentos: number;
+    municipios: number;
+    proyectado: number;
+    obrasCiviles: number;
+    instalacionesInternas: number;
+    usuariosEnergizados: number;
+  };
+  filas: RatioConsolidadoFila[];
 }
 const DEFAULT: ContratosData = {
   nContratos: 17,
@@ -91,6 +116,61 @@ interface ActaItem {
 }
 
 type NivoTheme = ReturnType<typeof getNivoTheme>;
+
+// ─── Agrupar por ejecutor (operador) para subtotales ──────────────────────
+interface EjecutorGroup<T> {
+  ejecutor: string;
+  rows: T[];
+}
+
+/** Agrupa filas por `ejecutor` y ordena los grupos de mayor a menor cantidad de filas. */
+function groupByEjecutorSorted<T extends { ejecutor: string }>(rows: T[]): EjecutorGroup<T>[] {
+  const map = new Map<string, T[]>();
+  for (const r of rows) {
+    const key = r.ejecutor || "Sin ejecutor";
+    const arr = map.get(key);
+    if (arr) arr.push(r);
+    else map.set(key, [r]);
+  }
+  return [...map.entries()]
+    .map(([ejecutor, rows]) => ({ ejecutor, rows }))
+    .sort((a, b) => b.rows.length - a.rows.length);
+}
+
+function aggregateProyectos(rows: Proyecto[]) {
+  const count = rows.length;
+  if (count === 0) {
+    return {
+      count: 0, avgDocumental: 0, avgFinanciero: 0, avgFisico: 0,
+      sumPagosReal: 0, sumPagosTotal: 0, sumValor: 0, sumUsuarios: 0, sumPotenciaMwp: 0,
+    };
+  }
+  return {
+    count,
+    avgDocumental: rows.reduce((s, r) => s + r.avanceGeneral, 0) / count,
+    avgFinanciero: rows.reduce((s, r) => s + r.avanceFinanciero, 0) / count,
+    avgFisico: rows.reduce((s, r) => s + r.avanceFisico, 0) / count,
+    sumPagosReal: rows.reduce((s, r) => s + r.pagosRealizados, 0),
+    sumPagosTotal: rows.reduce((s, r) => s + r.totalDesembolsos, 0),
+    sumValor: rows.reduce((s, r) => s + r.valor, 0),
+    sumUsuarios: rows.reduce((s, r) => s + r.usuarios, 0),
+    sumPotenciaMwp: rows.reduce((s, r) => s + r.potenciaMwp, 0),
+  };
+}
+
+function pluralizar(n: number, singular: string, plural: string): string {
+  return `${n} ${n === 1 ? singular : plural}`;
+}
+
+function aggregateRatiosFilas(rows: RatioConsolidadoFila[]) {
+  return {
+    count: rows.length,
+    sumProyectado: rows.reduce((s, r) => s + r.proyectado, 0),
+    sumObrasCiviles: rows.reduce((s, r) => s + r.obrasCiviles, 0),
+    sumInstalacionesInternas: rows.reduce((s, r) => s + r.instalacionesInternas, 0),
+    sumUsuariosEnergizados: rows.reduce((s, r) => s + r.usuariosEnergizados, 0),
+  };
+}
 
 const MESES_CORTO = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
@@ -270,7 +350,7 @@ function CurvaSChart({
           useMesh
           enableGridX={false}
           tooltip={({ point }) => (
-            <div className="px-3 py-2 rounded-lg border border-theme-card bg-[#1E293B] text-[11px] text-theme-primary">
+            <div className="px-3 py-2 rounded-lg border border-theme-card bg-theme-secondary text-[11px] text-theme-primary">
               <div className="font-semibold mb-1">{formatFechaTooltip(String(point.data.x))}</div>
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full inline-block" style={{ background: point.seriesColor }} />
@@ -292,6 +372,15 @@ export default function ContratosORPage() {
   const T = getNivoTheme(resolvedTheme === "dark");
   const isDark = resolvedTheme === "dark";
   const [data, setData] = useState<ContratosData>(DEFAULT);
+  const [ratios, setRatios] = useState<RatiosConsolidados | null>(null);
+
+  // Agrupados por ejecutor (mayor a menor cantidad de proyectos/municipios) para subtotales
+  const gruposContratos = useMemo(() => groupByEjecutorSorted(data.proyectos), [data.proyectos]);
+  const totalContratos = useMemo(() => aggregateProyectos(data.proyectos), [data.proyectos]);
+  const gruposRatios = useMemo(
+    () => (ratios ? groupByEjecutorSorted(ratios.filas) : []),
+    [ratios]
+  );
   const [curvaS, setCurvaS] = useState<CurvaSData | null>(null);
   const [operadorSeleccionado, setOperadorSeleccionado] = useState<string>("");
   const [proyectoSeleccionado, setProyectoSeleccionado] = useState<string>("");
@@ -365,9 +454,34 @@ export default function ContratosORPage() {
             avanceFinanciero: Number(p.avanceFinanciero) || 0,
             totalDesembolsos: Number(p.totalDesembolsos) || 4,
             pagosRealizados: Number(p.pagosRealizados) || 0,
+            valor: Number(p.valor) || 0,
+            usuarios: Number(p.usuarios) || 0,
+            potenciaMwp: Number(p.potenciaMwp) || 0,
           })),
         });
       if (raw.ultima_actualizacion) setUltimaActualizacion(String(raw.ultima_actualizacion ?? ""));
+      if (raw.ratiosConsolidados) {
+        const rc = raw.ratiosConsolidados;
+        setRatios({
+          kpis: {
+            departamentos: Number(rc.kpis?.departamentos) || 0,
+            municipios: Number(rc.kpis?.municipios) || 0,
+            proyectado: Number(rc.kpis?.proyectado) || 0,
+            obrasCiviles: Number(rc.kpis?.obrasCiviles) || 0,
+            instalacionesInternas: Number(rc.kpis?.instalacionesInternas) || 0,
+            usuariosEnergizados: Number(rc.kpis?.usuariosEnergizados) || 0,
+          },
+          filas: (rc.filas || []).map((f: any) => ({
+            ejecutor: String(f.ejecutor ?? ""),
+            departamento: String(f.departamento ?? ""),
+            municipio: String(f.municipio ?? ""),
+            proyectado: Number(f.proyectado) || 0,
+            obrasCiviles: Number(f.obrasCiviles) || 0,
+            instalacionesInternas: Number(f.instalacionesInternas) || 0,
+            usuariosEnergizados: Number(f.usuariosEnergizados) || 0,
+          })),
+        });
+      }
       })
       .catch(() => {});
   }, []);
@@ -501,7 +615,7 @@ export default function ContratosORPage() {
       </button>
       {actasOpen && (
         <div className="absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-xl
-          bg-[#1E293B] border border-amber-500/30 shadow-2xl z-50 py-1">
+          bg-theme-secondary border border-amber-500/30 shadow-2xl z-50 py-1">
           {actasLoading && actas.length === 0 ? (
             <div className="px-4 py-6 text-center text-xs text-theme-muted">
               <svg className="w-5 h-5 mx-auto mb-2 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -746,6 +860,9 @@ export default function ContratosORPage() {
                 'Ejecutor': p.ejecutor,
                 'Departamento': p.departamento,
                 'Municipio': p.municipio,
+                'Valor': p.valor,
+                'Usuarios': p.usuarios,
+                'Potencia (mWp)': p.potenciaMwp,
                 'Avance Documental (%)': p.avanceGeneral / 100, // Como decimal para formato porcentaje en Excel
                 'Avance Financiero (%)': p.avanceFinanciero / 100, // Como decimal
                 'Avance Físico (%)': p.avanceFisico / 100, // Como decimal
@@ -765,12 +882,18 @@ export default function ContratosORPage() {
                 : 0;
               const totalPagosRealizados = data.proyectos.reduce((sum, p) => sum + p.pagosRealizados, 0);
               const totalDesembolsos = data.proyectos.reduce((sum, p) => sum + p.totalDesembolsos, 0);
-              
+              const totalValor = data.proyectos.reduce((sum, p) => sum + p.valor, 0);
+              const totalUsuarios = data.proyectos.reduce((sum, p) => sum + p.usuarios, 0);
+              const totalPotenciaMwp = data.proyectos.reduce((sum, p) => sum + p.potenciaMwp, 0);
+
               exportData.push({
                 'Proyecto': 'TOTALES / PROMEDIOS',
                 'Ejecutor': '',
                 'Departamento': '',
                 'Municipio': '',
+                'Valor': totalValor,
+                'Usuarios': totalUsuarios,
+                'Potencia (mWp)': totalPotenciaMwp,
                 'Avance Documental (%)': avgAvanceObra / 100,
                 'Avance Financiero (%)': avgAvanceFinanciero / 100,
                 'Avance Físico (%)': avgAvanceFisico / 100,
@@ -801,6 +924,9 @@ export default function ContratosORPage() {
                 <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Proyecto</th>
                 <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Ejecutor</th>
                 <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Departamento</th>
+                <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Valor</th>
+                <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Usuarios</th>
+                <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Potencia</th>
                 <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Avance Documental</th>
                 <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Avance Financiero</th>
                 <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Avance Físico</th>
@@ -808,41 +934,73 @@ export default function ContratosORPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-theme-card">
-              {data.proyectos.map((p, i) => (
-                <motion.tr key={p.nombre} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 + i * 0.04 }}
-                  className="text-theme-secondary hover:bg-dash-chip transition-colors">
-                  <td className="py-2.5 pr-4 font-medium text-theme-primary">{p.nombre}</td>
-                  <td className="py-2.5 pr-4 text-cyan-400">{p.ejecutor}</td>
-                  <td className="py-2.5 pr-4">{p.departamento}</td>
-                  <td className="py-2.5 pr-4">
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 bg-dash-chip rounded-full w-16 overflow-hidden flex-shrink-0">
-                        <div style={{ width: `${Math.min(p.avanceGeneral, 100)}%` }} className="h-full bg-amber-400 rounded-full" />
-                      </div>
-                      <span className="text-gold font-semibold">{p.avanceGeneral.toFixed(1)}%</span>
-                    </div>
-                  </td>
-                  <td className="py-2.5 pr-4">
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 bg-dash-chip rounded-full w-16 overflow-hidden flex-shrink-0">
-                        <div style={{ width: `${Math.min(p.avanceFinanciero, 100)}%` }} className="h-full bg-purple-400 rounded-full" />
-                      </div>
-                      <span className="text-purple-400 font-semibold">{p.avanceFinanciero.toFixed(1)}%</span>
-                    </div>
-                  </td>
-                  <td className="py-2.5 pr-4">
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 bg-dash-chip rounded-full w-16 overflow-hidden flex-shrink-0">
-                        <div style={{ width: `${Math.min(p.avanceFisico, 100)}%` }} className="h-full bg-emerald-400 rounded-full" />
-                      </div>
-                      <span className="text-emerald-400 font-semibold">{p.avanceFisico.toFixed(1)}%</span>
-                    </div>
-                  </td>
-                  <td className="py-2.5">
-                    <span className="text-gold font-semibold">{p.pagosRealizados}/{p.totalDesembolsos}</span>
-                  </td>
-                </motion.tr>
-              ))}
+              {gruposContratos.map((grupo) => {
+                const agg = aggregateProyectos(grupo.rows);
+                return (
+                  <Fragment key={grupo.ejecutor}>
+                    {grupo.rows.map((p, i) => (
+                      <motion.tr key={p.nombre} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 + i * 0.04 }}
+                        className="text-theme-secondary hover:bg-dash-chip transition-colors">
+                        <td className="py-2.5 pr-4 font-medium text-theme-primary">{p.nombre}</td>
+                        <td className="py-2.5 pr-4 text-cyan-400">{p.ejecutor}</td>
+                        <td className="py-2.5 pr-4">{p.departamento}</td>
+                        <td className="py-2.5 pr-4">${p.valor.toLocaleString("es-CO")}</td>
+                        <td className="py-2.5 pr-4">{p.usuarios.toLocaleString("es-CO")}</td>
+                        <td className="py-2.5 pr-4">{p.potenciaMwp.toLocaleString("es-CO")} mWp</td>
+                        <td className="py-2.5 pr-4">
+                          <div className="flex items-center gap-2">
+                            <div className="h-1.5 bg-dash-chip rounded-full w-16 overflow-hidden flex-shrink-0">
+                              <div style={{ width: `${Math.min(p.avanceGeneral, 100)}%` }} className="h-full bg-amber-400 rounded-full" />
+                            </div>
+                            <span className="text-gold font-semibold">{p.avanceGeneral.toFixed(1)}%</span>
+                          </div>
+                        </td>
+                        <td className="py-2.5 pr-4">
+                          <div className="flex items-center gap-2">
+                            <div className="h-1.5 bg-dash-chip rounded-full w-16 overflow-hidden flex-shrink-0">
+                              <div style={{ width: `${Math.min(p.avanceFinanciero, 100)}%` }} className="h-full bg-purple-400 rounded-full" />
+                            </div>
+                            <span className="text-purple-400 font-semibold">{p.avanceFinanciero.toFixed(1)}%</span>
+                          </div>
+                        </td>
+                        <td className="py-2.5 pr-4">
+                          <div className="flex items-center gap-2">
+                            <div className="h-1.5 bg-dash-chip rounded-full w-16 overflow-hidden flex-shrink-0">
+                              <div style={{ width: `${Math.min(p.avanceFisico, 100)}%` }} className="h-full bg-emerald-400 rounded-full" />
+                            </div>
+                            <span className="text-emerald-400 font-semibold">{p.avanceFisico.toFixed(1)}%</span>
+                          </div>
+                        </td>
+                        <td className="py-2.5">
+                          <span className="text-gold font-semibold">{p.pagosRealizados}/{p.totalDesembolsos}</span>
+                        </td>
+                      </motion.tr>
+                    ))}
+                    <tr className="bg-amber-500/10 text-gold font-semibold">
+                      <td className="py-2 pr-4" colSpan={2}>Subtotal — {grupo.ejecutor}</td>
+                      <td className="py-2 pr-4 text-theme-muted font-normal">{pluralizar(agg.count, "proyecto", "proyectos")}</td>
+                      <td className="py-2 pr-4">${agg.sumValor.toLocaleString("es-CO")}</td>
+                      <td className="py-2 pr-4">{agg.sumUsuarios.toLocaleString("es-CO")}</td>
+                      <td className="py-2 pr-4">{agg.sumPotenciaMwp.toLocaleString("es-CO")} mWp</td>
+                      <td className="py-2 pr-4 text-gold">{agg.avgDocumental.toFixed(1)}%</td>
+                      <td className="py-2 pr-4 text-purple-400">{agg.avgFinanciero.toFixed(1)}%</td>
+                      <td className="py-2 pr-4 text-emerald-400">{agg.avgFisico.toFixed(1)}%</td>
+                      <td className="py-2 text-gold">{agg.sumPagosReal}/{agg.sumPagosTotal}</td>
+                    </tr>
+                  </Fragment>
+                );
+              })}
+              <tr className="bg-amber-500/20 text-gold font-bold border-t-2 border-b-2 border-gold/50">
+                <td className="py-2.5 pr-4" colSpan={2}>TOTAL GENERAL</td>
+                <td className="py-2.5 pr-4 text-theme-muted font-normal">{pluralizar(totalContratos.count, "proyecto", "proyectos")}</td>
+                <td className="py-2.5 pr-4">${totalContratos.sumValor.toLocaleString("es-CO")}</td>
+                <td className="py-2.5 pr-4">{totalContratos.sumUsuarios.toLocaleString("es-CO")}</td>
+                <td className="py-2.5 pr-4">{totalContratos.sumPotenciaMwp.toLocaleString("es-CO")} mWp</td>
+                <td className="py-2.5 pr-4 text-gold">{totalContratos.avgDocumental.toFixed(1)}%</td>
+                <td className="py-2.5 pr-4 text-purple-400">{totalContratos.avgFinanciero.toFixed(1)}%</td>
+                <td className="py-2.5 pr-4 text-emerald-400">{totalContratos.avgFisico.toFixed(1)}%</td>
+                <td className="py-2.5 text-gold">{totalContratos.sumPagosReal}/{totalContratos.sumPagosTotal}</td>
+              </tr>
             </tbody>
           </table>
           {data.proyectos.length === 0 && (
@@ -882,20 +1040,24 @@ export default function ContratosORPage() {
                 <select
                   value={operadorSeleccionado}
                   onChange={(e) => setOperadorSeleccionado(e.target.value)}
-                  className="appearance-none bg-[#0B1120] text-white border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-[11px] focus:outline-none focus:border-amber-500/40 cursor-pointer min-w-[160px]"
-                  style={{ backgroundColor: "#0B1120", color: "#ffffff" }}
+                  className="appearance-none border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-[11px] focus:outline-none focus:border-amber-500/40 cursor-pointer min-w-[160px]"
+                  style={{
+                    colorScheme: isDark ? "dark" : "light",
+                    backgroundColor: isDark ? "#0B1120" : "#FFFFFF",
+                    color: isDark ? "#ffffff" : "#0F172A",
+                  }}
                   aria-label="Operador de red"
                 >
-                  <option value="" style={{ backgroundColor: "#0B1120", color: "#ffffff" }}>
+                  <option value="" style={{ backgroundColor: isDark ? "#0B1120" : "#FFFFFF", color: isDark ? "#ffffff" : "#0F172A" }}>
                     Todos los operadores
                   </option>
                   {operadoresRed.map((or) => (
-                    <option key={or} value={or} style={{ backgroundColor: "#0B1120", color: "#ffffff" }}>
+                    <option key={or} value={or} style={{ backgroundColor: isDark ? "#0B1120" : "#FFFFFF", color: isDark ? "#ffffff" : "#0F172A" }}>
                       {or}
                     </option>
                   ))}
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white">
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-theme-primary">
                   <svg className="h-3 w-3 fill-current" viewBox="0 0 20 20">
                     <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
                   </svg>
@@ -905,24 +1067,28 @@ export default function ContratosORPage() {
                 <select
                   value={proyectoSeleccionado}
                   onChange={(e) => setProyectoSeleccionado(e.target.value)}
-                  className="appearance-none bg-[#0B1120] text-white border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-[11px] focus:outline-none focus:border-amber-500/40 cursor-pointer min-w-[160px]"
-                  style={{ backgroundColor: "#0B1120", color: "#ffffff" }}
+                  className="appearance-none border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-[11px] focus:outline-none focus:border-amber-500/40 cursor-pointer min-w-[160px]"
+                  style={{
+                    colorScheme: isDark ? "dark" : "light",
+                    backgroundColor: isDark ? "#0B1120" : "#FFFFFF",
+                    color: isDark ? "#ffffff" : "#0F172A",
+                  }}
                   aria-label="Proyecto"
                 >
-                  <option value="" style={{ backgroundColor: "#0B1120", color: "#ffffff" }}>
+                  <option value="" style={{ backgroundColor: isDark ? "#0B1120" : "#FFFFFF", color: isDark ? "#ffffff" : "#0F172A" }}>
                     Todos los proyectos
                   </option>
                   {proyectosCurvaFiltrados.map((p) => (
                     <option
                       key={p.nombre}
                       value={p.nombre}
-                      style={{ backgroundColor: "#0B1120", color: "#ffffff" }}
+                      style={{ backgroundColor: isDark ? "#0B1120" : "#FFFFFF", color: isDark ? "#ffffff" : "#0F172A" }}
                     >
                       {p.nombre}
                     </option>
                   ))}
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white">
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-theme-primary">
                   <svg className="h-3 w-3 fill-current" viewBox="0 0 20 20">
                     <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
                   </svg>
@@ -947,6 +1113,165 @@ export default function ContratosORPage() {
                 </div>
               );
             })}
+          </div>
+        </Card>
+      )}
+
+      {ratios && ratios.filas.length > 0 && (
+        <Card delay={0.4}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <span className="text-gold font-bold uppercase tracking-widest text-[11px]">RATIOS CONSOLIDADOS</span>
+              <span className="text-[10px] text-theme-muted">{ratios.filas.length} municipios</span>
+            </div>
+            <button
+              onClick={() => {
+                const exportData = ratios.filas.map((f) => ({
+                  'Departamento': f.departamento,
+                  'Municipio': f.municipio,
+                  'Ejecutor': f.ejecutor,
+                  'Proyectado': f.proyectado,
+                  'Obras Civiles': f.obrasCiviles,
+                  'Instalaciones Internas': f.instalacionesInternas,
+                  'Usuarios Energizados': f.usuariosEnergizados,
+                }));
+
+                exportData.push({
+                  'Departamento': 'TOTALES',
+                  'Municipio': '',
+                  'Ejecutor': '',
+                  'Proyectado': ratios.kpis.proyectado,
+                  'Obras Civiles': ratios.kpis.obrasCiviles,
+                  'Instalaciones Internas': ratios.kpis.instalacionesInternas,
+                  'Usuarios Energizados': ratios.kpis.usuariosEnergizados,
+                });
+
+                const ws = XLSX.utils.json_to_sheet(exportData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Ratios Consolidados');
+                XLSX.writeFile(wb, `ratios_consolidados_${new Date().toISOString().split('T')[0]}.xlsx`);
+              }}
+              className="flex items-center gap-1.5 text-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Exportar Excel
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+            <KpiChip
+              label="Departamentos"
+              value={ratios.kpis.departamentos}
+              icon={MapPin}
+              color="#06B6D4"
+              container="surface"
+              centered
+            />
+            <KpiChip
+              label="Municipios"
+              value={ratios.kpis.municipios}
+              icon={Landmark}
+              color="#8B5CF6"
+              container="surface"
+              centered
+            />
+            <KpiChip
+              label="Proyectado"
+              value={ratios.kpis.proyectado.toLocaleString("es-CO")}
+              icon={ClipboardList}
+              color="#F59E0B"
+              container="surface"
+              centered
+            />
+            <KpiChip
+              label="Obras Civiles"
+              value={ratios.kpis.obrasCiviles.toLocaleString("es-CO")}
+              icon={HardHat}
+              color="#F59E0B"
+              container="surface"
+              centered
+            />
+            <KpiChip
+              label="Instalaciones Internas"
+              value={ratios.kpis.instalacionesInternas.toLocaleString("es-CO")}
+              icon={Home}
+              color="#10B981"
+              container="surface"
+              centered
+            />
+            <KpiChip
+              label="Usuarios Energizados"
+              value={ratios.kpis.usuariosEnergizados.toLocaleString("es-CO")}
+              icon={Users}
+              color="#10B981"
+              container="surface"
+              centered
+            />
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr className="text-theme-muted text-left">
+                  <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Departamento</th>
+                  <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Municipio</th>
+                  <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Ejecutor</th>
+                  <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Proyectado</th>
+                  <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Obras Civiles</th>
+                  <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Inst. Internas</th>
+                  <th className="pb-3 font-semibold uppercase tracking-wider">Usuarios Energizados</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-theme-card">
+                {gruposRatios.map((grupo) => {
+                  const agg = aggregateRatiosFilas(grupo.rows);
+                  return (
+                    <Fragment key={grupo.ejecutor}>
+                      {grupo.rows.map((f, i) => (
+                        <motion.tr
+                          key={`${f.departamento}-${f.municipio}`}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.3 + i * 0.03 }}
+                          className="text-theme-secondary hover:bg-dash-chip transition-colors"
+                        >
+                          <td className="py-2.5 pr-4 font-medium text-theme-primary">
+                            <div className="flex items-center gap-2">
+                              <DepartmentIcon departamento={f.departamento} />
+                              {f.departamento}
+                            </div>
+                          </td>
+                          <td className="py-2.5 pr-4">{f.municipio}</td>
+                          <td className="py-2.5 pr-4 text-cyan-400">{f.ejecutor}</td>
+                          <td className="py-2.5 pr-4">{f.proyectado.toLocaleString("es-CO")}</td>
+                          <td className="py-2.5 pr-4">{f.obrasCiviles.toLocaleString("es-CO")}</td>
+                          <td className="py-2.5 pr-4">{f.instalacionesInternas.toLocaleString("es-CO")}</td>
+                          <td className="py-2.5 text-emerald-400 font-semibold">{f.usuariosEnergizados.toLocaleString("es-CO")}</td>
+                        </motion.tr>
+                      ))}
+                      <tr className="bg-amber-500/10 text-gold font-semibold">
+                        <td className="py-2 pr-4" colSpan={2}>Subtotal — {grupo.ejecutor}</td>
+                        <td className="py-2 pr-4 text-theme-muted font-normal">{pluralizar(agg.count, "municipio", "municipios")}</td>
+                        <td className="py-2 pr-4">{agg.sumProyectado.toLocaleString("es-CO")}</td>
+                        <td className="py-2 pr-4">{agg.sumObrasCiviles.toLocaleString("es-CO")}</td>
+                        <td className="py-2 pr-4">{agg.sumInstalacionesInternas.toLocaleString("es-CO")}</td>
+                        <td className="py-2 text-emerald-400">{agg.sumUsuariosEnergizados.toLocaleString("es-CO")}</td>
+                      </tr>
+                    </Fragment>
+                  );
+                })}
+                <tr className="bg-amber-500/20 text-gold font-bold border-t-2 border-b-2 border-gold/50">
+                  <td className="py-2.5 pr-4" colSpan={2}>TOTAL GENERAL</td>
+                  <td className="py-2.5 pr-4 text-theme-muted font-normal">{pluralizar(ratios.kpis.municipios, "municipio", "municipios")}</td>
+                  <td className="py-2.5 pr-4">{ratios.kpis.proyectado.toLocaleString("es-CO")}</td>
+                  <td className="py-2.5 pr-4">{ratios.kpis.obrasCiviles.toLocaleString("es-CO")}</td>
+                  <td className="py-2.5 pr-4">{ratios.kpis.instalacionesInternas.toLocaleString("es-CO")}</td>
+                  <td className="py-2.5 text-emerald-400">{ratios.kpis.usuariosEnergizados.toLocaleString("es-CO")}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </Card>
       )}

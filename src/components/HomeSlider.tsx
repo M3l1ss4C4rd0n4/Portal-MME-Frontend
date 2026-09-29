@@ -2077,7 +2077,7 @@ function SlideContratosOR({ d }: { d: HomeSliderProps["orData"] }) {
           <KpiBlock
             label="Usuarios Beneficiados"
             value={fmtNum(d.nUsuarios)}
-            unit="hogares"
+            unit="beneficiarios"
             valueClass="text-chart-teal"
           />
           <KpiBlock

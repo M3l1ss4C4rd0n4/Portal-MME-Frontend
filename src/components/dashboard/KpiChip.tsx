@@ -1,5 +1,7 @@
 "use client";
 
+import type { LucideIcon } from "lucide-react";
+
 export interface KpiChipProps {
   label: string;
   value: string | number;
@@ -17,6 +19,7 @@ export interface KpiChipProps {
   container?: "chip" | "surface";
   centered?: boolean;
   className?: string;
+  icon?: LucideIcon;
 }
 
 export default function KpiChip({
@@ -36,6 +39,7 @@ export default function KpiChip({
   container = "chip",
   centered = false,
   className = "",
+  icon: Icon,
 }: KpiChipProps) {
   const containerClass =
     container === "surface" ? "bg-theme-secondary border border-theme-primary rounded-xl" : "bg-dash-chip rounded-xl";
@@ -56,6 +60,14 @@ export default function KpiChip({
     <div
       className={`${containerClass} ${paddingClass} ${centered ? "text-center min-w-[110px]" : ""} ${className}`}
     >
+      {Icon && (
+        <div
+          className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 ${centered ? "mx-auto" : ""}`}
+          style={{ background: `${color ?? "var(--color-gold)"}1A` }}
+        >
+          <Icon size={30} style={{ color: color ?? "var(--color-gold)" }} />
+        </div>
+      )}
       <div className={`${valueFontClass} font-bold ${valueLeadingClass} ${valueColorClass}`} style={color ? { color } : undefined}>
         {value}
       </div>
