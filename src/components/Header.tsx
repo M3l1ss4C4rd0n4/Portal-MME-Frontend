@@ -34,6 +34,7 @@ const navItems: NavItem[] = [
     href: '/energia',
     children: [
       { label: 'Gestión del sector', href: '/energia' },
+      { label: 'Balance Oferta-Demanda', href: '/balance-oferta-demanda' },
       { label: 'Predicciones SIN', href: '/energia/predicciones' },
       { label: 'Informes energéticos', href: '/energia/informes' },
       { label: 'Portal Energético', href: 'https://portalenergetico.minenergia.gov.co/' },
@@ -57,7 +58,7 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    label: 'Colombia Solar',
+    label: 'Comunidades Energéticas',
     href: '/colombia-solar',
     children: [
       { label: 'Resumen', href: '/colombia-solar' },
