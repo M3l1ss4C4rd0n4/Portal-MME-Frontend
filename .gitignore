@@ -95,3 +95,7 @@ docs/documentacion-tecnica/graph-global.json
 
 # Documentos de trabajo internos (informes mensuales, evidencias) — no son código del portal
 informes del mes/
+
+# Bytecode de Python (scripts auxiliares de .claude/)
+__pycache__/
+*.pyc
