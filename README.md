@@ -46,6 +46,11 @@ El **Portal de Dirección MME** es una plataforma de business intelligence que i
 
 ### Dashboards Disponibles
 
+> **Corregido 2026-09-30:** esta tabla tenía 12 filas; hay **16 carpetas de dashboard reales** en
+> `src/app/(dashboards)/` más el Asistente IA en `src/app/asistente/`. "Predicciones" e "Informes"
+> no son carpetas de nivel raíz — son subpáginas de `energia/` (`energia/predicciones`,
+> `energia/informes`). Se agregaron los 7 módulos que faltaban.
+
 | Dashboard | Estado | Fuente de Datos | Descripción |
 |-----------|--------|-----------------|-------------|
 | **Home** | ✅ Producción | APIs múltiples | Vista ejecutiva consolidada |
@@ -54,12 +59,18 @@ El **Portal de Dirección MME** es una plataforma de business intelligence que i
 | **Contratos OR** | ✅ Producción | PostgreSQL | Contratos Operadores de Red |
 | **Supervisión** | ✅ Producción | PostgreSQL | Supervisión de contratos FNCER |
 | **Subsidios** | ✅ Producción | PostgreSQL | Subsidios de energía DEE |
-| **Energía** | ✅ Producción | PostgreSQL | Gestión del sector eléctrico |
+| **Energía** | ✅ Producción | PostgreSQL | Gestión del sector eléctrico (incluye las subpáginas `predicciones` e `informes`) |
 | **FENOGE** | ✅ Producción | PostgreSQL | Fondo Nacional de Eficiencia Energética |
 | **Colombia Solar** | ✅ Producción | PostgreSQL | Curvas S del programa Colombia Solar |
-| **Predicciones** | ✅ Producción | PostgreSQL + ML | Proyección hidrológica de embalses (ONI, El Niño) |
-| **Informes** | ✅ Producción | Archivos | Explorador de boletines e informes XM |
-| **Hidrocarburos** | 🚧 En construcción | Excel/scraping | Presupuesto y exploración del sector hidrocarburos |
+| **Hidrocarburos** | ✅ Producción (2 subpáginas) | Excel/scraping | Presupuesto y exploración del sector hidrocarburos |
+| **Balance Oferta-Demanda** (29-sep) | ✅ Producción | PostgreSQL + proyectos UPME | Brecha oferta/demanda del SIN, proyectos de expansión UPME con retraso, simuladores contrafactuales |
+| **Catálogo de Métricas** | ✅ Producción | PostgreSQL (ontología) | Catálogo navegable de las métricas del sistema |
+| **Explorador de Red** | ✅ Producción | PostgreSQL | Búsqueda de empresas y su red de relaciones (vecindario) |
+| **Pagos** | ✅ Producción | PostgreSQL | Detalle de pagos de subsidios por cuenta y vigencia |
+| **Salud de Datos** | ✅ Producción | PostgreSQL (ontología) | Monitor de salud/actualidad de la capa de ontología |
+| **Validaciones** | ✅ Producción | PostgreSQL | Validación final de cuentas de subsidios por prestador |
+| **Vista Departamental** | ✅ Producción | PostgreSQL + GeoJSON | Resumen por departamento (comunidades, contratos, supervisión) |
+| **Asistente IA** (`/asistente`) | ✅ Producción | API + RAG | Chat del Asistente IA, multimodal, con voz en tiempo real |
 
 ---
 
@@ -133,25 +144,39 @@ El **Portal de Dirección MME** es una plataforma de business intelligence que i
 ```
 src/
 ├── app/                          # Next.js App Router
-│   ├── (dashboards)/             # Route Group - Dashboards
-│   │   ├── energia/              # 🚧 En construcción
-│   │   ├── presupuesto/          # ✅ Producción
-│   │   ├── comunidades/          # ✅ Producción
-│   │   ├── contratos-or/         # ✅ Producción
-│   │   ├── supervision/          # ✅ Producción
-│   │   └── subsidios/            # ✅ Producción
-│   ├── api/                      # API Routes (Next.js)
+│   ├── (dashboards)/             # Route Group - 16 dashboards, todos ✅ Producción
+│   │   ├── energia/               # + subpáginas predicciones/, informes/
+│   │   ├── presupuesto/
+│   │   ├── comunidades/
+│   │   ├── contratos-or/
+│   │   ├── supervision/
+│   │   ├── subsidios/
+│   │   ├── fenoge/
+│   │   ├── colombia-solar/
+│   │   ├── hidrocarburos/         # + subpáginas presupuesto/, exploracion/
+│   │   ├── balance-oferta-demanda/ # nuevo 29-sep
+│   │   ├── catalogo-metricas/
+│   │   ├── explorador-red/
+│   │   ├── pagos/
+│   │   ├── salud-datos/
+│   │   ├── validaciones/
+│   │   └── vista-departamental/
+│   ├── asistente/                 # Asistente IA (fuera del route group de dashboards)
+│   ├── api/                       # API Routes (Next.js) — 29 carpetas de nivel raíz hoy
 │   │   ├── comunidades/route.ts
 │   │   ├── contratos-or/route.ts
 │   │   ├── presupuesto/route.ts
 │   │   ├── sector/route.ts
 │   │   ├── subsidios/route.ts
-│   │   └── supervision/route.ts
+│   │   ├── supervision/route.ts
+│   │   ├── balance-oferta-demanda/  # nuevo 29-sep
+│   │   ├── asistente/, voz/, ontologia/  # Asistente IA, voz, ontología
+│   │   └── ...                      # ver src/app/api/ para el listado completo
 │   ├── layout.tsx                # Root layout
 │   └── page.tsx                  # Home dashboard
 │
 ├── components/
-│   ├── ui/                       # Componentes base (8)
+│   ├── ui/                       # Componentes base (11, verificado 2026-09-30 — 4 huérfanos sin importadores se eliminaron en esa fecha)
 │   │   ├── KPICard.tsx
 │   │   ├── SemiGauge.tsx
 │   │   ├── SemiPieChart.tsx
@@ -363,8 +388,8 @@ Dashboards:
 │   └── 17 tableros analíticos
 │   └── Usuarios internos MME
 │
-├── Portal Next.js (Puerto 3001)
-│   └── 6 dashboards modernos
+├── Portal Next.js (Puerto 3001, loopback — solo vía nginx desde el 29-sep)
+│   └── 16 dashboards modernos + Asistente IA
 │   └── Público externo
 │   └── API REST intermediaria
 │
@@ -428,9 +453,8 @@ cd portal-direccion-mme
 # Instalar dependencias
 npm install
 
-# Configurar variables de entorno
-cp .env.local.example .env.local
-# Editar .env.local
+# Configurar variables de entorno (no existe .env.local.example — partir de .env.local directamente)
+nano .env.local
 
 # Build de producción
 npm run build
@@ -467,6 +491,13 @@ PGDATABASE=portal_energetico
 PGUSER=mme_user
 PGPASSWORD=<password>
 NEXT_PUBLIC_SITE_URL=https://portaldireccionee.minenergia.gov.co
+
+# Corregido 2026-09-30 — usadas por el código y antes no documentadas:
+BACKEND_API_URL=http://127.0.0.1:8000       # URL del backend FastAPI
+BACKEND_API_KEY=<api-key>                    # debe coincidir con API_KEYS_WHITELIST del backend
+CHATBOT_API_URL=http://127.0.0.1:8000       # Asistente IA / orquestador
+CHATBOT_API_KEY=<api-key>
+COLOMBIA_SOLAR_XLSX=<ruta-al-excel>          # fuente del tablero Colombia Solar
 ```
 
 ---
@@ -496,6 +527,12 @@ sudo systemctl restart celery-beat
 ```
 
 #### PM2 (Frontend)
+
+> **Seguridad (29-sep):** Next.js escuchaba antes en todas las interfaces (`0.0.0.0`), alcanzable
+> directamente sin pasar por nginx (sin TLS ni cabeceras de seguridad). Desde el commit `15935f2`
+> arranca con `-H 127.0.0.1` (ver `ecosystem.config.js`) — ya no es alcanzable fuera del servidor,
+> solo vía `nginx`. Si se cambia `ecosystem.config.js` hay que `pm2 delete portal-mme && pm2 start
+> ecosystem.config.js` (restart solo no recarga los `args` del proceso).
 
 ```bash
 # Status
@@ -661,28 +698,29 @@ python etl/etl_todas_metricas_xm.py --verbose
 
 **Nota:** No todos los endpoints usan la misma fuente. Los de `sector` y `subsidios` (raíz) llaman al backend FastAPI vía `backendGet()`. Los de `validaciones` y `deficit-historico` usan el pool PostgreSQL directo.
 
-### Directorios vacíos detectados
+### Corrección 2026-09-30 — esta sección estaba desactualizada
 
-- `src/hooks/` — Vacío. Pendiente crear custom hooks reutilizables.
-- `src/components/dashboard/` — Vacío. Los componentes de dashboard viven en `src/components/` (raíz) o `src/components/ui/`.
-
-### Documentación técnica generada
-
-La documentación detallada del grafo vive en `/home/admonctrlxm/documentacion-tecnica/`:
-- `portal-direccion-mme_ARCHITECTURE.md`
-- `portal-direccion-mme_DATA_FLOW.md`
-- `portal-direccion-mme_SERVICES_DEPS.md`
-- `portal-direccion-mme_TECH_DEBT.md`
-- `portal-direccion-mme_CLEANUP_PROPOSAL.md`
+- `src/hooks/` — **no está vacío**: tiene `useAsistenteChat.ts` (3 importadores), `useAsistenteVoz.ts`
+  (2), `useDiagnosticosIA.ts` (1) y `useHomeSlider.ts` (1), todos con uso real confirmado.
+- `src/components/dashboard/` — **no está vacío**: `Card.tsx` y `KpiChip.tsx` tienen 15+
+  importadores reales en distintos dashboards.
+- `/home/admonctrlxm/documentacion-tecnica/` **no contiene** ninguno de los 5 archivos listados
+  abajo — solo tiene `SKILL_PACK_CLAUDE.md` y una subcarpeta `manual tecnico/` con el manual de
+  accesos en `.docx`. Los 5 archivos de arquitectura/grafo nunca se generaron o se borraron; no
+  enlazar a ellos como si existieran.
 
 ---
 
 ## Documentación Adicional
 
-- [Guía de Onboarding](./docs/GUIA_ONBOARDING.md)
-- [Arquitectura Detallada](./docs/ARQUITECTURA_E2E.md)
-- [Troubleshooting](./docs/GUIA_TROUBLESHOOTING.md)
-- [API Documentation](./docs/GUIA_USO_API.md)
+- [Guía de Onboarding](./docs/GUIA_ONBOARDING.md) *(backend — este frontend no tiene copia propia; usar la del repo `server`)*
+- [Troubleshooting](./docs/GUIA_TROUBLESHOOTING.md) *(backend)*
+- [API Documentation](./docs/GUIA_USO_API.md) *(backend, reescrita 2026-09-30, 115 endpoints reales)*
+
+> Los 4 enlaces que había aquí apuntaban a `./docs/...` de **este** repo, pero `docs/` en el
+> frontend solo tiene un `.json` de grafo — esos archivos viven en el repo `server`
+> (`/home/admonctrlxm/server/docs/`). Corregido 2026-09-30; se retiró "Arquitectura Detallada"
+> porque `ARQUITECTURA_E2E.md` no existe en ninguno de los dos repos.
 
 ---
 

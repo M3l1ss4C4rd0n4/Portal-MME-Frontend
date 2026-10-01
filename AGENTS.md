@@ -58,12 +58,12 @@ src/
 │   ├── db.ts                 # Pool PostgreSQL
 │   └── nivo-theme.ts         # Tema compartido gráficas
 │
-└── hooks/                    # Custom React hooks [VACÍO - crear hooks reutilizables]
+└── hooks/                    # Custom React hooks: useAsistenteChat, useAsistenteVoz, useDiagnosticosIA, useHomeSlider (corregido 2026-09-30, no está vacío)
 
 ### Nota de Arquitectura (Grafo 2026-05-01)
 
 - `src/components/HomeSlider.tsx` es un **god component** (2.730 líneas, 2026-08-25). No añadir más lógica a este archivo. Extraer nuevas funciones a `src/lib/` o `src/services/`.
-- `src/components/dashboard/` existe pero está vacío. Si creas componentes de dashboard, colócalos ahí en lugar de la raíz de `src/components/`.
+- `src/components/dashboard/` **NO está vacío** (corregido 2026-09-30): tiene `Card.tsx` y `KpiChip.tsx`, con 15+ importadores reales en distintos dashboards — verificar con grep antes de asumir que algo ahí no se usa. Si creas componentes de dashboard, colócalos ahí en lugar de la raíz de `src/components/`.
 - Los API routes no comparten una capa de servicios común. Cada `route.ts` repite `backendGet()` o `getPool()`. Si creas un nuevo endpoint, evalúa si merece una abstracción en `src/services/apiService.ts`.
 ```
 
@@ -405,7 +405,6 @@ npm run build --verbose
 
 ## ⚠️ Deuda Técnica Conocida
 
-- `src/hooks/` está vacío - crear custom hooks reutilizables
 - Tableros de Hidrocarburos (combustibles, gas, transporte, energías alternativas) pendientes de datos reales - a la espera de que el equipo de hidrocarburos comparta los archivos fuente completos
 - Cobertura de tests: suite Vitest en `src/lib/` (formato, kpi-logic, svg-math); pendiente ampliar a componentes
 
