@@ -5,10 +5,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postbuild": "bash scripts/postbuild-restart.sh",
     "start": "next start",
     "lint": "eslint",
     "deploy": "bash scripts/deploy.sh",
-    "install:server": "bash scripts/install.sh"
+    "install:server": "bash scripts/install.sh",
+    "verify:assets": "bash scripts/check-assets.sh"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

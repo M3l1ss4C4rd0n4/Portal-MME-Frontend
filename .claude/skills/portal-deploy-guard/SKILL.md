@@ -5,8 +5,14 @@ description: "Reglas obligatorias de deploy y producción del Portal Dirección 
 
 # Portal Deploy Guard — Reglas Obligatorias
 
-> **Incidente documentado:** 2026-06-02 — Pantalla blanca para TODOS los usuarios.
-> **Causa:** `npm run build` sin `pm2 restart portal-mme`. Ver `.knowledge/errors.md`.
+> **Incidente #1:** 2026-06-02 — Pantalla blanca para TODOS los usuarios.
+> **Incidente #2:** 2026-09-30 — **La misma causa, otra vez.** Build a las 22:28 sobre un
+> proceso arrancado a la 01:47. Estuvo en blanco **6 días** sin que ninguna alerta saltara.
+> **Causa (ambos):** `npm run build` sin `pm2 restart portal-mme`. Ver `.knowledge/errors.md`.
+>
+> **Lección del incidente #2:** esta regla ya estaba escrita aquí desde junio y aun así se
+> repitió. Escribir la regla no basta — desde 2026-10-06 está **forzada técnicamente**
+> (hook `postbuild`) y **vigilada** (cron cada 5 min). Ver "Protecciones automáticas".
 
 ## Regla #1 — Operación atómica (INVIOLABLE)
 
@@ -32,6 +38,19 @@ pm2 restart portal-mme
 
 Si el agente necesita compilar: **ejecutar `./scripts/deploy.sh`**, no inventar pasos manuales.
 
+### Protecciones automáticas (desde 2026-10-06)
+
+Tres capas, por si alguien se salta la regla:
+
+| Capa | Qué hace | Archivo |
+|---|---|---|
+| **1. Hook `postbuild`** | `npm run build` reinicia PM2 **solo**. Ya no es posible dejar un build huérfano. | `scripts/postbuild-restart.sh` |
+| **2. Cron cada 5 min** | Verifica los `/_next/static` reales, auto-repara y deja log. Antes el portal no tenía monitoreo. | `server/scripts/monitor_portal.sh` |
+| **3. Gate en deploy** | `deploy.sh` revierte al build anterior si los recursos quedan rotos, en vez de reportar éxito. | `scripts/deploy.sh` (paso 7b) |
+| **4. Swap atómico** | `deploy.sh` compila en `.next.staging` y sólo intercambia al final: **el portal sigue en línea durante toda la compilación**, y un build fallido no lo toca. | `scripts/deploy.sh` (pasos 2–4) |
+
+Verificación manual en cualquier momento: `npm run verify:assets`
+
 ## Regla #2 — Cuándo activar este skill
 
 Activar **antes de cualquier acción** que involucre:
@@ -54,13 +73,13 @@ curl -s http://localhost:3001/api/health | head -c 200
 curl -s -o /dev/null -w "home: %{http_code}\n" https://portalviceministerioenergia.minenergia.gov.co/
 ```
 
-Confirmar que el HTML referencia chunks que existen:
+Confirmar que **todos** los recursos referenciados existen (no basta con uno:
+en el incidente #2, 17 de 19 chunks respondían 200 y aun así la página salía en blanco):
 
 ```bash
-CHUNK=$(curl -s https://portalviceministerioenergia.minenergia.gov.co/ | grep -oP '/_next/static/chunks/[^"]+\.js' | head -1)
-[ -n "$CHUNK" ] || { echo "FAIL: no chunk found in HTML"; exit 1; }
-curl -sI "https://portalviceministerioenergia.minenergia.gov.co${CHUNK}" | head -1
-# Debe ser: HTTP/1.1 200 OK
+npm run verify:assets                                      # local (127.0.0.1:3001)
+bash scripts/check-assets.sh https://portalviceministerioenergia.minenergia.gov.co /   # público
+# Debe decir: OK N/N recursos
 ```
 
 ## Regla #4 — Diagnóstico pantalla blanca
@@ -77,10 +96,27 @@ Si el servidor responde **200** pero la página está **blanca para todos**:
 3. **Fix:** `./scripts/deploy.sh`
 4. **No culpar al navegador del usuario** si afecta a todos.
 
-## Regla #5 — Lo que NO previene el cron simple
+## Regla #5 — Por qué un health check normal NO sirve
 
-Un cron `curl /api/health || pm2 restart` **NO detecta** asset mismatch (health sigue en 200).
-Para mismatch, la prevención es **Regla #1**: nunca build sin restart.
+Un cron `curl /api/health || pm2 restart` **NO detecta** asset mismatch: la portada y las APIs
+siguen en 200. Eso es exactamente lo que dejó el incidente #2 invisible 6 días —
+`monitor_api.sh` sólo vigilaba el backend (puerto 8000), no el portal.
+
+La detección válida es **probar cada recurso `/_next/static`**, que es lo que hacen
+`scripts/check-assets.sh` y el cron `monitor_portal.sh`. No sustituir por un check de portada.
+
+## Regla #5b — Nunca compilar sobre el build vivo
+
+`next build` escribe en `distDir` **en sitio**. Compilar sobre `.next` mientras el proceso
+corre deja el portal en blanco durante toda la compilación.
+
+`deploy.sh` ya lo resuelve: compila en `.next.staging` (vía `NEXT_DIST_DIR`) y hace
+`mv` al final. Al tocar el script, respetar dos cosas:
+
+1. `NEXT_DIST_DIR` y `DEPLOY_IN_PROGRESS` van **acotadas al comando**, nunca con `export`.
+   Si se filtran a PM2 vía `--update-env`, `next start` buscaría `.next.staging` —
+   que ya no existe tras el swap — y el portal no levanta.
+2. El swap son dos `mv` en el mismo filesystem. No sustituir por `cp`/`rsync`: deja de ser atómico.
 
 ## Regla #6 — Comunicación al usuario
 
@@ -92,7 +128,10 @@ Si el agente ejecutó `npm run build` por error sin restart:
 
 ## Referencias
 
-- Script: `scripts/deploy.sh`
+- Script de deploy: `scripts/deploy.sh`
+- Verificador de recursos: `scripts/check-assets.sh` (`npm run verify:assets`)
+- Hook automático: `scripts/postbuild-restart.sh`
+- Monitoreo: `server/scripts/monitor_portal.sh` → `server/logs/monitor_portal.log`
 - Prevención: `scripts/PREVENTION_PLAN.md`
 - Errores: `.knowledge/errors.md` → "Asset mismatch tras build sin PM2 restart"
 - PM2 app: `portal-mme` · puerto **3001** · nginx → 443

@@ -29,6 +29,7 @@ graphify-out/*.pre-*
 # next.js
 /.next/
 /.next.bak*/
+/.next.staging/
 /out/
 
 # production

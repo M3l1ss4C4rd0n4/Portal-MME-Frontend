@@ -323,22 +323,24 @@ pm2 logs portal-mme --lines 100
 
 ### Build de Producción
 
+**Un solo comando. No desglosar en pasos manuales:**
+
 ```bash
-# Limpiar build anterior
-rm -rf .next/
-
-# Build
-npm run build
-
-# Verificar que APIs funcionen
-for api in comunidades presupuesto contratos-or supervision subsidios; do
-  curl -s http://localhost:3000/api/$api/ | head -c 50
-  echo "..."
-done
-
-# Restart PM2
-pm2 restart portal-mme
+cd /home/admonctrlxm/portal-direccion-mme
+./scripts/deploy.sh      # backup + build + restart + verificación de APIs y recursos
 ```
+
+`deploy.sh` compila en `.next.staging` y hace swap atómico al final, así que **el portal
+sigue en línea durante toda la compilación** y un build fallido no lo toca. Además hace
+backup con rollback, reinicia PM2 y revierte si los recursos estáticos quedan rotos.
+Verificación suelta en cualquier momento: `npm run verify:assets`.
+
+> **No ejecutar `rm -rf .next/ && npm run build` a mano en producción.** Sobrescribe el
+> build bajo el proceso vivo y deja la página en blanco (incidentes 2026-06-02 y 2026-09-30).
+> Desde 2026-10-06 el hook `postbuild` reinicia PM2 automáticamente como red de seguridad,
+> pero el camino correcto sigue siendo `./scripts/deploy.sh`.
+>
+> El portal corre en el **puerto 3001**, no 3000.
 
 ---
 

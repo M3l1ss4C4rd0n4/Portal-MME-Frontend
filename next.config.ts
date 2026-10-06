@@ -3,7 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Modo servidor — permite API routes con acceso a PostgreSQL
   // output: 'export' eliminado intencionalmente (era modo estático)
-  distDir: '.next',
+  // Directorio de build. deploy.sh compila a '.next.staging' y hace swap atómico
+  // al final, para que el proceso vivo nunca se quede sin su build mientras compila.
+  // En runtime (`next start` bajo PM2) la variable NO está definida → '.next'.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   images: {
     unoptimized: true,
   },
