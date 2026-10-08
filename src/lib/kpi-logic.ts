@@ -122,14 +122,27 @@ export function diagnosticoSIN(
   const ne = clasificarIndiceNE(reservasPct);
   const sendaPct = ne.sendaReferenciaPct;
 
+  // Mismo árbol de decisión que determinar_condicion_sistema() del backend
+  // (Estatuto CREG 026/2014 art. 3), para que el portal y el informe no
+  // describan el mismo día de forma distinta:
+  //   NE Inferior + HSIN < 90%  -> RIESGO
+  //   NE Inferior               -> VIGILANCIA
+  //   HSIN < 90%                -> VIGILANCIA
+  //
+  // Antes el matiz de HSIN vivía en una rama `ne.nivel === "ALERTA"` que era
+  // inalcanzable (INFERIOR se atrapa justo arriba y el Índice NE es binario),
+  // así que nunca se evaluó: un embalse bajo senda con aportes deficitarios
+  // se describía igual que uno con aportes normales.
+  const hsinBajo = aportesPct !== null && aportesPct < HSIN_UMBRAL_NORMAL;
+
   if (ne.nivel === "INFERIOR") {
-    return `Sistema en RIESGO — embalse ${reservasPct.toFixed(1)}% bajo senda CREG ${sendaPct.toFixed(1)}%.`;
-  }
-  if (ne.nivel === "ALERTA") {
-    if (aportesPct !== null && aportesPct < HSIN_UMBRAL_NORMAL) {
-      return `Sistema en VIGILANCIA — embalse bajo senda CREG + HSIN ${aportesPct.toFixed(1)}% < 90%.`;
+    if (hsinBajo) {
+      return `Sistema en RIESGO — embalse ${reservasPct.toFixed(1)}% bajo senda CREG ${sendaPct.toFixed(1)}% + HSIN ${aportesPct!.toFixed(1)}% < 90%.`;
     }
-    return `Sistema en alerta temprana — embalse bajo senda CREG ${sendaPct.toFixed(1)}%.`;
+    return `Sistema en VIGILANCIA — embalse ${reservasPct.toFixed(1)}% bajo senda CREG ${sendaPct.toFixed(1)}%.`;
+  }
+  if (hsinBajo) {
+    return `Sistema en VIGILANCIA — HSIN ${aportesPct!.toFixed(1)}% < 90% de la media histórica.`;
   }
   if (reservasPct >= OBJETIVO_XM_EMBALSE_ANTE_NINO_PCT) {
     return `Sistema en condiciones normales — embalse ≥ objetivo XM (${OBJETIVO_XM_EMBALSE_ANTE_NINO_PCT}%).`;

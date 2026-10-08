@@ -51,8 +51,28 @@
 /** Objetivo XM ante El Niño (Boletín XM 10-abril-2026). NO regulatorio. */
 export const OBJETIVO_XM_EMBALSE_ANTE_NINO_PCT = 80.0;
 
-/** Tolerancia de la senda en puntos porcentuales (X = 0 en práctica reciente). */
+/**
+ * Tolerancia de la senda en puntos porcentuales.
+ *
+ * ATENCIÓN: el 0 es CORRECTO y deliberado. El Estatuto CREG 026/2014 art. 2
+ * lit. B, tal como lo modificó la Res. CREG 101 112/2026, compara el embalse
+ * contra la senda SIN banda intermedia: el Índice NE es BINARIO. No subir
+ * este valor para "destrabar" una banda ALERTA — eso inventaría una banda
+ * regulatoria inexistente. El gradiente de 4 niveles que usa la UI vive en
+ * clasificarVisualEmbalse() y usa SENDA_MARGEN_VIGILANCIA_PP, que es
+ * criterio propio del portal. Espejo de core/umbrales_oficiales.py.
+ */
 export const SENDA_TOLERANCIA_PP = 0.0;
+
+/**
+ * Margen de vigilancia bajo la senda, en puntos porcentuales.
+ *
+ * CRITERIO PROPIO DEL PORTAL — no proviene de ninguna resolución de la CREG.
+ * Gradúa el visual entre "apenas por debajo de la senda" y "muy por debajo",
+ * distinción que el Índice NE oficial no hace. Todo texto que lo use debe
+ * decir que es criterio propio.
+ */
+export const SENDA_MARGEN_VIGILANCIA_PP = 5.0;
 
 /**
  * Senda de Referencia mensual oficial publicada por XM/CND
@@ -101,7 +121,8 @@ export function obtenerSendaReferencia(fecha?: Date): number {
   return SENDA_REFERENCIA[mes] ?? 50.0;
 }
 
-export type NivelNE = "SUPERIOR" | "ALERTA" | "INFERIOR";
+/** El Índice NE es binario: ver nota en SENDA_TOLERANCIA_PP. */
+export type NivelNE = "SUPERIOR" | "INFERIOR";
 
 export interface ResultadoIndiceNE {
   nivel: NivelNE;
@@ -126,18 +147,12 @@ export function clasificarIndiceNE(
     };
   }
 
-  const umbralInferior = senda - SENDA_TOLERANCIA_PP;
-  if (nivelEmbalsePct >= umbralInferior) {
-    return {
-      nivel: "ALERTA",
-      descripcion: `Embalse ${nivelEmbalsePct.toFixed(1)}% entre ${umbralInferior.toFixed(1)}% y senda ${senda.toFixed(1)}%.`,
-      sendaReferenciaPct: senda,
-    };
-  }
-
+  // No hay banda intermedia: con SENDA_TOLERANCIA_PP = 0 la rama "ALERTA"
+  // era inalcanzable por construcción y hacía creer que existía un nivel de
+  // vigilancia regulatorio. Se eliminó en ambos lados del espejo.
   return {
     nivel: "INFERIOR",
-    descripcion: `Embalse ${nivelEmbalsePct.toFixed(1)}% < senda ${senda.toFixed(1)}% − ${SENDA_TOLERANCIA_PP}pp.`,
+    descripcion: `Embalse ${nivelEmbalsePct.toFixed(1)}% < senda CREG ${senda.toFixed(1)}%.`,
     sendaReferenciaPct: senda,
   };
 }
@@ -227,17 +242,23 @@ export function clasificarVisualEmbalse(
       fuenteRegulatoria: `≥ senda CREG ${ne.sendaReferenciaPct.toFixed(1)}% (Estatuto CREG 026/2014).`,
     };
   }
-  if (nivelEmbalsePct >= ne.sendaReferenciaPct - 5.0) {
+  if (nivelEmbalsePct >= ne.sendaReferenciaPct - SENDA_MARGEN_VIGILANCIA_PP) {
     return {
       label: "ALERTA — BAJO SENDA",
       color: "#F97316",
-      fuenteRegulatoria: `< senda CREG ${ne.sendaReferenciaPct.toFixed(1)}% — NE Alerta.`,
+      fuenteRegulatoria:
+        `< senda CREG ${ne.sendaReferenciaPct.toFixed(1)}%, dentro de ` +
+        `${SENDA_MARGEN_VIGILANCIA_PP.toFixed(0)}pp [criterio propio del portal, ` +
+        `no CREG]. Índice NE Inferior (Estatuto CREG 026/2014).`,
     };
   }
   return {
     label: "RIESGO — DESABASTECIMIENTO",
     color: "#EF4444",
-    fuenteRegulatoria: `< senda CREG ${ne.sendaReferenciaPct.toFixed(1)}% − 5pp — NE Inferior (CREG 026/2014 art. 3).`,
+    fuenteRegulatoria:
+      `Más de ${SENDA_MARGEN_VIGILANCIA_PP.toFixed(0)}pp por debajo de la senda CREG ` +
+      `${ne.sendaReferenciaPct.toFixed(1)}% [margen de criterio propio del portal, ` +
+      `no CREG]. Índice NE Inferior (Estatuto CREG 026/2014).`,
   };
 }
 
