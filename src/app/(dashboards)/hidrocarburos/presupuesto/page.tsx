@@ -7,7 +7,6 @@ import * as XLSX from "xlsx";
 import { useTheme } from "@/providers/ThemeProvider";
 import DashboardLayout from "@/components/DashboardLayout";
 import Card from "@/components/dashboard/Card";
-import KpiChip from "@/components/dashboard/KpiChip";
 import SemiPieChart from "@/components/ui/SemiPieChart";
 import BulletChart from "@/components/ui/BulletChart";
 import { getNivoTheme } from "@/lib/nivo-theme";

@@ -90,3 +90,17 @@ export function mesOrderCaseSql(column = "mes"): string {
     .join(" ");
   return `CASE ${column} ${cases} ELSE 99 END`;
 }
+
+/**
+ * Número compacto para ejes de gráficas, en convención es-CO.
+ *
+ * Las medidas de los cubos SICOM llegan hasta ~2,7 × 10^12; con `fmtNum` las
+ * etiquetas del eje miden 17 caracteres y se recortan contra el margen.
+ */
+export function fmtCompactNum(v: number): string {
+  const abs = Math.abs(v);
+  if (abs >= 1e12) return `${(v / 1e12).toLocaleString("es-CO", { maximumFractionDigits: 1 })} bill.`;
+  if (abs >= 1e9) return `${(v / 1e9).toLocaleString("es-CO", { maximumFractionDigits: 1 })} mil M`;
+  if (abs >= 1e6) return `${(v / 1e6).toLocaleString("es-CO", { maximumFractionDigits: 1 })} M`;
+  return fmtNum(v);
+}

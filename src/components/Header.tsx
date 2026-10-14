@@ -73,6 +73,10 @@ const navItems: NavItem[] = [
     children: [
       { label: 'Presupuesto', href: '/hidrocarburos/presupuesto' },
       { label: 'Exploración', href: '/hidrocarburos/exploracion' },
+      { label: 'Agentes SICOM', href: '/hidrocarburos/agentes' },
+      { label: 'Compras', href: '/hidrocarburos/compras' },
+      { label: 'Compras EDS', href: '/hidrocarburos/compras-eds' },
+      { label: 'Capacidad', href: '/hidrocarburos/capacidad' },
     ],
   },
   { label: 'Asistente IA', href: '/asistente', highlight: true },

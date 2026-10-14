@@ -407,7 +407,17 @@ npm run build --verbose
 
 ## ⚠️ Deuda Técnica Conocida
 
-- Tableros de Hidrocarburos (combustibles, gas, transporte, energías alternativas) pendientes de datos reales - a la espera de que el equipo de hidrocarburos comparta los archivos fuente completos
+- Tableros de Hidrocarburos: **combustibles líquidos resuelto** (2026-10-13). Los cuatro tableros
+  SICOM (Agentes, Compras, Compras EDS, Capacidad) se alimentan **directamente de los cubos OLAP**
+  de SICOM por XMLA, sin exportación manual a Excel — ver `server/docs/SICOM_HIDROCARBUROS.md`.
+  Las tres bases concilian al 0,000 % contra el total que declara el cubo. Los defectos que tenía la
+  ruta de Excel (Compras EDS truncado, 25,4 % de volumen perdido en Compras, municipios ambiguos)
+  quedaron resueltos de raíz. La carga desde OneDrive sigue activa solo como contraste
+  (`v_sicom_contraste`); ninguna página la consulta.
+  **Pendiente de terceros, no del código:** la unidad de medida de «capacidad operativa» y los
+  cuatro ciclos atípicos de 2011-2012 los debe aclarar SICOM, y falta solicitar una cuenta de
+  servicio institucional (hoy el ETL usa una credencial personal). Gas, transporte y energías
+  alternativas siguen sin fuente.
 - Cobertura de tests: suite Vitest en `src/lib/` (formato, kpi-logic, svg-math); pendiente ampliar a componentes
 
 ---

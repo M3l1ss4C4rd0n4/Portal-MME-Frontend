@@ -7,6 +7,25 @@
 
 import type { LatLngBoundsExpression } from "leaflet";
 
+/** Una posición GeoJSON: [lng, lat] (y opcionalmente altitud). */
+export type Posicion = number[];
+/** Coordenadas de cualquier geometría, desde Point hasta MultiPolygon. */
+export type Coordenadas = Posicion | Posicion[] | Posicion[][] | Posicion[][][];
+
+export interface GeometriaGeoJSON {
+  type: string;
+  coordinates: Coordenadas;
+}
+
+export interface FeatureGeoJSON {
+  properties?: { NOMBRE_DPT?: string; DPTO?: string } | null;
+  geometry?: GeometriaGeoJSON | null;
+}
+
+export interface ColeccionGeoJSON {
+  features?: FeatureGeoJSON[];
+}
+
 /** Bounds para Colombia continental + inset San Andrés. */
 export const COL_BOUNDS: LatLngBoundsExpression = [[-4.2, -80.5], [13.6, -66.8]];
 
@@ -18,16 +37,17 @@ export const SAN_ANDRES_KEY = "ARCHIPIELAGO DE SAN ANDRES PROVIDENCIA Y SANTA CA
 export const SA_LNG_OFFSET = 3.2;
 
 /** Desplaza todos los pares [lng, lat] de una geometría GeoJSON. */
-export function shiftGeometryLng(geom: any, offset: number): void {
+export function shiftGeometryLng(geom: GeometriaGeoJSON | null | undefined, offset: number): void {
   if (!geom) return;
   if (geom.type === "Point") {
-    geom.coordinates[0] += offset;
+    (geom.coordinates as Posicion)[0] += offset;
   } else if (geom.type === "MultiPoint" || geom.type === "LineString") {
-    for (const c of geom.coordinates) c[0] += offset;
+    for (const c of geom.coordinates as Posicion[]) c[0] += offset;
   } else if (geom.type === "MultiLineString" || geom.type === "Polygon") {
-    for (const ring of geom.coordinates) for (const c of ring) c[0] += offset;
+    for (const ring of geom.coordinates as Posicion[][]) for (const c of ring) c[0] += offset;
   } else if (geom.type === "MultiPolygon") {
-    for (const poly of geom.coordinates) for (const ring of poly) for (const c of ring) c[0] += offset;
+    for (const poly of geom.coordinates as Posicion[][][])
+      for (const ring of poly) for (const c of ring) c[0] += offset;
   }
 }
 
@@ -54,7 +74,9 @@ export function applyJitter<T extends { lat: number; lng: number }>(
 }
 
 /** Centroides aproximados (bbox-center) de cada departamento, para las etiquetas del mapa. */
-export function computeDeptCentroids(geoData: any): Array<{ name: string; lat: number; lng: number }> {
+export function computeDeptCentroids(
+  geoData: ColeccionGeoJSON | null | undefined
+): Array<{ name: string; lat: number; lng: number }> {
   if (!geoData?.features) return [];
   const labels: Array<{ name: string; lat: number; lng: number }> = [];
   for (const feat of geoData.features) {
@@ -62,19 +84,21 @@ export function computeDeptCentroids(geoData: any): Array<{ name: string; lat: n
     if (!name || !feat.geometry) continue;
     let minLat = Infinity, maxLat = -Infinity;
     let minLng = Infinity, maxLng = -Infinity;
-    const extract = (geom: any) => {
+    const extract = (geom: GeometriaGeoJSON | null | undefined) => {
       if (!geom) return;
       if (geom.type === "Point") {
-        minLat = Math.min(minLat, geom.coordinates[1]);
-        maxLat = Math.max(maxLat, geom.coordinates[1]);
-        minLng = Math.min(minLng, geom.coordinates[0]);
-        maxLng = Math.max(maxLng, geom.coordinates[0]);
+        const pos = geom.coordinates as Posicion;
+        minLat = Math.min(minLat, pos[1]);
+        maxLat = Math.max(maxLat, pos[1]);
+        minLng = Math.min(minLng, pos[0]);
+        maxLng = Math.max(maxLng, pos[0]);
       } else if (geom.type === "MultiPoint" || geom.type === "LineString") {
-        for (const c of geom.coordinates) extract({ type: "Point", coordinates: c });
+        for (const c of geom.coordinates as Posicion[]) extract({ type: "Point", coordinates: c });
       } else if (geom.type === "MultiLineString" || geom.type === "Polygon") {
-        for (const ring of geom.coordinates) extract({ type: "LineString", coordinates: ring });
+        for (const ring of geom.coordinates as Posicion[][]) extract({ type: "LineString", coordinates: ring });
       } else if (geom.type === "MultiPolygon") {
-        for (const poly of geom.coordinates) for (const ring of poly) extract({ type: "LineString", coordinates: ring });
+        for (const poly of geom.coordinates as Posicion[][][])
+          for (const ring of poly) extract({ type: "LineString", coordinates: ring });
       }
     };
     extract(feat.geometry);

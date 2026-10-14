@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import type { ColeccionGeoJSON } from "@/components/maps/mapUtils";
 import {
   SAN_ANDRES_KEY,
   SA_LNG_OFFSET,
@@ -23,8 +24,8 @@ export function useDepartmentMapGeo<P extends { departamentoGeo: string; lat: nu
 ) {
   const transformedGeoData = useMemo(() => {
     if (!geoData) return null;
-    const clone = JSON.parse(JSON.stringify(geoData));
-    for (const feat of (clone as any).features) {
+    const clone = JSON.parse(JSON.stringify(geoData)) as ColeccionGeoJSON;
+    for (const feat of clone.features ?? []) {
       if (feat.properties?.NOMBRE_DPT === SAN_ANDRES_KEY) {
         shiftGeometryLng(feat.geometry, SA_LNG_OFFSET);
       }

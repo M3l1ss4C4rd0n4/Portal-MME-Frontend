@@ -1,6 +1,13 @@
 "use client";
 
 import { GeoJSON, Pane } from "react-leaflet";
+import type { Layer, LeafletMouseEvent, PathOptions } from "leaflet";
+
+/** Propiedades de cada departamento en el GeoJSON del portal. */
+type PropsDepto = { NOMBRE_DPT?: string; DPTO?: string };
+type FeatureDepto = Feature<Geometry, PropsDepto>;
+import type { Feature, Geometry } from "geojson";
+import type { ColeccionGeoJSON } from "@/components/maps/mapUtils";
 import type { DptoRow } from "@/types/mapa-departamentos";
 
 /**
@@ -14,7 +21,7 @@ interface DeptAvgConInversion {
 }
 
 interface Props {
-  transformedGeoData: any;
+  transformedGeoData: ColeccionGeoJSON;
   selectedDept: string | null;
   isDark: boolean;
   deptColors: Record<string, string>;
@@ -46,8 +53,8 @@ export default function DepartmentGeoJsonLayer({
     <Pane name="departments" style={{ zIndex: 350 }}>
       <GeoJSON
         key={`geo-${selectedDept ?? "all"}-${String(isDark)}-${Object.keys(deptColors).length}`}
-        data={transformedGeoData as any}
-        style={(feature?: any) => {
+        data={transformedGeoData as never}
+        style={(feature?: FeatureDepto): PathOptions => {
           const rawName: string = feature?.properties?.NOMBRE_DPT ?? "";
           const nombre = rawName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
           const normSelected = selectedDept?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
@@ -60,17 +67,17 @@ export default function DepartmentGeoJsonLayer({
             weight: isSelected ? 2.5 : 2,
           };
         }}
-        onEachFeature={(feature: any, layer: any) => {
+        onEachFeature={(feature: FeatureDepto, layer: Layer) => {
           const rawName: string = feature?.properties?.NOMBRE_DPT ?? "";
           const nombre = rawName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
           const normSelected = selectedDept?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
           const dataColor = deptColors[nombre];
           const baseOpacity = dataColor ? 0.6 : (isDark ? 0.85 : 0.9);
           layer.on("click", () => onSelectDept(normSelected === nombre ? null : nombre));
-          layer.on("mouseover", (e: any) => {
+          layer.on("mouseover", (e: LeafletMouseEvent) => {
             if (nombre !== normSelected) e.target.setStyle({ fillOpacity: baseOpacity - 0.2 });
           });
-          layer.on("mouseout", (e: any) => {
+          layer.on("mouseout", (e: LeafletMouseEvent) => {
             if (nombre !== normSelected) e.target.setStyle({ fillOpacity: baseOpacity });
           });
           // Tooltip con info del departamento al hacer hover
