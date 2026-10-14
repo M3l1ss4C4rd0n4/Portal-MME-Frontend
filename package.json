@@ -10,7 +10,9 @@
     "lint": "eslint",
     "deploy": "bash scripts/deploy.sh",
     "install:server": "bash scripts/install.sh",
-    "verify:assets": "bash scripts/check-assets.sh"
+    "verify:assets": "bash scripts/check-assets.sh",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

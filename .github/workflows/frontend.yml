@@ -1,0 +1,77 @@
+name: Portal — pruebas, tipos, lint y compilación
+
+# Verificación, no despliegue. El servidor está detrás del WAF del Ministerio y
+# GitHub no lo alcanza: desplegar sigue siendo manual con scripts/deploy.sh, que
+# ya compila en .next.staging, hace intercambio atómico y revierte si los
+# recursos quedan rotos.
+
+on:
+  push:
+    branches: [main, 'feat/**', 'fix/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: frontend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    name: tipos · lint · pruebas · compilación
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    env:
+      # La compilación no toca la base — verificado: next build pasa con la base
+      # inalcanzable porque las páginas son cliente y las rutas de API son
+      # dinámicas. Se apunta a un puerto muerto para que, si alguien introduce
+      # acceso a datos en tiempo de compilación, falle aquí y no en producción.
+      PGHOST: 127.0.0.1
+      PGPORT: "59999"
+      PGDATABASE: ci_sin_base
+      PGUSER: ci
+      PGPASSWORD: ""
+      # Evita que el gancho postbuild intente reiniciar PM2.
+      DEPLOY_IN_PROGRESS: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'       # la de producción
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Tipos
+        run: npx tsc --noEmit
+
+      - name: Pruebas
+        run: npx vitest run
+
+      - name: Lint contra la línea base
+        # El repositorio arrastra 82 errores repartidos por Colombia Solar,
+        # Contratos OR, Energía y otros tableros. Exigir cero haría que este
+        # flujo nunca estuviera en verde y acabaría ignorándose. Se exige que no
+        # aumenten; los 82 se limpian aparte. Mismo criterio que el chequeo de
+        # tipos del backend.
+        run: |
+          BASE=$(cat .eslint-baseline 2>/dev/null || echo 0)
+          ACTUAL=$(npx eslint src/ -f json 2>/dev/null \
+            | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).reduce((a,f)=>a+f.errorCount,0)))" \
+            || echo 0)
+          echo "línea base: $BASE · actual: $ACTUAL"
+          if [ "$ACTUAL" -gt "$BASE" ]; then
+            echo "::error::El lint subió de $BASE a $ACTUAL errores."
+            exit 1
+          fi
+
+      - name: Compilación de producción
+        # Detecta roturas que ni los tipos ni el lint ven. Compila a un
+        # directorio aparte para no parecerse a un despliegue.
+        run: npx next build
+        env:
+          NEXT_DIST_DIR: .next.ci

@@ -24,6 +24,28 @@ fail() { echo -e "${R}[FAIL]${NC} $*"; exit 1; }
 
 cd "$PROJECT_DIR"
 
+# ── 0. Procedencia del código ─────────────────────────────────
+# Desplegar lo que haya en disco, sin saber qué commit es, fue la raíz de los
+# dos incidentes de pantalla en blanco. Desde que hay CI, el contrato es:
+# solo se despliega un árbol limpio que corresponde a una confirmación.
+# Para una emergencia, DEPLOY_SIN_VERIFICAR=1 lo salta dejando constancia.
+if [ "${DEPLOY_SIN_VERIFICAR:-0}" = "1" ]; then
+  warn "DEPLOY_SIN_VERIFICAR=1 — se omite la comprobación de procedencia."
+  warn "Quedará desplegado código que puede no corresponder a ningún commit."
+else
+  if ! git diff --quiet || ! git diff --cached --quiet; then
+    echo
+    git status --short
+    echo
+    fail "Hay cambios sin confirmar. Confírmalos (o usa DEPLOY_SIN_VERIFICAR=1
+      para una emergencia) antes de desplegar: así el build siempre
+      corresponde a un commit que CI pudo verificar."
+  fi
+  RAMA=$(git branch --show-current)
+  COMMIT=$(git rev-parse --short HEAD)
+  log "Desplegando ${COMMIT} de la rama ${RAMA}."
+fi
+
 # ── 1. Pre-checks ─────────────────────────────────────────────
 log "Verificando variables de entorno..."
 MISSING=()
