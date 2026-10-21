@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { HIDROCARBUROS_VISIBLE } from "@/lib/featureFlags";
 
 interface NewsItem {
   titulo?: string;
@@ -60,7 +61,9 @@ export function useHomeSlider(extraSlidesCount: number = 0): UseHomeSliderReturn
         })
         .catch(() => undefined);
 
-      // Noticias de hidrocarburos (paralelo)
+      // Noticias de hidrocarburos (paralelo). Con la sección oculta, hydroNews
+      // se queda vacío: no suma slides ni puntos, y se evita la petición.
+      if (!HIDROCARBUROS_VISIBLE) return;
       fetch("/api/noticias/hidrocarburos")
         .then((r) => r.json())
         .then((data) => {

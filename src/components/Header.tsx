@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ui/ThemeToggle';
 import { useTheme } from '@/providers/ThemeProvider';
+import { HIDROCARBUROS_VISIBLE } from '@/lib/featureFlags';
 
 interface NavGrandchild {
   label: string;
@@ -25,6 +26,8 @@ interface NavItem {
   href: string;
   children?: NavChild[];
   highlight?: boolean;
+  /** Solo se muestra si HIDROCARBUROS_VISIBLE está activo. */
+  requiresHidrocarburos?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -70,6 +73,8 @@ const navItems: NavItem[] = [
   {
     label: 'Dirección de Hidrocarburos',
     href: '/hidrocarburos/presupuesto',
+    // Oculto mientras HIDROCARBUROS_VISIBLE sea false (ver src/lib/featureFlags.ts).
+    requiresHidrocarburos: true,
     children: [
       { label: 'Presupuesto', href: '/hidrocarburos/presupuesto' },
       { label: 'Exploración', href: '/hidrocarburos/exploracion' },
@@ -81,6 +86,12 @@ const navItems: NavItem[] = [
   },
   { label: 'Asistente IA', href: '/asistente', highlight: true },
 ];
+
+// Lo que realmente se pinta: igual a navItems salvo las secciones apagadas por
+// bandera. No se borra nada de navItems, solo se filtra.
+const visibleNavItems: NavItem[] = navItems.filter(
+  (item) => !item.requiresHidrocarburos || HIDROCARBUROS_VISIBLE
+);
 
 export default function Header() {
   const headerRef = useRef<HTMLElement>(null);
@@ -179,7 +190,7 @@ export default function Header() {
             </motion.div>
             <div className="hidden sm:block min-w-0">
               <h1 className="text-theme-primary font-bold text-sm min-[1760px]:text-xl tracking-tight whitespace-nowrap">
-                Portal Viceministerio de Energía
+                Portal Dirección de Energía
               </h1>
               <div className="hidden min-[1760px]:flex items-center gap-2">
                 <span className="text-xs font-medium text-gradient-gold">
@@ -193,7 +204,7 @@ export default function Header() {
 
           {/* Desktop nav */}
           <nav className="hidden min-[1280px]:flex flex-wrap min-w-0 items-center justify-center gap-0.5 min-[1760px]:gap-1.5 bg-theme-hover backdrop-blur-sm rounded-2xl px-1.5 min-[1760px]:px-3 py-1 min-[1760px]:py-1.5 border border-theme-primary">
-            {navItems.map((item, index) => (
+            {visibleNavItems.map((item, index) => (
               <motion.div
                 key={item.href}
                 initial={{ opacity: 0, y: -10 }}
@@ -401,7 +412,7 @@ export default function Header() {
             className="min-[1280px]:hidden overflow-hidden glass border-t border-gold-20"
           >
             <nav className="px-4 py-4 space-y-1">
-              {navItems.map((item, index) => (
+              {visibleNavItems.map((item, index) => (
                 <motion.div
                   key={item.href}
                   initial={{ x: -20, opacity: 0 }}

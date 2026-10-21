@@ -27,6 +27,7 @@ import { TopAccent, SectionBadge, CategoryTag, containerVariants, itemVariants }
 import { SlideSupervision } from "@/components/slides/SlideSupervision";
 import { SlideHidrocarburosPresupuesto } from "@/components/slides/SlideHidrocarburosPresupuesto";
 import { SlideHidrocarburosProduccion } from "@/components/slides/SlideHidrocarburosProduccion";
+import { HIDROCARBUROS_VISIBLE } from "@/lib/featureFlags";
 import type { TermicaSliderData } from "@/types/home-slider";
 // Marco regulatorio oficial — Resolución CREG 026/2014, 209/2020, 101 066/2024
 import {
@@ -2535,7 +2536,9 @@ export default function HomeSlider(props: HomeSliderProps) {
     handlePrev,
     handleNext,
     setPaused,
-  } = useHomeSlider(2); // 2 slides fijos de Hidrocarburos (Presupuesto + Producción/WTI-BRENT).
+    // 2 slides fijos de Hidrocarburos (Presupuesto + Producción/WTI-BRENT), 0 si
+    // la sección está oculta (ver src/lib/featureFlags.ts).
+  } = useHomeSlider(HIDROCARBUROS_VISIBLE ? 2 : 0);
   // NOTE: Slides de Redes Sociales X suspendidos temporalmente.
   // Motivo: X (Twitter) bloquea embeds gratuitos con HTTP 429.
   // Reactivar cuando haya presupuesto para API paga (TwitterAPI.io ~$10-20/mes).
@@ -2602,9 +2605,11 @@ export default function HomeSlider(props: HomeSliderProps) {
       );
     }
     // Slides fijos de Hidrocarburos (después de las noticias de hidrocarburos)
-    const hidroBaseIdx = 8 + news.length + hydroNews.length;
-    if (idx === hidroBaseIdx) return <SlideHidrocarburosPresupuesto d={hidroPresuData} />;
-    if (idx === hidroBaseIdx + 1) return <SlideHidrocarburosProduccion d={hidroProdData} />;
+    if (HIDROCARBUROS_VISIBLE) {
+      const hidroBaseIdx = 8 + news.length + hydroNews.length;
+      if (idx === hidroBaseIdx) return <SlideHidrocarburosPresupuesto d={hidroPresuData} />;
+      if (idx === hidroBaseIdx + 1) return <SlideHidrocarburosProduccion d={hidroProdData} />;
+    }
     // ── SUSPENDIDO: Slides de Redes Sociales X ──
     // const redesIdx = idx - (6 + news.length);
     // if (redesIdx >= 0 && redesIdx <= 2) {
@@ -2628,8 +2633,12 @@ export default function HomeSlider(props: HomeSliderProps) {
       label: `Hidrocarburos ${i + 1}`,
       color: "#D97706",
     })),
-    { id: "hidro-presupuesto", label: "Presupuesto Hidrocarburos", color: "#D97706" },
-    { id: "hidro-produccion", label: "Producción Hidrocarburos", color: "#D97706" },
+    ...(HIDROCARBUROS_VISIBLE
+      ? [
+          { id: "hidro-presupuesto", label: "Presupuesto Hidrocarburos", color: "#D97706" },
+          { id: "hidro-produccion", label: "Producción Hidrocarburos", color: "#D97706" },
+        ]
+      : []),
     // ── SUSPENDIDO: Dots de Redes Sociales X ──
     // { id: "redes-x-1", label: "Redes 1", color: "#1DA1F2" },
     // { id: "redes-x-2", label: "Redes 2", color: "#1DA1F2" },

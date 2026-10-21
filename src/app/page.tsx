@@ -25,6 +25,7 @@ import {
 } from "@/mocks/colombia-data";
 import { embalseDepartamento } from "@/lib/embalses-coords";
 import { fmtCortePresupuesto, formatPct } from "@/lib/format";
+import { HIDROCARBUROS_VISIBLE } from "@/lib/featureFlags";
 
 // ─── Mapa embalses SVG (no SSR) ───────────────────────────────────────────
 const MapaEmbalsesSVG = dynamic(
@@ -374,8 +375,14 @@ export default function Home() {
       fetch('/api/cu-evolucion').then(r => r.json()).catch(() => null),
       fetch('/api/subsidios/validaciones').then(r => r.json()).catch(() => null),
       fetch('/api/fenoge').then(r => r.json()).catch(() => null),
-      fetch('/api/hidrocarburos/presupuesto').then(r => r.json()).catch(() => null),
-      fetch('/api/hidrocarburos/produccion').then(r => r.json()).catch(() => null),
+      // Hidrocarburos: solo se piden si la sección está visible. Se conserva la
+      // posición en el Promise.all para no mover el resto del destructuring.
+      HIDROCARBUROS_VISIBLE
+        ? fetch('/api/hidrocarburos/presupuesto').then(r => r.json()).catch(() => null)
+        : Promise.resolve(null),
+      HIDROCARBUROS_VISIBLE
+        ? fetch('/api/hidrocarburos/produccion').then(r => r.json()).catch(() => null)
+        : Promise.resolve(null),
     ]).then(([s, sd, tm, p, c, o, sp, sb, sbh, cu, cue, val, fen, hp, hpr]) => {
       if (s) setSectorData({
         generacionGwh: Number(s.generacionGwh ?? 0),

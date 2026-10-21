@@ -16,8 +16,8 @@ export const metadata: Metadata = {
     'https://portaldireccionee.minenergia.gov.co'
   ),
   title: {
-    default: 'Portal Viceministerio de Energía – MinMinas',
-    template: '%s | Portal Viceministerio de Energía',
+    default: 'Portal Dirección de Energía – MinMinas',
+    template: '%s | Portal Dirección de Energía',
   },
   description:
     'Dashboard ejecutivo de la Dirección de Energía Eléctrica del Ministerio de Minas y Energía – República de Colombia.',
@@ -34,10 +34,10 @@ export const metadata: Metadata = {
     shortcut: '/favicon.svg',
   },
   openGraph: {
-    title: 'Portal Viceministerio de Energía – MinMinas',
+    title: 'Portal Dirección de Energía – MinMinas',
     description: 'Dashboard ejecutivo de la Dirección de Energía Eléctrica del Ministerio de Minas y Energía – República de Colombia.',
     url: 'https://portaldireccionee.minenergia.gov.co',
-    siteName: 'Portal Viceministerio de Energía',
+    siteName: 'Portal Dirección de Energía',
     images: [{ url: '/images/logo-minenergia.png', width: 512, height: 512 }],
     locale: 'es_CO',
     type: 'website',
