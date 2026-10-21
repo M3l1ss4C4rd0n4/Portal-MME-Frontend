@@ -147,10 +147,12 @@ export interface ContratosORData {
   nContratos: number;
   avanceGeneral: number;
   avanceFinanciero: number;
-  nUsuarios?: number;
-  nCEs?: number;
-  inversionTotal?: number;
-  potenciaTotal?: number;
+  avanceFisico?: number;
+  /** Totales de la fila TOTAL de la hoja "Base General_OR_Inicial". */
+  valorTotal?: number;
+  cesTotal?: number;
+  usuariosTotal?: number;
+  potenciaMwpTotal?: number;
 }
 
 export interface SupervisionData {

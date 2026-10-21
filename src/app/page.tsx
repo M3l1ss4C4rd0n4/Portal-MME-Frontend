@@ -310,10 +310,10 @@ export default function Home() {
     avanceGeneral: 0,
     avanceFinanciero: 0,
     avanceFisico: 0,
-    nUsuarios: 295911,
-    nCEs: 2297,
-    inversionTotal: 914360289397,
-    potenciaTotal: 37,
+    nUsuarios: 0,
+    nCEs: 0,
+    inversionTotal: 0,
+    potenciaTotal: 0,
     ultimaActualizacion: "",
   });
   const [supData, setSupData] = useState({
@@ -503,11 +503,15 @@ export default function Home() {
         avanceGeneral: Number(o.avanceGeneral ?? 0),
         avanceFinanciero: Number(o.avanceFinanciero ?? 0),
         avanceFisico: Number(o.avanceFisico ?? 0),
-        // Valores fijos de Contratos OR (no existen en BD, vienen de PowerBI)
-        nUsuarios: 295911,
-        nCEs: 2297,
-        inversionTotal: 914360289397,
-        potenciaTotal: 37,
+        // Totales de la fila TOTAL de la hoja "Base General_OR_Inicial"
+        // (colombia_solar.base_general_or_inicial), servidos por el backend.
+        // Antes estaban fijos aquí "porque no existen en BD": sí existen, y
+        // los fijos se habían quedado atrás (usuarios 295.911 contra 29.911
+        // reales; inversión 914.360.289.397 contra 968.268.668.130).
+        nUsuarios: Number(o.usuariosTotal ?? 0),
+        nCEs: Number(o.cesTotal ?? 0),
+        inversionTotal: Number(o.valorTotal ?? 0),
+        potenciaTotal: Number(o.potenciaMwpTotal ?? 0),
         ultimaActualizacion: o.ultima_actualizacion ?? "",
       });
       if (sp) setSupData({
