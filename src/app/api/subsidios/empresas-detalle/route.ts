@@ -74,11 +74,16 @@ type Valor = string[] | number[] | string | number | null;
 function buildWhere(
   alias: "sv" | "sp",
   f: Filtros,
-  opts: { corte?: string | null; omitir?: FiltroKey } = {}
+  opts: { corte?: string | null; omitir?: FiltroKey; desde?: number } = {}
 ): { where: string; values: Valor[] } {
   const cols = columnas(alias);
   const values: Valor[] = [];
   const parts: string[] = [];
+  // Cuando dos WHERE viven en la misma consulta, el segundo tiene que seguir
+  // la numeración del primero: si ambos empiezan en $1 los parámetros se
+  // cruzan y PostgreSQL falla al castear.
+  const base = opts.desde ?? 0;
+  const ph = (n: number) => `$${base + n}`;
 
   // Solo filas clasificables: mismo criterio que el tablero de Validaciones.
   if (alias === "sv") {
@@ -87,9 +92,9 @@ function buildWhere(
     if (opts.corte) {
       const [anio, mes] = opts.corte.split("-").map(Number);
       values.push(anio);
-      parts.push(`EXTRACT(YEAR FROM sv.fecha_actualizacion) = $${values.length}`);
+      parts.push(`EXTRACT(YEAR FROM sv.fecha_actualizacion) = ${ph(values.length)}`);
       values.push(mes);
-      parts.push(`EXTRACT(MONTH FROM sv.fecha_actualizacion) = $${values.length}`);
+      parts.push(`EXTRACT(MONTH FROM sv.fecha_actualizacion) = ${ph(values.length)}`);
     }
   } else {
     parts.push("sp.anio_trimestre_resolucion IS NOT NULL");
@@ -98,8 +103,8 @@ function buildWhere(
   for (const key of FILTRO_KEYS) {
     if (key === opts.omitir) continue;
     values.push(f[key]);
-    const ph = `$${values.length}::${TIPO[key]}`;
-    parts.push(`(${ph} IS NULL OR ${cols[key]} = ANY(${ph}))`);
+    const param = `${ph(values.length)}::${TIPO[key]}`;
+    parts.push(`(${param} IS NULL OR ${cols[key]} = ANY(${param}))`);
   }
 
   return { where: parts.join(" AND "), values };
@@ -175,7 +180,10 @@ export async function GET(req: NextRequest) {
         : null;
 
     const wVal = buildWhere("sv", f, { corte });
+    // El WHERE de pagos se usa solo y también combinado con el de validaciones;
+    // `wPagOffset` es la variante numerada a continuación de wVal.
     const wPag = buildWhere("sp", f);
+    const wPagOffset = buildWhere("sp", f, { desde: wVal.values.length });
 
     /* ── Detalle por empresa ───────────────────────────────────────────────
      * Validaciones y pagos tienen granos distintos, así que se agregan por
@@ -213,7 +221,7 @@ export async function GET(req: NextRequest) {
                SUM(sp.valor_pagado)            AS valor_pagado,
                SUM(sp.saldo_pendiente)         AS saldo_pendiente
         FROM subsidios.subsidios_pagos sp
-        WHERE ${wPag.where}
+        WHERE ${wPagOffset.where}
         GROUP BY 1
       ),
       unidas AS (
@@ -244,7 +252,7 @@ export async function GET(req: NextRequest) {
       LEFT JOIN subsidios.subsidios_empresas se ON se.codigo_sui = u.empresa_key
       ORDER BY u.valor_pagado DESC NULLS LAST, nombre
       `,
-      [...wVal.values, ...wPag.values]
+      [...wVal.values, ...wPagOffset.values]
     );
 
     /* ── Serie de validaciones por trimestre ───────────────────────────── */
@@ -299,7 +307,7 @@ export async function GET(req: NextRequest) {
 
     // Las empresas elegibles salen del propio detalle sin su filtro aplicado.
     const wValEmp = buildWhere("sv", f, { corte, omitir: "empresa" });
-    const wPagEmp = buildWhere("sp", f, { omitir: "empresa" });
+    const wPagEmp = buildWhere("sp", f, { omitir: "empresa", desde: wValEmp.values.length });
     const empresasOpcRes = await pool.query<{ key: string; nombre: string }>(
       `
       SELECT key, MIN(nombre) AS nombre FROM (
