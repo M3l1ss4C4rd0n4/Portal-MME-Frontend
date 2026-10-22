@@ -81,9 +81,9 @@ describe("mapa de empresas", () => {
     const cte = mapaEmpresasCte("$1", "$2");
 
     expect(cte).toContain("unnest($1::text[], $2::text[])");
-    expect(cte).toContain("t(nom, cod)");
-    // Sin MATERIALIZED, PostgreSQL inserta la CTE y reevalúa el unnest por
-    // cada fila exterior: 2.979 ms en la consulta de opciones de empresa.
+    // Un objeto jsonb se busca por clave; como CTE de filas, cada consulta la
+    // recorría entera por fila sin código (2.979 ms contra 38 ms).
+    expect(cte).toContain("jsonb_object_agg(nom, cod)");
     expect(cte).toContain("AS MATERIALIZED");
   });
 });
@@ -95,14 +95,15 @@ describe("empresaKeySql: rescate sin JOIN", () => {
     const sql = empresaKeySql("sv");
 
     expect(sql).toContain("COALESCE(");
-    expect(sql).toContain("SELECT m.cod FROM mapa_empresa m");
+    expect(sql).toContain("SELECT j ->>");
+    expect(sql).toContain("FROM mapa_empresa");
     expect(sql).not.toContain("JOIN");
   });
 
   test("el código propio va antes que el rescate y que el respaldo", () => {
     const sql = empresaKeySql("sv");
     const posCodigo = sql.indexOf("codigo_sui");
-    const posRescate = sql.indexOf("m.cod");
+    const posRescate = sql.indexOf("j ->>");
     const posRespaldo = sql.indexOf("'NOM:'");
 
     expect(posCodigo).toBeLessThan(posRescate);

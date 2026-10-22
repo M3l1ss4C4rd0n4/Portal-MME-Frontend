@@ -80,11 +80,17 @@ export function consultaMapaEmpresas(): string {
  * reconstruirlo costaba 625 ms por consulta y había diez por petición.
  */
 export function mapaEmpresasCte(paramNom: string, paramCod: string, nombre = "mapa_empresa"): string {
-  // MATERIALIZED no es decorativo: desde PostgreSQL 12 las CTE se insertan en
-  // la consulta por defecto, y sin esta palabra el `unnest` de 312 elementos
-  // se vuelve a evaluar por cada fila de la tabla exterior. La consulta de
-  // opciones de empresa, que recorre 65.000 filas, tardaba 2.979 ms por eso.
-  return `${nombre} AS MATERIALIZED (SELECT * FROM unnest(${paramNom}::text[], ${paramCod}::text[]) AS t(nom, cod))`;
+  // El mapa se agrega a un único objeto jsonb para que la búsqueda por nombre
+  // sea por clave y no un recorrido. Como CTE de filas, cada consulta lo
+  // recorría entero por cada fila sin código: la consulta de opciones de
+  // empresa tardaba 2.979 ms; con jsonb tarda 38 ms.
+  //
+  // MATERIALIZED evita que PostgreSQL vuelva a construir el objeto en cada
+  // referencia (desde la versión 12 las CTE se insertan por defecto).
+  return `${nombre} AS MATERIALIZED (
+    SELECT jsonb_object_agg(nom, cod) AS j
+    FROM unnest(${paramNom}::text[], ${paramCod}::text[]) AS t(nom, cod)
+  )`;
 }
 
 /**
@@ -103,7 +109,7 @@ export function empresaKeySql(alias: string, cte = "mapa_empresa"): string {
   const nom = nombreNormalizadoSql(alias);
   return `COALESCE(
     ${codigoBaseSql(alias)},
-    (SELECT m.cod FROM ${cte} m WHERE m.nom = ${nom}),
+    (SELECT j ->> ${nom} FROM ${cte}),
     'NOM:' || ${nom}
   )`;
 }

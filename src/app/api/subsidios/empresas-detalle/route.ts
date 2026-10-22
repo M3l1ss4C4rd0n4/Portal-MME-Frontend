@@ -366,38 +366,33 @@ export async function GET(req: NextRequest) {
         SELECT ${EMPRESA_SP} AS key, sp.nombre_prestador AS nombre
         FROM subsidios.subsidios_pagos sp WHERE ${wPagEmp.where}
       ) t
-      WHERE key IS NOT NULL AND key <> ''
+      -- Sin filtro sobre la clave: el COALESCE termina en 'NOM:' || nombre,
+      -- así que nunca es nula ni vacía. Repetir la expresión en el WHERE
+      -- obligaba a evaluarla dos veces más por fila.
       GROUP BY key ORDER BY 2
       `,
       [...M, ...wValEmp.values, ...wPagEmp.values]
     );
-
-    const T0 = Date.now();
-    const cron = <T,>(n: string, p: Promise<T>): Promise<T> => {
-      const t = Date.now();
-      return p.then((r) => { console.log(`[perf] ${n}: ${Date.now() - t}ms`); return r; });
-    };
 
     /* Todas en paralelo: son consultas independientes sobre el mismo pool. */
     const [
       detalleRes, serieValRes, seriePagRes, kpisPagosRes, empresasOpcRes,
       aniosVal, aniosPag, trimestres, fondos, areas, cargaRes,
     ] = await Promise.all([
-      cron("detalle", detallePromise),
-      cron("serieVal", serieValPromise),
-      cron("seriePag", seriePagPromise),
-      cron("kpisPagos", kpisPagosPromise),
-      cron("empresasOpc", empresasOpcPromise),
-      cron("opcAnioVal", opcion("anio", "sv", "sv.anio")),
-      cron("opcAnioPag", opcion("anio", "sp", ANIO_SP)),
-      cron("opcTrimestre", opcion("trimestre", "sv", "sv.trimestre")),
-      cron("opcFondo", opcion("fondo", "sv", "sv.fondo")),
-      cron("opcArea", opcion("area", "sv", areaSql("sv"))),
-      cron("importLog", pool.query<{ fecha: Date | null }>(
+      detallePromise,
+      serieValPromise,
+      seriePagPromise,
+      kpisPagosPromise,
+      empresasOpcPromise,
+      opcion("anio", "sv", "sv.anio"),
+      opcion("anio", "sp", ANIO_SP),
+      opcion("trimestre", "sv", "sv.trimestre"),
+      opcion("fondo", "sv", "sv.fondo"),
+      opcion("area", "sv", areaSql("sv")),
+      pool.query<{ fecha: Date | null }>(
         "SELECT MAX(fecha) AS fecha FROM subsidios.subsidios_import_log"
-      )),
+      ),
     ]);
-    console.log(`[perf] TOTAL consultas: ${Date.now() - T0}ms`);
 
     /* ── Armado de la respuesta ────────────────────────────────────────── */
     const empresas = detalleRes.rows.map((r) => {
