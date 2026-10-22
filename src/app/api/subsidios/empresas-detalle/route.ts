@@ -249,7 +249,10 @@ export async function GET(req: NextRequest) {
       )
       SELECT u.empresa_key,
              COALESCE(se.nombre_prestador, u.nombre) AS nombre,
-             se.nit, se.departamento,
+             -- El ETL escribió el NaN de pandas como texto en 115 de las 219
+             -- empresas del catálogo; se devuelve como ausente.
+             NULLIF(se.nit, 'NaN') AS nit,
+             se.departamento,
              u.fondo, u.area,
              u.vf, u.vp, u.vi, u.vi_sp, u.otros, u.total_validaciones,
              u.pagos, u.valor_resolucion, u.valor_pagado, u.saldo_pendiente
