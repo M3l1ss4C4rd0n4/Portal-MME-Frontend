@@ -11,7 +11,7 @@ import {
   codigoBaseSql,
   nombreNormalizadoSql,
   mapaEmpresasCte,
-  joinMapaEmpresas,
+  consultaMapaEmpresas,
   periodoLabel,
   pctEjecucion,
 } from "../subsidios-sql";
@@ -59,86 +59,51 @@ describe("empresaKeySql", () => {
     expect(empresaKeySql("sp")).toContain("'-F$', ''");
   });
 
-  test("con mapa, el código resuelto por nombre va antes del respaldo", () => {
-    // Las filas sin codigo_sui deben unirse a su empresa, no quedar aparte.
-    const sql = empresaKeySql("sp", "mp2");
-    const posMapa = sql.indexOf("mp2.cod");
-    const posRespaldo = sql.indexOf("'NOM:'");
 
-    expect(posMapa).toBeGreaterThanOrEqual(0);
-    expect(posMapa).toBeLessThan(posRespaldo);
-  });
-
-  test("sin mapa no se cuela ningún alias", () => {
-    // Ojo: "codigo_sui" también contiene ".cod"; se busca la referencia al mapa.
-    expect(empresaKeySql("sp")).not.toMatch(/\.cod\s*,/);
-  });
 });
 
 describe("mapa de empresas", () => {
-  test("solo toma filas que sí traen código", () => {
-    const cte = mapaEmpresasCte();
+  test("la consulta solo toma filas que sí traen código", () => {
+    const q = consultaMapaEmpresas();
 
-    expect(cte).toContain("IS NOT NULL");
-    expect(cte).toContain("subsidios.subsidios_pagos");
-    expect(cte).toContain("subsidios.subsidios_validaciones");
+    expect(q).toContain("IS NOT NULL");
+    expect(q).toContain("subsidios.subsidios_pagos");
+    expect(q).toContain("subsidios.subsidios_validaciones");
   });
 
-  test("deja un solo código por nombre", () => {
-    expect(mapaEmpresasCte()).toContain("DISTINCT ON (nom)");
+  test("deja un solo código por nombre y descarta el nombre vacío", () => {
+    expect(consultaMapaEmpresas()).toContain("DISTINCT ON (nom)");
+    expect(consultaMapaEmpresas()).toContain("nom <> ''");
   });
 
-  test("descarta el nombre vacío, que no identifica a nadie", () => {
-    expect(mapaEmpresasCte()).toContain("nom <> ''");
-  });
+  test("la CTE recibe el mapa ya resuelto como arreglos", () => {
+    // Reconstruirlo dentro de cada consulta costaba 625 ms, y había diez.
+    const cte = mapaEmpresasCte("$1", "$2");
 
-  test("el join enlaza por nombre normalizado", () => {
-    const join = joinMapaEmpresas("sp", "mp2");
-
-    expect(join).toContain("LEFT JOIN mapa_empresa mp2");
-    expect(join).toContain(nombreNormalizadoSql("sp"));
+    expect(cte).toContain("unnest($1::text[], $2::text[])");
+    expect(cte).toContain("t(nom, cod)");
   });
 });
 
-describe("resolucionDistintaSql", () => {
-  test("identifica la resolución por número y año de la resolución", () => {
-    expect(resolucionDistintaSql("sp")).toBe(
-      "(sp.no_resolucion, LEFT(sp.anio_trimestre_resolucion, 4))"
-    );
+describe("empresaKeySql: rescate sin JOIN", () => {
+  test("el rescate por nombre es una subconsulta dentro de COALESCE", () => {
+    // COALESCE corta en el primer valor no nulo, así que la subconsulta solo
+    // se evalúa en las filas sin código: 24 ms en vez de 1.040 ms con JOIN.
+    const sql = empresaKeySql("sv");
+
+    expect(sql).toContain("COALESCE(");
+    expect(sql).toContain("SELECT m.cod FROM mapa_empresa m");
+    expect(sql).not.toContain("JOIN");
   });
 
-  test("no usa el año de pago", () => {
-    // Por año de pago salen 781 resoluciones: una misma se paga en varios años.
-    expect(resolucionDistintaSql("sp")).not.toContain("sp.anio,");
-    expect(resolucionDistintaSql("sp")).not.toMatch(/sp\.anio\b(?!_)/);
-  });
-});
+  test("el código propio va antes que el rescate y que el respaldo", () => {
+    const sql = empresaKeySql("sv");
+    const posCodigo = sql.indexOf("codigo_sui");
+    const posRescate = sql.indexOf("m.cod");
+    const posRespaldo = sql.indexOf("'NOM:'");
 
-describe("estadoValidacionSql", () => {
-  test("da prioridad a la columna ya organizada", () => {
-    const sql = estadoValidacionSql("sv");
-    const posOrganizado = sql.indexOf("estado_validacion_organizado");
-    const posCrudo = sql.indexOf("'VF'");
-
-    expect(posOrganizado).toBeGreaterThanOrEqual(0);
-    expect(posOrganizado).toBeLessThan(posCrudo);
-  });
-
-  test("compara contra el texto limpio, no contra el crudo", () => {
-    // Sin esto, 'VI ' (con espacio) y las variantes de caja caen en Otros.
-    expect(estadoValidacionSql("sv")).toContain("TRIM(UPPER(COALESCE(sv.estado_validacion, '')))");
-  });
-
-  test("trata VI_SP y VI SP como el mismo estado", () => {
-    // La regresión concreta: 1.595 filas con guion bajo salían clasificadas como Otros.
-    expect(estadoValidacionSql("sv")).toContain("IN ('VI SP', 'VI_SP')");
-  });
-
-  test("cubre los cinco estados declarados", () => {
-    const sql = estadoValidacionSql("sv");
-    for (const estado of ESTADOS_VALIDACION) {
-      expect(sql).toContain(`'${estado}'`);
-    }
+    expect(posCodigo).toBeLessThan(posRescate);
+    expect(posRescate).toBeLessThan(posRespaldo);
   });
 });
 

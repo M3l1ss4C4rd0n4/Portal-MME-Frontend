@@ -53,49 +53,55 @@ export function nombreNormalizadoSql(alias: string): string {
 }
 
 /**
- * CTE que resuelve el código de las filas que no lo traen.
+ * Consulta que arma el mapa nombre normalizado → código.
  *
- * El 5 % de las filas de pagos no tiene `codigo_sui`, pero sí el nombre de una
- * empresa que en otras filas sí lo tiene. Esta tabla auxiliar mapea nombre
- * normalizado → código a partir de las filas completas, para que las
- * incompletas se unan a su empresa en vez de quedar como una aparte.
+ * El 5 % de las filas de pagos no trae `codigo_sui`, pero sí el nombre de una
+ * empresa que en otras filas sí lo tiene. Se ejecuta UNA vez por petición (y
+ * se cachea): recorre las dos tablas, así que cuesta ~600 ms y no debe
+ * repetirse por consulta.
  */
-export function mapaEmpresasCte(nombre = "mapa_empresa"): string {
+export function consultaMapaEmpresas(): string {
   const fuente = (tabla: string, alias: string) => `
-      SELECT ${nombreNormalizadoSql(alias)} AS nom, ${codigoBaseSql(alias)} AS cod
-      FROM ${tabla} ${alias}
-      WHERE ${codigoBaseSql(alias)} IS NOT NULL`;
-  return `${nombre} AS (
-    SELECT DISTINCT ON (nom) nom, cod FROM (${fuente(
-      "subsidios.subsidios_pagos",
-      "mp"
-    )}
+    SELECT ${nombreNormalizadoSql(alias)} AS nom, ${codigoBaseSql(alias)} AS cod
+    FROM ${tabla} ${alias}
+    WHERE ${codigoBaseSql(alias)} IS NOT NULL`;
+  return `
+    SELECT DISTINCT ON (nom) nom, cod FROM (${fuente("subsidios.subsidios_pagos", "mp")}
       UNION ALL${fuente("subsidios.subsidios_validaciones", "mv")}
     ) t
     WHERE nom <> ''
-    ORDER BY nom, cod
-  )`;
+    ORDER BY nom, cod`;
+}
+
+/**
+ * CTE con el mapa ya resuelto, recibido como dos arreglos.
+ *
+ * Se pasa desde el cliente en vez de recalcularlo dentro de cada consulta:
+ * reconstruirlo costaba 625 ms por consulta y había diez por petición.
+ */
+export function mapaEmpresasCte(paramNom: string, paramCod: string, nombre = "mapa_empresa"): string {
+  return `${nombre} AS (SELECT * FROM unnest(${paramNom}::text[], ${paramCod}::text[]) AS t(nom, cod))`;
 }
 
 /**
  * Clave estable de empresa.
  *
  * Orden de preferencia: el código propio de la fila, el código que le
- * corresponde a su nombre según `mapaEmpresasCte`, y como último recurso el
- * propio nombre normalizado.
+ * corresponde a su nombre, y como último recurso el nombre normalizado.
+ *
+ * El rescate por nombre es una subconsulta dentro de `COALESCE`, no un JOIN,
+ * **a propósito**: `COALESCE` evalúa de izquierda a derecha y se detiene en el
+ * primer valor no nulo, así que la subconsulta y su expresión regular solo se
+ * ejecutan en las filas que de verdad no traen código. Con JOIN, la misma
+ * agregación tardaba 1.040 ms; así tarda 24 ms.
  */
-export function empresaKeySql(alias: string, mapAlias?: string): string {
-  const porMapa = mapAlias ? `${mapAlias}.cod,` : "";
+export function empresaKeySql(alias: string, cte = "mapa_empresa"): string {
+  const nom = nombreNormalizadoSql(alias);
   return `COALESCE(
     ${codigoBaseSql(alias)},
-    ${porMapa}
-    'NOM:' || ${nombreNormalizadoSql(alias)}
+    (SELECT m.cod FROM ${cte} m WHERE m.nom = ${nom}),
+    'NOM:' || ${nom}
   )`;
-}
-
-/** JOIN contra el mapa de empresas, para usar junto a `empresaKeySql`. */
-export function joinMapaEmpresas(alias: string, mapAlias: string, cte = "mapa_empresa"): string {
-  return `LEFT JOIN ${cte} ${mapAlias} ON ${mapAlias}.nom = ${nombreNormalizadoSql(alias)}`;
 }
 
 /**
@@ -106,9 +112,8 @@ export function joinMapaEmpresas(alias: string, mapAlias: string, cte = "mapa_em
  * (`Vf`, `vf`), espacios al final (`'VI '`) y dos grafías para el mismo estado
  * (`VI_SP` y `VI SP`).
  *
- * La versión anterior de este CASE —en el endpoint de validaciones— comparaba
- * contra el texto crudo, así que 1.622 filas (`VI_SP` y `'VI '`) caían en
- * «Otros» sin serlo. Aquí se compara contra `TRIM(UPPER(...))`.
+ * El CASE anterior —en el endpoint de validaciones— comparaba contra el texto
+ * crudo, así que 1.622 filas caían en «Otros» sin serlo.
  */
 export function estadoValidacionSql(alias: string): string {
   const crudo = `TRIM(UPPER(COALESCE(${alias}.estado_validacion, '')))`;

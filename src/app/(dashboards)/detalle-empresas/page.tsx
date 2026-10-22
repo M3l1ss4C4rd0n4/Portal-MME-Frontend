@@ -76,9 +76,6 @@ export default function DetalleEmpresasPage() {
       .then((json: EmpresasDetalleData) => {
         if (cancelled) return;
         setData(json);
-        // El backend decide el corte vigente la primera vez; se adopta tal cual
-        // para que el selector muestre lo mismo que se está graficando.
-        if (!corte && json.corte) setCorte(json.corte);
         setLoading(false);
       })
       .catch((e: unknown) => {
@@ -90,7 +87,10 @@ export default function DetalleEmpresasPage() {
     return () => {
       cancelled = true;
     };
-  }, [buildQuery, corte]);
+    // `corte` ya viaja dentro de buildQuery; no se declara aparte para no
+    // disparar la petición dos veces. El backend elige el corte vigente cuando
+    // el estado está en null y el selector lo muestra desde la respuesta.
+  }, [buildQuery]);
 
   const marcarCargando = useCallback(() => {
     setLoading(true);

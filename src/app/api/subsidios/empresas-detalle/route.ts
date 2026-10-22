@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
 import {
   empresaKeySql,
-  mapaEmpresasCte,
-  joinMapaEmpresas,
   estadoValidacionSql,
   areaSql,
   anioPagosSql,
   trimestrePagosSql,
   resolucionDistintaSql,
+  consultaMapaEmpresas,
+  mapaEmpresasCte,
   periodoLabel,
   pctEjecucion,
 } from "@/lib/subsidios-sql";
@@ -17,12 +17,14 @@ export const dynamic = "force-dynamic";
 
 /* ─── Filtros ──────────────────────────────────────────────────────────────
  * Los cinco filtros son multivalor (?fondo=FOES&fondo=FSSRI). Un filtro
- * ausente se envía como NULL y la cláusula lo deja pasar entero, así la misma
- * consulta sirve con y sin filtro.
+ * ausente viaja como NULL y la cláusula lo deja pasar entero.
  *
  * `corte` es aparte: la tabla de validaciones guarda un snapshot por mes, así
  * que SIEMPRE se restringe a uno. Sin eso se suman varios cortes del mismo
  * trimestre y los conteos salen inflados. A pagos no le aplica.
+ *
+ * Toda consulta empieza con el mapa de empresas en $1 y $2, así que los
+ * parámetros de filtro arrancan en $3 (de ahí `PARAMS_MAPA`).
  */
 
 type FiltroKey = "empresa" | "anio" | "trimestre" | "fondo" | "area";
@@ -37,6 +39,9 @@ const TIPO: Record<FiltroKey, "text[]" | "int[]"> = {
   area: "text[]",
 };
 
+/** Los dos parámetros que ocupa el mapa al inicio de cada consulta. */
+const PARAMS_MAPA = 2;
+
 interface Filtros {
   empresa: string[] | null;
   anio: number[] | null;
@@ -45,18 +50,17 @@ interface Filtros {
   area: string[] | null;
 }
 
-/** Expresión SQL de cada filtro, por tabla. */
 function columnas(alias: "sv" | "sp"): Record<FiltroKey, string> {
   return alias === "sv"
     ? {
-        empresa: empresaKeySql("sv", "mv2"),
+        empresa: empresaKeySql("sv"),
         anio: "sv.anio",
         trimestre: "sv.trimestre",
         fondo: "sv.fondo",
         area: areaSql("sv"),
       }
     : {
-        empresa: empresaKeySql("sp", "mp2"),
+        empresa: empresaKeySql("sp"),
         anio: anioPagosSql("sp"),
         trimestre: trimestrePagosSql("sp"),
         fondo: "sp.fondo",
@@ -66,13 +70,6 @@ function columnas(alias: "sv" | "sp"): Record<FiltroKey, string> {
 
 type Valor = string[] | number[] | string | number | null;
 
-/**
- * WHERE con parámetros posicionales del driver pg.
- *
- * `omitir` sirve para las opciones dependientes: al calcular la lista de áreas
- * disponibles se aplican todos los filtros MENOS el de área, para que el
- * usuario no se quede sin opciones que pueda elegir.
- */
 function buildWhere(
   alias: "sv" | "sp",
   f: Filtros,
@@ -82,12 +79,10 @@ function buildWhere(
   const values: Valor[] = [];
   const parts: string[] = [];
   // Cuando dos WHERE viven en la misma consulta, el segundo tiene que seguir
-  // la numeración del primero: si ambos empiezan en $1 los parámetros se
-  // cruzan y PostgreSQL falla al castear.
-  const base = opts.desde ?? 0;
+  // la numeración del primero o los parámetros se cruzan.
+  const base = opts.desde ?? PARAMS_MAPA;
   const ph = (n: number) => `$${base + n}`;
 
-  // Solo filas clasificables: mismo criterio que el tablero de Validaciones.
   if (alias === "sv") {
     parts.push("sv.trimestre IS NOT NULL");
     parts.push("(sv.estado_validacion IS NOT NULL OR sv.estado_validacion_organizado IS NOT NULL)");
@@ -136,6 +131,26 @@ function leerFiltros(searchParams: URLSearchParams): Filtros {
   };
 }
 
+/* ─── Caché del mapa de empresas ───────────────────────────────────────────
+ * Recorrer las dos tablas para armarlo cuesta ~600 ms y solo cambia cuando el
+ * ETL recarga (diario, más el watcher cada 5 min). Se guarda en memoria del
+ * proceso con vigencia corta: el mapa solo traduce nombres a códigos, así que
+ * un dato de hace unos minutos no altera ninguna cifra.
+ */
+const MAPA_TTL_MS = 5 * 60 * 1000;
+let mapaCache: { nombres: string[]; codigos: string[]; en: number } | null = null;
+
+async function obtenerMapa(pool: ReturnType<typeof getPool>) {
+  if (mapaCache && Date.now() - mapaCache.en < MAPA_TTL_MS) return mapaCache;
+  const r = await pool.query<{ nom: string; cod: string }>(consultaMapaEmpresas());
+  mapaCache = {
+    nombres: r.rows.map((x) => x.nom),
+    codigos: r.rows.map((x) => x.cod),
+    en: Date.now(),
+  };
+  return mapaCache;
+}
+
 interface EmpresaRow {
   empresa_key: string;
   nombre: string | null;
@@ -158,47 +173,49 @@ export async function GET(req: NextRequest) {
   try {
     const pool = getPool();
     const ESTADO = estadoValidacionSql("sv");
-    const EMPRESA_SV = empresaKeySql("sv", "mv2");
-    const EMPRESA_SP = empresaKeySql("sp", "mp2");
+    const EMPRESA_SV = empresaKeySql("sv");
+    const EMPRESA_SP = empresaKeySql("sp");
     const ANIO_SP = anioPagosSql("sp");
     const TRIM_SP = trimestrePagosSql("sp");
+    const MAPA = mapaEmpresasCte("$1", "$2");
 
-    /* ── Corte vigente de validaciones ─────────────────────────────────── */
-    const cortesRes = await pool.query<{ anio: number; mes: number }>(`
-      SELECT DISTINCT
-        EXTRACT(YEAR FROM fecha_actualizacion)::int  AS anio,
-        EXTRACT(MONTH FROM fecha_actualizacion)::int AS mes
-      FROM subsidios.subsidios_validaciones
-      WHERE fecha_actualizacion IS NOT NULL
-      ORDER BY anio DESC, mes DESC
-    `);
+    const [mapa, cortesRes] = await Promise.all([
+      obtenerMapa(pool),
+      pool.query<{ anio: number; mes: number }>(`
+        SELECT DISTINCT
+          EXTRACT(YEAR FROM fecha_actualizacion)::int  AS anio,
+          EXTRACT(MONTH FROM fecha_actualizacion)::int AS mes
+        FROM subsidios.subsidios_validaciones
+        WHERE fecha_actualizacion IS NOT NULL
+        ORDER BY anio DESC, mes DESC
+      `),
+    ]);
+    const M = [mapa.nombres, mapa.codigos];
+
     const cortesDisponibles = cortesRes.rows;
     const pedido = searchParams.get("corte");
+    const clave = (c: { anio: number; mes: number }) =>
+      `${c.anio}-${String(c.mes).padStart(2, "0")}`;
     const corte =
-      pedido && cortesDisponibles.some((c) => `${c.anio}-${String(c.mes).padStart(2, "0")}` === pedido)
+      pedido && cortesDisponibles.some((c) => clave(c) === pedido)
         ? pedido
         : cortesDisponibles.length > 0
-        ? `${cortesDisponibles[0].anio}-${String(cortesDisponibles[0].mes).padStart(2, "0")}`
+        ? clave(cortesDisponibles[0])
         : null;
 
     const wVal = buildWhere("sv", f, { corte });
-    // El WHERE de pagos se usa solo y también combinado con el de validaciones;
-    // `wPagOffset` es la variante numerada a continuación de wVal.
     const wPag = buildWhere("sp", f);
-    const wPagOffset = buildWhere("sp", f, { desde: wVal.values.length });
+    // Variante numerada a continuación de wVal, para la consulta que une ambas.
+    const wPagOffset = buildWhere("sp", f, { desde: PARAMS_MAPA + wVal.values.length });
 
     /* ── Detalle por empresa ───────────────────────────────────────────────
-     * Validaciones y pagos tienen granos distintos, así que se agregan por
-     * separado y se unen con FULL OUTER JOIN: con un INNER JOIN
-     * desaparecerían las empresas que tienen pagos pero aún no validaciones,
-     * y al revés.
-     *
-     * El join con el catálogo es LEFT a propósito: el 6 % de las filas de
-     * pagos y el 3,6 % de las de validaciones no cruzan con él.
+     * Validaciones y pagos tienen granos distintos: se agregan por separado y
+     * se unen con FULL OUTER JOIN. Con INNER JOIN desaparecerían las 140
+     * empresas que solo tienen uno de los dos.
      */
-    const detalleRes = await pool.query<EmpresaRow>(
+    const detallePromise = pool.query<EmpresaRow>(
       `
-      WITH ${mapaEmpresasCte()},
+      WITH ${MAPA},
       val AS (
         SELECT ${EMPRESA_SV} AS empresa_key,
                MIN(sv.nombre_prestador) AS nombre,
@@ -211,21 +228,19 @@ export async function GET(req: NextRequest) {
                COUNT(*) FILTER (WHERE ${ESTADO} = 'a. Otros')  AS otros,
                COUNT(*)                                        AS total_validaciones
         FROM subsidios.subsidios_validaciones sv
-        ${joinMapaEmpresas('sv', 'mv2')}
         WHERE ${wVal.where}
         GROUP BY 1
       ),
       pag AS (
         SELECT ${EMPRESA_SP} AS empresa_key,
-               MIN(sp.nombre_prestador)        AS nombre,
-               MIN(sp.fondo)                   AS fondo,
-               MIN(${areaSql("sp")})           AS area,
-               COUNT(DISTINCT ${resolucionDistintaSql('sp')}) AS pagos,
-               SUM(sp.valor_resolucion)        AS valor_resolucion,
-               SUM(sp.valor_pagado)            AS valor_pagado,
-               SUM(sp.saldo_pendiente)         AS saldo_pendiente
+               MIN(sp.nombre_prestador)  AS nombre,
+               MIN(sp.fondo)             AS fondo,
+               MIN(${areaSql("sp")})     AS area,
+               COUNT(DISTINCT ${resolucionDistintaSql("sp")}) AS pagos,
+               SUM(sp.valor_resolucion)  AS valor_resolucion,
+               SUM(sp.valor_pagado)      AS valor_pagado,
+               SUM(sp.saldo_pendiente)   AS saldo_pendiente
         FROM subsidios.subsidios_pagos sp
-        ${joinMapaEmpresas('sp', 'mp2')}
         WHERE ${wPagOffset.where}
         GROUP BY 1
       ),
@@ -260,120 +275,111 @@ export async function GET(req: NextRequest) {
       LEFT JOIN subsidios.subsidios_empresas se ON se.codigo_sui = u.empresa_key
       ORDER BY u.valor_pagado DESC NULLS LAST, nombre
       `,
-      [...wVal.values, ...wPagOffset.values]
+      [...M, ...wVal.values, ...wPagOffset.values]
     );
 
-    /* ── Serie de validaciones por trimestre ───────────────────────────── */
-    const serieValRes = await pool.query<{
+    const serieValPromise = pool.query<{
       anio: number; trimestre: number; estado: string; conteo: number;
     }>(
       `
-      WITH ${mapaEmpresasCte()}
+      WITH ${MAPA}
       SELECT sv.anio, sv.trimestre, ${ESTADO} AS estado, COUNT(*)::int AS conteo
       FROM subsidios.subsidios_validaciones sv
-      ${joinMapaEmpresas('sv', 'mv2')}
       WHERE ${wVal.where}
       GROUP BY sv.anio, sv.trimestre, ${ESTADO}
       ORDER BY sv.anio, sv.trimestre
       `,
-      wVal.values
+      [...M, ...wVal.values]
     );
 
-    /* ── Serie de pagos por trimestre ──────────────────────────────────── */
-    const seriePagRes = await pool.query<{
+    const seriePagPromise = pool.query<{
       anio: number; trimestre: number; pagos: number; valor_pagado: string | null;
     }>(
       `
-      WITH ${mapaEmpresasCte()}
+      WITH ${MAPA}
       SELECT ${ANIO_SP} AS anio, ${TRIM_SP} AS trimestre,
-             COUNT(DISTINCT ${resolucionDistintaSql('sp')})::int AS pagos,
+             COUNT(DISTINCT ${resolucionDistintaSql("sp")})::int AS pagos,
              SUM(sp.valor_pagado) AS valor_pagado
       FROM subsidios.subsidios_pagos sp
-      ${joinMapaEmpresas('sp', 'mp2')}
       WHERE ${wPag.where}
       GROUP BY 1, 2
       ORDER BY 1, 2
       `,
-      wPag.values
-    );
-
-    /* ── Opciones de cada filtro, excluyéndose a sí mismo ──────────────── */
-    const opcion = async (key: FiltroKey, alias: "sv" | "sp", expr: string) => {
-      const w = buildWhere(alias, f, { corte: alias === "sv" ? corte : null, omitir: key });
-      const tabla =
-        alias === "sv" ? "subsidios.subsidios_validaciones sv" : "subsidios.subsidios_pagos sp";
-      const join = alias === "sv" ? joinMapaEmpresas("sv", "mv2") : joinMapaEmpresas("sp", "mp2");
-      const r = await pool.query<{ val: string | number }>(
-        `WITH ${mapaEmpresasCte()}
-         SELECT DISTINCT ${expr} AS val FROM ${tabla} ${join}
-         WHERE ${w.where} AND ${expr} IS NOT NULL ORDER BY 1`,
-        w.values
-      );
-      return r.rows.map((x) => x.val);
-    };
-
-    const [aniosVal, aniosPag, trimestres, fondos, areas] = await Promise.all([
-      opcion("anio", "sv", "sv.anio"),
-      opcion("anio", "sp", ANIO_SP),
-      opcion("trimestre", "sv", "sv.trimestre"),
-      opcion("fondo", "sv", "sv.fondo"),
-      opcion("area", "sv", areaSql("sv")),
-    ]);
-
-    // Las empresas elegibles salen del propio detalle sin su filtro aplicado.
-    const wValEmp = buildWhere("sv", f, { corte, omitir: "empresa" });
-    const wPagEmp = buildWhere("sp", f, { omitir: "empresa", desde: wValEmp.values.length });
-    const empresasOpcRes = await pool.query<{ key: string; nombre: string }>(
-      `
-      WITH ${mapaEmpresasCte()}
-      SELECT key, MIN(nombre) AS nombre FROM (
-        SELECT ${EMPRESA_SV} AS key, sv.nombre_prestador AS nombre
-        FROM subsidios.subsidios_validaciones sv
-        ${joinMapaEmpresas('sv', 'mv2')}
-        WHERE ${wValEmp.where}
-        UNION ALL
-        SELECT ${EMPRESA_SP} AS key, sp.nombre_prestador AS nombre
-        FROM subsidios.subsidios_pagos sp
-        ${joinMapaEmpresas('sp', 'mp2')}
-        WHERE ${wPagEmp.where}
-      ) t
-      WHERE key IS NOT NULL AND key <> ''
-      GROUP BY key ORDER BY 2
-      `,
-      [...wValEmp.values, ...wPagEmp.values]
+      [...M, ...wPag.values]
     );
 
     /* ── KPIs globales ─────────────────────────────────────────────────────
      * No se obtienen sumando las filas por empresa: una misma resolución paga
-     * a varias empresas a la vez, así que sumar los COUNT(DISTINCT) de cada
-     * una da 11.381 resoluciones cuando en realidad son 610.
+     * a varias empresas a la vez, así que esa suma daría 11.381 resoluciones
+     * cuando en realidad son 610.
      */
-    const kpisPagosRes = await pool.query<{
+    const kpisPagosPromise = pool.query<{
       total_pagos: number; valor_resolucion: string | null;
       valor_pagado: string | null; saldo_pendiente: string | null;
     }>(
       `
-      WITH ${mapaEmpresasCte()}
+      WITH ${MAPA}
       SELECT COUNT(DISTINCT ${resolucionDistintaSql("sp")})::int AS total_pagos,
              COALESCE(SUM(sp.valor_resolucion), 0) AS valor_resolucion,
              COALESCE(SUM(sp.valor_pagado), 0)     AS valor_pagado,
              COALESCE(SUM(sp.saldo_pendiente), 0)  AS saldo_pendiente
       FROM subsidios.subsidios_pagos sp
-      ${joinMapaEmpresas('sp', 'mp2')}
       WHERE ${wPag.where}
       `,
-      wPag.values
-    );
-    const kpisValRes = await pool.query<{ total: number }>(
-      `WITH ${mapaEmpresasCte()} SELECT COUNT(*)::int AS total FROM subsidios.subsidios_validaciones sv ${joinMapaEmpresas('sv', 'mv2')} WHERE ${wVal.where}`,
-      wVal.values
+      [...M, ...wPag.values]
     );
 
-    /* ── Fecha de corte de la carga ────────────────────────────────────── */
-    const cargaRes = await pool.query<{ fecha: Date | null }>(
-      "SELECT MAX(fecha) AS fecha FROM subsidios.subsidios_import_log"
+    /* ── Opciones de cada filtro, excluyéndose a sí mismo ──────────────── */
+    const opcion = (key: FiltroKey, alias: "sv" | "sp", expr: string) => {
+      const w = buildWhere(alias, f, { corte: alias === "sv" ? corte : null, omitir: key });
+      const tabla =
+        alias === "sv" ? "subsidios.subsidios_validaciones sv" : "subsidios.subsidios_pagos sp";
+      return pool
+        .query<{ val: string | number }>(
+          `WITH ${MAPA}
+           SELECT DISTINCT ${expr} AS val FROM ${tabla}
+           WHERE ${w.where} AND ${expr} IS NOT NULL ORDER BY 1`,
+          [...M, ...w.values]
+        )
+        .then((r) => r.rows.map((x) => x.val));
+    };
+
+    const wValEmp = buildWhere("sv", f, { corte, omitir: "empresa" });
+    const wPagEmp = buildWhere("sp", f, {
+      omitir: "empresa",
+      desde: PARAMS_MAPA + wValEmp.values.length,
+    });
+    const empresasOpcPromise = pool.query<{ key: string; nombre: string }>(
+      `
+      WITH ${MAPA}
+      SELECT key, MIN(nombre) AS nombre FROM (
+        SELECT ${EMPRESA_SV} AS key, sv.nombre_prestador AS nombre
+        FROM subsidios.subsidios_validaciones sv WHERE ${wValEmp.where}
+        UNION ALL
+        SELECT ${EMPRESA_SP} AS key, sp.nombre_prestador AS nombre
+        FROM subsidios.subsidios_pagos sp WHERE ${wPagEmp.where}
+      ) t
+      WHERE key IS NOT NULL AND key <> ''
+      GROUP BY key ORDER BY 2
+      `,
+      [...M, ...wValEmp.values, ...wPagEmp.values]
     );
-    const fechaCarga = cargaRes.rows[0]?.fecha ?? null;
+
+    /* Todas en paralelo: son consultas independientes sobre el mismo pool. */
+    const [
+      detalleRes, serieValRes, seriePagRes, kpisPagosRes, empresasOpcRes,
+      aniosVal, aniosPag, trimestres, fondos, areas, cargaRes,
+    ] = await Promise.all([
+      detallePromise, serieValPromise, seriePagPromise, kpisPagosPromise, empresasOpcPromise,
+      opcion("anio", "sv", "sv.anio"),
+      opcion("anio", "sp", ANIO_SP),
+      opcion("trimestre", "sv", "sv.trimestre"),
+      opcion("fondo", "sv", "sv.fondo"),
+      opcion("area", "sv", areaSql("sv")),
+      pool.query<{ fecha: Date | null }>(
+        "SELECT MAX(fecha) AS fecha FROM subsidios.subsidios_import_log"
+      ),
+    ]);
 
     /* ── Armado de la respuesta ────────────────────────────────────────── */
     const empresas = detalleRes.rows.map((r) => {
@@ -410,22 +416,23 @@ export async function GET(req: NextRequest) {
     }
 
     const kpisPagos = kpisPagosRes.rows[0];
-    const totalPagos = toNum(kpisPagos?.total_pagos);
     const valorPagado = toNum(kpisPagos?.valor_pagado);
     const valorResolucion = toNum(kpisPagos?.valor_resolucion);
 
     return NextResponse.json({
       corte,
       cortesDisponibles,
-      fechaCarga,
+      fechaCarga: cargaRes.rows[0]?.fecha ?? null,
       kpis: {
-        totalPagos,
+        totalPagos: toNum(kpisPagos?.total_pagos),
         valorResolucion,
         valorPagado,
         saldoPendiente: toNum(kpisPagos?.saldo_pendiente),
         pctEjecucion: pctEjecucion(valorPagado, valorResolucion),
         totalEmpresas: empresas.length,
-        totalValidaciones: toNum(kpisValRes.rows[0]?.total),
+        // Se deriva del detalle: cada validación pertenece a una sola empresa,
+        // así que sumar las filas sí da el total y ahorra una consulta.
+        totalValidaciones: empresas.reduce((a, e) => a + e.totalValidaciones, 0),
       },
       validacionPorTrimestre: [...porPeriodo.values()],
       pagosPorTrimestre: seriePagRes.rows.map((r) => ({
