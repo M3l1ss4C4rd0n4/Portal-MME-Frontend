@@ -44,11 +44,58 @@ export function etiquetaEstado(estado: string): string {
  * (CARIBEMAR DE LA COSTA S.A.S. E.S.P.). Sin quitarlo, 17 empresas salen
  * duplicadas en la tabla.
  */
-export function empresaKeySql(alias: string): string {
-  return `COALESCE(
-    NULLIF(REGEXP_REPLACE(TRIM(${alias}.codigo_sui), '-F$', ''), ''),
-    'NOM:' || UPPER(REGEXP_REPLACE(COALESCE(${alias}.nombre_prestador, ''), '[^A-Za-z0-9]+', '', 'g'))
+export function codigoBaseSql(alias: string): string {
+  return `NULLIF(REGEXP_REPLACE(TRIM(${alias}.codigo_sui), '-F$', ''), '')`;
+}
+
+export function nombreNormalizadoSql(alias: string): string {
+  return `UPPER(REGEXP_REPLACE(COALESCE(${alias}.nombre_prestador, ''), '[^A-Za-z0-9]+', '', 'g'))`;
+}
+
+/**
+ * CTE que resuelve el código de las filas que no lo traen.
+ *
+ * El 5 % de las filas de pagos no tiene `codigo_sui`, pero sí el nombre de una
+ * empresa que en otras filas sí lo tiene. Esta tabla auxiliar mapea nombre
+ * normalizado → código a partir de las filas completas, para que las
+ * incompletas se unan a su empresa en vez de quedar como una aparte.
+ */
+export function mapaEmpresasCte(nombre = "mapa_empresa"): string {
+  const fuente = (tabla: string, alias: string) => `
+      SELECT ${nombreNormalizadoSql(alias)} AS nom, ${codigoBaseSql(alias)} AS cod
+      FROM ${tabla} ${alias}
+      WHERE ${codigoBaseSql(alias)} IS NOT NULL`;
+  return `${nombre} AS (
+    SELECT DISTINCT ON (nom) nom, cod FROM (${fuente(
+      "subsidios.subsidios_pagos",
+      "mp"
+    )}
+      UNION ALL${fuente("subsidios.subsidios_validaciones", "mv")}
+    ) t
+    WHERE nom <> ''
+    ORDER BY nom, cod
   )`;
+}
+
+/**
+ * Clave estable de empresa.
+ *
+ * Orden de preferencia: el código propio de la fila, el código que le
+ * corresponde a su nombre según `mapaEmpresasCte`, y como último recurso el
+ * propio nombre normalizado.
+ */
+export function empresaKeySql(alias: string, mapAlias?: string): string {
+  const porMapa = mapAlias ? `${mapAlias}.cod,` : "";
+  return `COALESCE(
+    ${codigoBaseSql(alias)},
+    ${porMapa}
+    'NOM:' || ${nombreNormalizadoSql(alias)}
+  )`;
+}
+
+/** JOIN contra el mapa de empresas, para usar junto a `empresaKeySql`. */
+export function joinMapaEmpresas(alias: string, mapAlias: string, cte = "mapa_empresa"): string {
+  return `LEFT JOIN ${cte} ${mapAlias} ON ${mapAlias}.nom = ${nombreNormalizadoSql(alias)}`;
 }
 
 /**

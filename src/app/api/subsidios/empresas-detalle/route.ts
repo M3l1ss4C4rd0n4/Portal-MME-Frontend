@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
 import {
   empresaKeySql,
+  mapaEmpresasCte,
+  joinMapaEmpresas,
   estadoValidacionSql,
   areaSql,
   anioPagosSql,
@@ -47,14 +49,14 @@ interface Filtros {
 function columnas(alias: "sv" | "sp"): Record<FiltroKey, string> {
   return alias === "sv"
     ? {
-        empresa: empresaKeySql("sv"),
+        empresa: empresaKeySql("sv", "mv2"),
         anio: "sv.anio",
         trimestre: "sv.trimestre",
         fondo: "sv.fondo",
         area: areaSql("sv"),
       }
     : {
-        empresa: empresaKeySql("sp"),
+        empresa: empresaKeySql("sp", "mp2"),
         anio: anioPagosSql("sp"),
         trimestre: trimestrePagosSql("sp"),
         fondo: "sp.fondo",
@@ -156,8 +158,8 @@ export async function GET(req: NextRequest) {
   try {
     const pool = getPool();
     const ESTADO = estadoValidacionSql("sv");
-    const EMPRESA_SV = empresaKeySql("sv");
-    const EMPRESA_SP = empresaKeySql("sp");
+    const EMPRESA_SV = empresaKeySql("sv", "mv2");
+    const EMPRESA_SP = empresaKeySql("sp", "mp2");
     const ANIO_SP = anioPagosSql("sp");
     const TRIM_SP = trimestrePagosSql("sp");
 
@@ -196,7 +198,8 @@ export async function GET(req: NextRequest) {
      */
     const detalleRes = await pool.query<EmpresaRow>(
       `
-      WITH val AS (
+      WITH ${mapaEmpresasCte()},
+      val AS (
         SELECT ${EMPRESA_SV} AS empresa_key,
                MIN(sv.nombre_prestador) AS nombre,
                MIN(sv.fondo)            AS fondo,
@@ -208,6 +211,7 @@ export async function GET(req: NextRequest) {
                COUNT(*) FILTER (WHERE ${ESTADO} = 'a. Otros')  AS otros,
                COUNT(*)                                        AS total_validaciones
         FROM subsidios.subsidios_validaciones sv
+        ${joinMapaEmpresas('sv', 'mv2')}
         WHERE ${wVal.where}
         GROUP BY 1
       ),
@@ -221,6 +225,7 @@ export async function GET(req: NextRequest) {
                SUM(sp.valor_pagado)            AS valor_pagado,
                SUM(sp.saldo_pendiente)         AS saldo_pendiente
         FROM subsidios.subsidios_pagos sp
+        ${joinMapaEmpresas('sp', 'mp2')}
         WHERE ${wPagOffset.where}
         GROUP BY 1
       ),
@@ -260,8 +265,10 @@ export async function GET(req: NextRequest) {
       anio: number; trimestre: number; estado: string; conteo: number;
     }>(
       `
+      WITH ${mapaEmpresasCte()}
       SELECT sv.anio, sv.trimestre, ${ESTADO} AS estado, COUNT(*)::int AS conteo
       FROM subsidios.subsidios_validaciones sv
+      ${joinMapaEmpresas('sv', 'mv2')}
       WHERE ${wVal.where}
       GROUP BY sv.anio, sv.trimestre, ${ESTADO}
       ORDER BY sv.anio, sv.trimestre
@@ -274,10 +281,12 @@ export async function GET(req: NextRequest) {
       anio: number; trimestre: number; pagos: number; valor_pagado: string | null;
     }>(
       `
+      WITH ${mapaEmpresasCte()}
       SELECT ${ANIO_SP} AS anio, ${TRIM_SP} AS trimestre,
              COUNT(DISTINCT ${resolucionDistintaSql('sp')})::int AS pagos,
              SUM(sp.valor_pagado) AS valor_pagado
       FROM subsidios.subsidios_pagos sp
+      ${joinMapaEmpresas('sp', 'mp2')}
       WHERE ${wPag.where}
       GROUP BY 1, 2
       ORDER BY 1, 2
@@ -290,8 +299,11 @@ export async function GET(req: NextRequest) {
       const w = buildWhere(alias, f, { corte: alias === "sv" ? corte : null, omitir: key });
       const tabla =
         alias === "sv" ? "subsidios.subsidios_validaciones sv" : "subsidios.subsidios_pagos sp";
+      const join = alias === "sv" ? joinMapaEmpresas("sv", "mv2") : joinMapaEmpresas("sp", "mp2");
       const r = await pool.query<{ val: string | number }>(
-        `SELECT DISTINCT ${expr} AS val FROM ${tabla} WHERE ${w.where} AND ${expr} IS NOT NULL ORDER BY 1`,
+        `WITH ${mapaEmpresasCte()}
+         SELECT DISTINCT ${expr} AS val FROM ${tabla} ${join}
+         WHERE ${w.where} AND ${expr} IS NOT NULL ORDER BY 1`,
         w.values
       );
       return r.rows.map((x) => x.val);
@@ -310,12 +322,17 @@ export async function GET(req: NextRequest) {
     const wPagEmp = buildWhere("sp", f, { omitir: "empresa", desde: wValEmp.values.length });
     const empresasOpcRes = await pool.query<{ key: string; nombre: string }>(
       `
+      WITH ${mapaEmpresasCte()}
       SELECT key, MIN(nombre) AS nombre FROM (
         SELECT ${EMPRESA_SV} AS key, sv.nombre_prestador AS nombre
-        FROM subsidios.subsidios_validaciones sv WHERE ${wValEmp.where}
+        FROM subsidios.subsidios_validaciones sv
+        ${joinMapaEmpresas('sv', 'mv2')}
+        WHERE ${wValEmp.where}
         UNION ALL
         SELECT ${EMPRESA_SP} AS key, sp.nombre_prestador AS nombre
-        FROM subsidios.subsidios_pagos sp WHERE ${wPagEmp.where}
+        FROM subsidios.subsidios_pagos sp
+        ${joinMapaEmpresas('sp', 'mp2')}
+        WHERE ${wPagEmp.where}
       ) t
       WHERE key IS NOT NULL AND key <> ''
       GROUP BY key ORDER BY 2
@@ -333,17 +350,19 @@ export async function GET(req: NextRequest) {
       valor_pagado: string | null; saldo_pendiente: string | null;
     }>(
       `
+      WITH ${mapaEmpresasCte()}
       SELECT COUNT(DISTINCT ${resolucionDistintaSql("sp")})::int AS total_pagos,
              COALESCE(SUM(sp.valor_resolucion), 0) AS valor_resolucion,
              COALESCE(SUM(sp.valor_pagado), 0)     AS valor_pagado,
              COALESCE(SUM(sp.saldo_pendiente), 0)  AS saldo_pendiente
       FROM subsidios.subsidios_pagos sp
+      ${joinMapaEmpresas('sp', 'mp2')}
       WHERE ${wPag.where}
       `,
       wPag.values
     );
     const kpisValRes = await pool.query<{ total: number }>(
-      `SELECT COUNT(*)::int AS total FROM subsidios.subsidios_validaciones sv WHERE ${wVal.where}`,
+      `WITH ${mapaEmpresasCte()} SELECT COUNT(*)::int AS total FROM subsidios.subsidios_validaciones sv ${joinMapaEmpresas('sv', 'mv2')} WHERE ${wVal.where}`,
       wVal.values
     );
 

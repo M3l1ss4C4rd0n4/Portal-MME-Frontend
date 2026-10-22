@@ -8,6 +8,10 @@ import {
   anioPagosSql,
   trimestrePagosSql,
   resolucionDistintaSql,
+  codigoBaseSql,
+  nombreNormalizadoSql,
+  mapaEmpresasCte,
+  joinMapaEmpresas,
   periodoLabel,
   pctEjecucion,
 } from "../subsidios-sql";
@@ -51,7 +55,48 @@ describe("empresaKeySql", () => {
 
   test("quita el sufijo -F, que marca el fondo y no otra empresa", () => {
     // 1411 (FSSRI) y 1411-F (FOES) son la misma CARIBEMAR en el catálogo.
+    expect(codigoBaseSql("sp")).toContain("'-F$', ''");
     expect(empresaKeySql("sp")).toContain("'-F$', ''");
+  });
+
+  test("con mapa, el código resuelto por nombre va antes del respaldo", () => {
+    // Las filas sin codigo_sui deben unirse a su empresa, no quedar aparte.
+    const sql = empresaKeySql("sp", "mp2");
+    const posMapa = sql.indexOf("mp2.cod");
+    const posRespaldo = sql.indexOf("'NOM:'");
+
+    expect(posMapa).toBeGreaterThanOrEqual(0);
+    expect(posMapa).toBeLessThan(posRespaldo);
+  });
+
+  test("sin mapa no se cuela ningún alias", () => {
+    // Ojo: "codigo_sui" también contiene ".cod"; se busca la referencia al mapa.
+    expect(empresaKeySql("sp")).not.toMatch(/\.cod\s*,/);
+  });
+});
+
+describe("mapa de empresas", () => {
+  test("solo toma filas que sí traen código", () => {
+    const cte = mapaEmpresasCte();
+
+    expect(cte).toContain("IS NOT NULL");
+    expect(cte).toContain("subsidios.subsidios_pagos");
+    expect(cte).toContain("subsidios.subsidios_validaciones");
+  });
+
+  test("deja un solo código por nombre", () => {
+    expect(mapaEmpresasCte()).toContain("DISTINCT ON (nom)");
+  });
+
+  test("descarta el nombre vacío, que no identifica a nadie", () => {
+    expect(mapaEmpresasCte()).toContain("nom <> ''");
+  });
+
+  test("el join enlaza por nombre normalizado", () => {
+    const join = joinMapaEmpresas("sp", "mp2");
+
+    expect(join).toContain("LEFT JOIN mapa_empresa mp2");
+    expect(join).toContain(nombreNormalizadoSql("sp"));
   });
 });
 
