@@ -80,7 +80,11 @@ export function consultaMapaEmpresas(): string {
  * reconstruirlo costaba 625 ms por consulta y había diez por petición.
  */
 export function mapaEmpresasCte(paramNom: string, paramCod: string, nombre = "mapa_empresa"): string {
-  return `${nombre} AS (SELECT * FROM unnest(${paramNom}::text[], ${paramCod}::text[]) AS t(nom, cod))`;
+  // MATERIALIZED no es decorativo: desde PostgreSQL 12 las CTE se insertan en
+  // la consulta por defecto, y sin esta palabra el `unnest` de 312 elementos
+  // se vuelve a evaluar por cada fila de la tabla exterior. La consulta de
+  // opciones de empresa, que recorre 65.000 filas, tardaba 2.979 ms por eso.
+  return `${nombre} AS MATERIALIZED (SELECT * FROM unnest(${paramNom}::text[], ${paramCod}::text[]) AS t(nom, cod))`;
 }
 
 /**

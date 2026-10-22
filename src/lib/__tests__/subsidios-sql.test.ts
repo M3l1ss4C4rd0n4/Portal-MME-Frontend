@@ -82,6 +82,9 @@ describe("mapa de empresas", () => {
 
     expect(cte).toContain("unnest($1::text[], $2::text[])");
     expect(cte).toContain("t(nom, cod)");
+    // Sin MATERIALIZED, PostgreSQL inserta la CTE y reevalúa el unnest por
+    // cada fila exterior: 2.979 ms en la consulta de opciones de empresa.
+    expect(cte).toContain("AS MATERIALIZED");
   });
 });
 
