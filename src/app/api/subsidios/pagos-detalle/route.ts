@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
+import { resolucionDistintaSql } from "@/lib/subsidios-sql";
 
 export const dynamic = "force-dynamic";
 
@@ -127,8 +128,10 @@ export async function GET(request: NextRequest) {
         COALESCE(SUM(sp.valor_resolucion), 0) as valor_asignado,
         COALESCE(SUM(sp.valor_pagado), 0) as valor_pagado,
         COALESCE(SUM(sp.saldo_pendiente), 0) as valor_pendiente,
-        COUNT(DISTINCT sp.no_resolucion) as total_resoluciones,
-        COUNT(DISTINCT CASE WHEN sp.saldo_pendiente > 0 THEN sp.no_resolucion END) as resoluciones_pendientes
+        -- El número solo no identifica una resolución: se repite entre años
+        -- (la 1463 aparece en ocho). Con el año de la resolución son 610, no 586.
+        COUNT(DISTINCT ${resolucionDistintaSql('sp')}) as total_resoluciones,
+        COUNT(DISTINCT CASE WHEN sp.saldo_pendiente > 0 THEN ${resolucionDistintaSql('sp')} END) as resoluciones_pendientes
       FROM subsidios.subsidios_pagos sp
       LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
       ${where}

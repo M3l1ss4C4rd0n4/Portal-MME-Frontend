@@ -56,6 +56,7 @@ const navItems: NavItem[] = [
           { label: 'Déficit histórico', href: '/subsidios' },
           { label: 'Detalle de pagos', href: '/pagos' },
           { label: 'Tablero de validaciones', href: '/validaciones' },
+          { label: 'Detalle Empresas', href: '/detalle-empresas' },
         ],
       },
     ],
