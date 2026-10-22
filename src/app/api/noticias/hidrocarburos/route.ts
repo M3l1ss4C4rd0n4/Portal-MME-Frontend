@@ -10,7 +10,7 @@ async function fetchOgImage(url: string): Promise<string> {
       signal: AbortSignal.timeout(6_000),
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (compatible; PortalMMEBot/1.0; +https://portaldireccionee.minenergia.gov.co)",
+          "Mozilla/5.0 (compatible; PortalMMEBot/1.0; +https://portaldireccionenergia.minenergia.gov.co)",
         Accept: "text/html",
       },
     });

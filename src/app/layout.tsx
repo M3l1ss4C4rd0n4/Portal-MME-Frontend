@@ -11,9 +11,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  // Dominio definitivo desde el 2026-10-22. Los anteriores
+  // (portaldireccionee y portalviceministerioenergia) siguen resolviendo al
+  // mismo sitio mientras el área de red los retira.
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL ??
-    'https://portaldireccionee.minenergia.gov.co'
+    'https://portaldireccionenergia.minenergia.gov.co'
   ),
   title: {
     default: 'Portal Dirección de Energía – MinMinas',
@@ -36,7 +39,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Portal Dirección de Energía – MinMinas',
     description: 'Dashboard ejecutivo de la Dirección de Energía Eléctrica del Ministerio de Minas y Energía – República de Colombia.',
-    url: 'https://portaldireccionee.minenergia.gov.co',
+    url: 'https://portaldireccionenergia.minenergia.gov.co',
     siteName: 'Portal Dirección de Energía',
     images: [{ url: '/images/logo-minenergia.png', width: 512, height: 512 }],
     locale: 'es_CO',
