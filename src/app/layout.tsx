@@ -12,8 +12,8 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   // Dominio definitivo desde el 2026-10-22. Los anteriores
-  // (portaldireccionee y portalviceministerioenergia) siguen resolviendo al
-  // mismo sitio mientras el área de red los retira.
+  // (portaldireccionee y portalviceministerioenergia) ya NO resuelven: el área
+  // de red los retiró del DNS el mismo día.
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL ??
     'https://portaldireccionenergia.minenergia.gov.co'
