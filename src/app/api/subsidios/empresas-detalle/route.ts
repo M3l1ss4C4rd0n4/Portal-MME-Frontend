@@ -99,12 +99,19 @@ function buildWhere(
 
   for (const key of FILTRO_KEYS) {
     if (key === opts.omitir) continue;
-    values.push(f[key]);
+    const valor = f[key];
+    // Un filtro vacío se omite del WHERE en vez de pasar NULL con
+    // `($n IS NULL OR col = ANY($n))`. Con ese patrón el planificador no puede
+    // descartar la rama y evalúa la expresión de la columna en cada fila —
+    // incluida la clave de empresa, con su subconsulta. Era la causa de los
+    // 3 segundos sin filtros: omitirla lo deja en décimas.
+    if (valor === null) continue;
+    values.push(valor);
     const param = `${ph(values.length)}::${TIPO[key]}`;
-    parts.push(`(${param} IS NULL OR ${cols[key]} = ANY(${param}))`);
+    parts.push(`${cols[key]} = ANY(${param})`);
   }
 
-  return { where: parts.join(" AND "), values };
+  return { where: parts.length > 0 ? parts.join(" AND ") : "TRUE", values };
 }
 
 function toNum(v: unknown): number {
