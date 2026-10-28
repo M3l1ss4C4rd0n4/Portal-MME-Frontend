@@ -58,6 +58,11 @@ export interface FilaDetalleEmpresa extends MedidasPeriodo {
   nombre: string;
   /** Código SUI, o null cuando la clave se resolvió por nombre. */
   codigo: string | null;
+  /**
+   * Códigos SUI distintos de esa empresa en el grupo. Más de uno significa
+   * que opera en el SIN y en las ZNI, y que SUI le dio un código por mercado.
+   */
+  codigos: number;
   nit: string | null;
 }
 

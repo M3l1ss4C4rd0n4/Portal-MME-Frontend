@@ -132,8 +132,12 @@ export function consultaDetalleGrupos(mapaCte: string, whereVal: string, wherePa
       SELECT ${empresaKeySql("sv")} AS empresa_key,
              sv.anio, sv.trimestre, sv.fondo,
              ${estadoValidacionSql("sv")} AS estado,
-             MIN(sv.nombre_prestador)     AS nombre,
-             COUNT(*)                     AS validaciones
+             MIN(sv.nombre_prestador)         AS nombre,
+             COUNT(*)                         AS validaciones,
+             -- Para distinguir las dos razones por las que una empresa puede
+             -- tener más de una cuenta: dos códigos SUI (opera en el SIN y en
+             -- las ZNI) o la misma fila repetida en la fuente.
+             COUNT(DISTINCT sv.codigo_sui)    AS codigos
       FROM subsidios.subsidios_validaciones sv
       WHERE ${whereVal}
       GROUP BY 1, 2, 3, 4, 5
@@ -159,6 +163,7 @@ export function consultaDetalleGrupos(mapaCte: string, whereVal: string, wherePa
              COALESCE(val.estado, pag.estado)           AS estado,
              COALESCE(val.nombre, pag.nombre)           AS nombre,
              COALESCE(val.validaciones, 0)      AS validaciones,
+             COALESCE(val.codigos, 0)           AS codigos,
              COALESCE(pag.resoluciones, 0)      AS resoluciones,
              pag.res_min, pag.res_max,
              COALESCE(pag.valor_resolucion, 0)  AS valor_resolucion,

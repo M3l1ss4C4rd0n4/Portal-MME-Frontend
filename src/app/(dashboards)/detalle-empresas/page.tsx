@@ -216,7 +216,7 @@ export default function DetalleEmpresasPage() {
           valor={kpis ? formatPct(kpis.pctEjecucion, 1) : "—"}
           nota={kpis ? `sobre ${fmtCompactNum(kpis.valorResolucion)} asignados` : undefined}
         />
-        <Kpi label="Cuentas" valor={kpis ? fmtNum(kpis.totalValidaciones) : "—"} nota="registros de validación del corte" color="#3B82F6" />
+        <Kpi label="Cuentas" valor={kpis ? fmtNum(kpis.totalValidaciones) : "—"} nota="empresa · trimestre · fondo · mercado" color="#3B82F6" />
       </div>
 
       {/* ── Filtros ── */}
@@ -322,6 +322,15 @@ export default function DetalleEmpresasPage() {
               : ""}
             . La fila «Sin validación» recoge los pagos del período que no cruzan con ninguna
             validación de ese corte: sin ella el total de la tabla no cuadraría con los KPIs.
+          </p>
+          {/* La diferencia entre empresa y cuenta no es evidente y el área la
+              preguntó: va escrita, no solo en el título emergente. */}
+          <p className="text-[11px] text-theme-muted mt-1">
+            Una <strong className="text-theme-secondary">cuenta</strong> es cada registro de la hoja
+            de validaciones: una empresa, en un trimestre, un fondo y un mercado —SIN o ZNI—, con el
+            estado al que llegó. Casi siempre hay una por empresa, y por eso la columna muestra el
+            número de empresas; cuando alguna tiene cuentas de más, la marca{" "}
+            <span className="text-amber-500">+N</span> dice cuántas y por qué.
           </p>
         </div>
         <TablaResumenPeriodo

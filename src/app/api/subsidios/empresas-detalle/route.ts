@@ -154,6 +154,7 @@ interface FilaResumenRow {
 
 interface FilaDetalleRow extends FilaResumenRow {
   empresa_key: string;
+  codigos: number;
   nombre_catalogo: string | null;
   nit: string | null;
 }
@@ -355,6 +356,7 @@ export async function GET(req: NextRequest) {
       empresaKey: r.empresa_key,
       nombre: r.nombre_catalogo ?? "Sin nombre",
       codigo: codigoDeClave(r.empresa_key),
+      codigos: toNum(r.codigos),
       nit: r.nit,
     }));
 

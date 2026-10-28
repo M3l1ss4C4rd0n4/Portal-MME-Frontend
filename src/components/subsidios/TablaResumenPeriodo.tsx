@@ -41,7 +41,8 @@ const COLUMNAS: Columna[] = [
   },
   {
     key: "empresas", label: "Empresas", tipo: "entero", grupo: "validacion",
-    ayuda: "Empresas distintas de esa fila. El corte guarda una cuenta por empresa, trimestre y fondo, así que normalmente coinciden; cuando la fuente trae una cuenta de más, se marca con «+N».",
+    ayuda:
+      "Empresas distintas de esa fila. Una CUENTA es cada registro de la hoja de validaciones: una empresa, en un trimestre, un fondo y un mercado (SIN o ZNI), con el estado al que llegó. Casi siempre hay una cuenta por empresa y los dos números coinciden; cuando no, la marca «+N» dice cuántas cuentas sobran y por qué.",
   },
   {
     key: "resoluciones", label: "Resoluciones", tipo: "entero", grupo: "pago",
@@ -80,6 +81,22 @@ function claveGrupo(f: { anio: number; trimestre: number; fondo: string | null; 
  */
 function cuentasDeMas(fila: { empresas?: number; validaciones: number }): number {
   return fila.empresas === undefined ? 0 : Math.max(0, fila.validaciones - fila.empresas);
+}
+
+/**
+ * Por qué una empresa tiene más de una cuenta en el mismo trimestre.
+ *
+ * Son dos cosas distintas y conviene no confundirlas. De los 84 grupos con
+ * cuentas de más en el corte de octubre, 10 son empresas que operan a la vez
+ * en el SIN y en las ZNI —SUI les da un código por mercado, como SIGLO XXI con
+ * el 1426 y el 2170— y 74 son filas que la fuente trae repetidas, idénticas en
+ * todas sus columnas.
+ */
+function motivoCuentasDeMas(empresas: readonly FilaDetalleEmpresa[]): string {
+  const dosMercados = empresas.some((e) => e.codigos > 1);
+  return dosMercados
+    ? "La empresa opera en el SIN y en las ZNI, y SUI le da un código distinto en cada mercado: son dos cuentas reales, una por mercado."
+    : "La hoja de validaciones trae la misma fila repetida, idéntica en todas sus columnas. Es un defecto de la fuente, no del tablero.";
 }
 
 /** «186» si es una sola, «186 – 235» si son varias, «—» si el grupo no tiene pagos. */
@@ -378,7 +395,7 @@ function FilaConDespliegue({
             {c.key === "empresas" && cuentasDeMas(fila) > 0 && (
               <span
                 className="ml-1 text-[10px] text-amber-500"
-                title={`${fila.validaciones} cuentas para ${fila.empresas} empresas: la fuente trae ${cuentasDeMas(fila)} repetida(s) en este trimestre`}
+                title={`${fila.validaciones} cuentas para ${fila.empresas} empresas. ${motivoCuentasDeMas(empresas)} Abre la fila para ver cuál es.`}
               >
                 +{cuentasDeMas(fila)}
               </span>
@@ -407,7 +424,11 @@ function FilaConDespliegue({
               {e.validaciones > 1 ? (
                 <span
                   className="text-amber-500"
-                  title={`${e.validaciones} cuentas de esta empresa en este trimestre y fondo`}
+                  title={
+                    e.codigos > 1
+                      ? `${e.validaciones} cuentas: esta empresa opera en el SIN y en las ZNI, y SUI le da un código por mercado`
+                      : `${e.validaciones} cuentas con el mismo código: la fuente trae la fila repetida`
+                  }
                 >
                   +{e.validaciones - 1}
                 </span>
