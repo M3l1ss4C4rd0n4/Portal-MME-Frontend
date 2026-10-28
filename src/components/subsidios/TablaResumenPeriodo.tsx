@@ -9,7 +9,7 @@ import type { FilaResumen, FilaDetalleEmpresa } from "@/types/subsidios-empresas
 
 type ColKey =
   | "anio" | "trimestre" | "fondo" | "estado"
-  | "empresas" | "validaciones" | "resoluciones"
+  | "empresas" | "resoluciones"
   | "valorResolucion" | "valorPagado" | "saldoPendiente" | "pctEjecucion";
 
 interface Columna {
@@ -41,11 +41,7 @@ const COLUMNAS: Columna[] = [
   },
   {
     key: "empresas", label: "Empresas", tipo: "entero", grupo: "validacion",
-    ayuda: "Empresas distintas que aparecen en esa fila.",
-  },
-  {
-    key: "validaciones", label: "Cuentas", tipo: "entero", grupo: "validacion",
-    ayuda: "Registros de validación del corte: normalmente uno por empresa, trimestre y fondo. Si supera al número de empresas, alguna tiene más de una cuenta en ese trimestre.",
+    ayuda: "Empresas distintas de esa fila. El corte guarda una cuenta por empresa, trimestre y fondo, así que normalmente coinciden; cuando la fuente trae una cuenta de más, se marca con «+N».",
   },
   {
     key: "resoluciones", label: "Resoluciones", tipo: "entero", grupo: "pago",
@@ -72,6 +68,18 @@ const COLUMNAS: Columna[] = [
 /** Clave con la que una fila del resumen encuentra sus empresas. */
 function claveGrupo(f: { anio: number; trimestre: number; fondo: string | null; estado: string }): string {
   return `${f.anio}|${f.trimestre}|${f.fondo ?? ""}|${f.estado}`;
+}
+
+/**
+ * Cuentas de más respecto al número de empresas.
+ *
+ * El corte guarda una cuenta por empresa, trimestre y fondo. En 44 de las 197
+ * filas con validación la fuente trae alguna repetida, y ahí es donde las dos
+ * cifras se separan. Tenerlas en dos columnas las hacía parecer duplicadas en
+ * las 153 restantes, así que la diferencia se marca y la columna desaparece.
+ */
+function cuentasDeMas(fila: { empresas?: number; validaciones: number }): number {
+  return fila.empresas === undefined ? 0 : Math.max(0, fila.validaciones - fila.empresas);
 }
 
 /** «186» si es una sola, «186 – 235» si son varias, «—» si el grupo no tiene pagos. */
@@ -292,11 +300,10 @@ export default function TablaResumenPeriodo({
                   y estados. Es el número de empresas distintas de la tabla. */}
               <td
                 className="px-3 py-2 text-right tabular-nums"
-                title="Empresas distintas en toda la tabla, no la suma de la columna: una misma empresa aparece en varios períodos"
+                title={`Empresas distintas en toda la tabla, no la suma de la columna: una misma aparece en varios períodos. Detrás hay ${fmtNum(totales.validaciones)} cuentas del corte.`}
               >
                 {fmtNum(totales.empresas)}
               </td>
-              <td className="px-3 py-2 text-right tabular-nums">{fmtNum(totales.validaciones)}</td>
               {/* Las resoluciones tampoco: 7 de las 18 de 2026 pagan a empresas
                   en estados distintos, así que aparecen en varias filas. */}
               <td
@@ -368,6 +375,14 @@ function FilaConDespliegue({
             }
           >
             {celda(fila, c)}
+            {c.key === "empresas" && cuentasDeMas(fila) > 0 && (
+              <span
+                className="ml-1 text-[10px] text-amber-500"
+                title={`${fila.validaciones} cuentas para ${fila.empresas} empresas: la fuente trae ${cuentasDeMas(fila)} repetida(s) en este trimestre`}
+              >
+                +{cuentasDeMas(fila)}
+              </span>
+            )}
           </td>
         ))}
         <td className="px-3 py-1.5 text-right tabular-nums text-theme-secondary whitespace-nowrap">
@@ -386,9 +401,19 @@ function FilaConDespliegue({
                 {[e.codigo, e.nit ? `NIT ${e.nit}` : null].filter(Boolean).join(" · ")}
               </span>
             </td>
-            <td className="px-3 py-1 text-right tabular-nums text-theme-muted">—</td>
-            <td className="px-3 py-1 text-right tabular-nums text-theme-secondary">
-              {fmtNum(e.validaciones)}
+            {/* Una empresa no se cuenta a sí misma: la celda solo habla cuando
+                la fuente le dio más de una cuenta en este trimestre. */}
+            <td className="px-3 py-1 text-right tabular-nums text-theme-muted">
+              {e.validaciones > 1 ? (
+                <span
+                  className="text-amber-500"
+                  title={`${e.validaciones} cuentas de esta empresa en este trimestre y fondo`}
+                >
+                  +{e.validaciones - 1}
+                </span>
+              ) : (
+                "—"
+              )}
             </td>
             <td className="px-3 py-1 text-right tabular-nums text-theme-secondary">
               {fmtNum(e.resoluciones)}
