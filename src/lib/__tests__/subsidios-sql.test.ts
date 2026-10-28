@@ -16,6 +16,8 @@ import {
   corteWhereSql,
   claveCorte,
   CODIGOS_UNIFICADOS,
+  codigoNormalizadoSql,
+  catalogoEmpresasCte,
   indiceTrimestre,
   periodoDesdeIndice,
   rangoPeriodoSql,
@@ -84,8 +86,33 @@ describe("codigoBaseSql: normalización", () => {
   });
 
   test("trata los marcadores de la fuente como código ausente", () => {
+    const sql = codigoBaseSql("sv");
+
     // MUNICIPIO DE CUMBAL salía partido: `N.A.2-N` en validaciones, `N.A.-N` en pagos.
-    expect(codigoBaseSql("sv")).toContain("'^(N\\.A\\.|NAN$)'");
+    expect(sql).toContain("'^N\\.A\\.'");
+    expect(sql).toContain("= 'NAN'");
+    // Un guion suelto tampoco es un código: bajo él la fuente mete tres
+    // empresas que no tienen nada que ver entre sí.
+    expect(sql).toContain("!~ '[A-Z0-9]'");
+  });
+
+  test("el catálogo se normaliza igual, y no duplica filas al cruzar", () => {
+    // El catálogo guarda `1411` y `1411-F`: al reducirlos colapsan en la misma
+    // clave, y sin DISTINCT ON el JOIN duplicaría esas 18 empresas.
+    const cte = catalogoEmpresasCte();
+
+    expect(cte).toContain("DISTINCT ON (cod)");
+    expect(cte).toContain("subsidios.subsidios_empresas");
+    expect(cte).toContain("NULLIF(se.nit, 'NaN')");
+    // Entre dos entradas del mismo código gana la que trae NIT.
+    expect(cte).toContain("ORDER BY cod, (nit IS NULL)");
+  });
+
+  test("normalizar el catálogo aplica el mismo criterio que a los datos", () => {
+    const datos = codigoNormalizadoSql("sv.codigo_sui");
+    const catalogo = codigoNormalizadoSql("se.codigo_sui");
+
+    expect(catalogo).toBe(datos.replaceAll("sv.codigo_sui", "se.codigo_sui"));
   });
 
   test("unifica los códigos que SUI reparte entre el SIN y las ZNI", () => {

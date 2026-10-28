@@ -11,6 +11,7 @@ import {
   claveCorte,
   consultaMapaEmpresas,
   mapaEmpresasCte,
+  catalogoEmpresasCte,
   periodoLabel,
   pctEjecucion,
   indiceTrimestre,
@@ -292,6 +293,7 @@ export async function GET(req: NextRequest) {
     const empresasOpcPromise = pool.query<{ key: string; nombre: string; nit: string | null }>(
       `
       WITH ${MAPA},
+      ${catalogoEmpresasCte()},
       claves AS (
         SELECT key, MIN(nombre) AS nombre FROM (
           SELECT ${empresaKeySql("sv")} AS key, sv.nombre_prestador AS nombre
@@ -305,10 +307,9 @@ export async function GET(req: NextRequest) {
         -- obligaba a evaluarla dos veces más por fila.
         GROUP BY key
       )
-      SELECT c.key, COALESCE(se.nombre_prestador, c.nombre) AS nombre,
-             NULLIF(se.nit, 'NaN') AS nit
+      SELECT c.key, COALESCE(cat.nombre_prestador, c.nombre) AS nombre, cat.nit
       FROM claves c
-      LEFT JOIN subsidios.subsidios_empresas se ON se.codigo_sui = c.key
+      LEFT JOIN catalogo_empresa cat ON cat.cod = c.key
       ORDER BY 2
       `,
       [...M, ...wValEmp.values, ...wPagEmp.values]

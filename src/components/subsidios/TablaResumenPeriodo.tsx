@@ -18,20 +18,55 @@ interface Columna {
   tipo: "texto" | "entero" | "dinero" | "pct";
   /** Título del grupo de cabecera, para separar validaciones de pagos. */
   grupo?: "validacion" | "pago";
+  /** Qué significa la columna, al pasar el cursor por el encabezado. */
+  ayuda?: string;
 }
 
+/*
+ * Las etiquetas son las del área, no las de la base. `valor_resolucion` y
+ * `saldo_pendiente` son nombres de columna de `subsidios_pagos` y no tienen por
+ * qué asomar en pantalla; «Cuentas» es la palabra que ya usa el tablero de
+ * Relación de Cuentas para lo mismo.
+ */
 const COLUMNAS: Columna[] = [
   { key: "anio", label: "Año", tipo: "texto" },
   { key: "trimestre", label: "Trimestre", tipo: "texto" },
-  { key: "fondo", label: "Fondo", tipo: "texto" },
-  { key: "estado", label: "Estado validación", tipo: "texto", grupo: "validacion" },
-  { key: "empresas", label: "Empresas", tipo: "entero", grupo: "validacion" },
-  { key: "validaciones", label: "Validaciones", tipo: "entero", grupo: "validacion" },
-  { key: "resoluciones", label: "Resoluciones", tipo: "entero", grupo: "pago" },
-  { key: "valorResolucion", label: "valor_resolucion", tipo: "dinero", grupo: "pago" },
-  { key: "valorPagado", label: "valor_pagado", tipo: "dinero", grupo: "pago" },
-  { key: "saldoPendiente", label: "saldo_pendiente", tipo: "dinero", grupo: "pago" },
-  { key: "pctEjecucion", label: "% ejecución", tipo: "pct", grupo: "pago" },
+  {
+    key: "fondo", label: "Fondo", tipo: "texto",
+    ayuda: "FOES: Fondo de Energía Social. FSSRI: Fondo de Solidaridad para Subsidios y Redistribución de Ingresos.",
+  },
+  {
+    key: "estado", label: "Estado de validación", tipo: "texto", grupo: "validacion",
+    ayuda: "Etapa en que el área dejó esa cuenta. «Sin validación» no es un estado de la fuente: son los pagos del período que no cruzan con ninguna cuenta del corte.",
+  },
+  {
+    key: "empresas", label: "Empresas", tipo: "entero", grupo: "validacion",
+    ayuda: "Empresas distintas que aparecen en esa fila.",
+  },
+  {
+    key: "validaciones", label: "Cuentas", tipo: "entero", grupo: "validacion",
+    ayuda: "Registros de validación del corte: normalmente uno por empresa, trimestre y fondo. Si supera al número de empresas, alguna tiene más de una cuenta en ese trimestre.",
+  },
+  {
+    key: "resoluciones", label: "Resoluciones", tipo: "entero", grupo: "pago",
+    ayuda: "Resoluciones distintas que pagaron en esa fila. No se suman hacia abajo: una misma puede pagar a empresas en estados distintos.",
+  },
+  {
+    key: "valorResolucion", label: "Valor asignado", tipo: "dinero", grupo: "pago",
+    ayuda: "Suma de lo que asignan las resoluciones de esa fila.",
+  },
+  {
+    key: "valorPagado", label: "Valor pagado", tipo: "dinero", grupo: "pago",
+    ayuda: "Suma de lo efectivamente girado.",
+  },
+  {
+    key: "saldoPendiente", label: "Saldo pendiente", tipo: "dinero", grupo: "pago",
+    ayuda: "Lo asignado que aún no se ha girado.",
+  },
+  {
+    key: "pctEjecucion", label: "% de ejecución", tipo: "pct", grupo: "pago",
+    ayuda: "Pagado sobre asignado. Se calcula de los montos, no de la columna pct_pagado de la fuente, que viene errada en algunas resoluciones.",
+  },
 ];
 
 /** Clave con la que una fila del resumen encuentra sus empresas. */
@@ -50,11 +85,14 @@ function celda(fila: FilaResumen | FilaDetalleEmpresa, c: Columna): string {
   if (c.key === "estado") return etiquetaEstado(fila.estado);
   if (c.key === "fondo") return fila.fondo ?? "—";
   if (c.key === "anio") return String(fila.anio);
+  // Un porcentaje sobre cero no es cero por ciento, es que no hay nada que
+  // ejecutar: mostrarlo como 0,0 % hacía leer un incumplimiento inexistente.
+  if (c.key === "pctEjecucion" && fila.valorResolucion === 0) return "—";
   const valor = (fila as unknown as Record<ColKey, number>)[c.key];
   if (valor === null || valor === undefined) return "—";
-  if (c.tipo === "dinero") return fmtCOP(valor);
+  if (c.tipo === "dinero") return valor === 0 ? "—" : fmtCOP(valor);
   if (c.tipo === "pct") return formatPct(valor, 1);
-  return fmtNum(valor);
+  return valor === 0 ? "—" : fmtNum(valor);
 }
 
 export default function TablaResumenPeriodo({
@@ -124,14 +162,14 @@ export default function TablaResumenPeriodo({
       "Año": f.anio,
       Trimestre: f.trimestre,
       Fondo: f.fondo ?? "",
-      "Estado validación": etiquetaEstado(f.estado),
-      Validaciones: f.validaciones,
+      "Estado de validación": etiquetaEstado(f.estado),
+      Cuentas: f.validaciones,
       Resoluciones: f.resoluciones,
-      "N° resolución": rangoResoluciones(f.resMin, f.resMax),
-      valor_resolucion: f.valorResolucion,
-      valor_pagado: f.valorPagado,
-      saldo_pendiente: f.saldoPendiente,
-      "% ejecución": Number(f.pctEjecucion.toFixed(2)),
+      "N.º de resolución": rangoResoluciones(f.resMin, f.resMax),
+      "Valor asignado": f.valorResolucion,
+      "Valor pagado": f.valorPagado,
+      "Saldo pendiente": f.saldoPendiente,
+      "% de ejecución": Number(f.pctEjecucion.toFixed(2)),
     });
     const libro = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(
@@ -211,13 +249,18 @@ export default function TablaResumenPeriodo({
                           : ""
                     }`}
                   >
-                    {c.label}
+                    <span title={c.ayuda} className={c.ayuda ? "border-b border-dotted border-theme-card" : ""}>
+                      {c.label}
+                    </span>
                     <span className="ml-1 text-[9px]">{activa ? (orden.desc ? "▼" : "▲") : "⇅"}</span>
                   </th>
                 );
               })}
-              <th className="px-3 py-2 text-right whitespace-nowrap border-b border-theme-card text-theme-secondary bg-emerald-500/5">
-                N° resolución
+              <th
+                className="px-3 py-2 text-right whitespace-nowrap border-b border-theme-card text-theme-secondary bg-emerald-500/5"
+                title="Números de las resoluciones de esa fila. Cuando son varias se muestra el rango entre la menor y la mayor."
+              >
+                <span className="border-b border-dotted border-theme-card">N.º de resolución</span>
               </th>
             </tr>
           </thead>

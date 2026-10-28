@@ -216,7 +216,7 @@ export default function DetalleEmpresasPage() {
           valor={kpis ? formatPct(kpis.pctEjecucion, 1) : "—"}
           nota={kpis ? `sobre ${fmtCompactNum(kpis.valorResolucion)} asignados` : undefined}
         />
-        <Kpi label="Validaciones" valor={kpis ? fmtNum(kpis.totalValidaciones) : "—"} nota="del corte seleccionado" color="#3B82F6" />
+        <Kpi label="Cuentas" valor={kpis ? fmtNum(kpis.totalValidaciones) : "—"} nota="registros de validación del corte" color="#3B82F6" />
       </div>
 
       {/* ── Filtros ── */}

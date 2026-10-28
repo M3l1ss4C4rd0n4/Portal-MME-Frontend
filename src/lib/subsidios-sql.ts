@@ -75,12 +75,55 @@ export const CODIGOS_UNIFICADOS: Record<string, string> = {
  * `N.A.-N` en pagos.
  */
 export function codigoBaseSql(alias: string): string {
-  const base = `REGEXP_REPLACE(UPPER(REGEXP_REPLACE(COALESCE(${alias}.codigo_sui, ''), '\\s+', '', 'g')), '-F$', '')`;
+  return codigoNormalizadoSql(`${alias}.codigo_sui`);
+}
+
+/**
+ * La normalización, aplicable a cualquier columna que guarde un código SUI.
+ *
+ * Se separó de `codigoBaseSql` para poder normalizar también el catálogo
+ * `subsidios_empresas` y cruzarlo por el mismo criterio: el catálogo guarda
+ * `1213-F` y `1411-F` con el sufijo puesto, así que comparar contra la clave ya
+ * reducida dejaba 5 empresas sin nombre oficial, sin NIT y sin departamento.
+ *
+ * Un código sin una sola letra ni dígito no es un código: en la fuente hay
+ * cuatro filas cuyo `codigo_sui` es un guion suelto, y bajo él conviven tres
+ * empresas que no tienen nada que ver (CONSORCIO EMCALI, EMPAAATICS y
+ * FIDEICOMISOS SOCIEDAD FIDUCIARIA DE OCCIDENTE). Devolverlo como ausente
+ * manda cada una a su propio nombre y deja de fundirlas.
+ */
+export function codigoNormalizadoSql(columna: string): string {
+  const base = `REGEXP_REPLACE(UPPER(REGEXP_REPLACE(COALESCE(${columna}, ''), '\\s+', '', 'g')), '-F$', '')`;
   const unificados = `'${JSON.stringify(CODIGOS_UNIFICADOS)}'::jsonb`;
   return `CASE
-    WHEN ${base} = '' OR ${base} ~ '^(N\\.A\\.|NAN$)' THEN NULL
+    WHEN ${base} !~ '[A-Z0-9]' OR ${base} ~ '^N\\.A\\.' OR ${base} = 'NAN' THEN NULL
     ELSE COALESCE(${unificados} ->> ${base}, ${base})
   END`;
+}
+
+/**
+ * Catálogo oficial de empresas, con el código ya normalizado.
+ *
+ * Va como CTE y no como JOIN directo contra la tabla porque, al reducir el
+ * código, `1411` y `1411-F` colapsan en la misma clave: sin el `DISTINCT ON`
+ * el JOIN duplicaría cada fila de esas 18 empresas. Entre dos entradas del
+ * mismo código gana la que trae NIT, que es la que más información aporta.
+ */
+export function catalogoEmpresasCte(nombre = "catalogo_empresa"): string {
+  return `${nombre} AS (
+    SELECT DISTINCT ON (cod) cod, nombre_prestador, nit, departamento
+    FROM (
+      SELECT ${codigoNormalizadoSql("se.codigo_sui")} AS cod,
+             se.nombre_prestador,
+             -- El ETL escribió el NaN de pandas como texto en 115 de las 219
+             -- empresas del catálogo; se devuelve como ausente.
+             NULLIF(se.nit, 'NaN') AS nit,
+             se.departamento
+      FROM subsidios.subsidios_empresas se
+    ) t
+    WHERE cod IS NOT NULL
+    ORDER BY cod, (nit IS NULL), nombre_prestador
+  )`;
 }
 
 export function nombreNormalizadoSql(alias: string): string {

@@ -12,6 +12,7 @@
  */
 
 import {
+  catalogoEmpresasCte,
   empresaKeySql,
   estadoValidacionSql,
   anioPagosSql,
@@ -125,6 +126,7 @@ export function consultaResumenPeriodo(mapaCte: string, whereVal: string, whereP
 export function consultaDetalleGrupos(mapaCte: string, whereVal: string, wherePag: string): string {
   return `
     WITH ${mapaCte},
+    ${catalogoEmpresasCte()},
     ${cteEstadoEmpresa(whereVal)},
     val AS (
       SELECT ${empresaKeySql("sv")} AS empresa_key,
@@ -171,11 +173,9 @@ export function consultaDetalleGrupos(mapaCte: string, whereVal: string, wherePa
         AND val.estado      = pag.estado
     )
     SELECT u.*,
-           COALESCE(se.nombre_prestador, u.nombre) AS nombre_catalogo,
-           -- El ETL escribió el NaN de pandas como texto en 115 de las 219
-           -- empresas del catálogo; se devuelve como ausente.
-           NULLIF(se.nit, 'NaN') AS nit
+           COALESCE(cat.nombre_prestador, u.nombre) AS nombre_catalogo,
+           cat.nit
     FROM unidas u
-    LEFT JOIN subsidios.subsidios_empresas se ON se.codigo_sui = u.empresa_key
+    LEFT JOIN catalogo_empresa cat ON cat.cod = u.empresa_key
     ORDER BY u.anio DESC, u.trimestre, u.fondo, u.estado, u.valor_pagado DESC NULLS LAST`;
 }
