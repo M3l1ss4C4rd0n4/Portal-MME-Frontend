@@ -40,6 +40,7 @@ const navItems: NavItem[] = [
       { label: 'Balance Oferta-Demanda', href: '/balance-oferta-demanda' },
       { label: 'Predicciones SIN', href: '/energia/predicciones' },
       { label: 'Informes energéticos', href: '/energia/informes' },
+      { label: 'IPEM', href: '/energia/ipem' },
       { label: 'Portal Energético', href: 'https://portalenergetico.minenergia.gov.co/' },
     ],
   },

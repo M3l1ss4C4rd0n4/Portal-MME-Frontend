@@ -88,9 +88,19 @@ interface Props {
   datos: DatoDepartamento[];
   isDark: boolean;
   unidad?: string;
-  /** Rampa de color de menor a mayor valor. */
+  /** Rampa de color de menor a mayor valor. Se ignora si viene `colorDe`. */
   rampa?: string[];
   etiquetaValor?: string;
+  /**
+   * Color explícito por departamento. Cuando viene, reemplaza la escala por
+   * cuantiles: hace falta para métricas cuyas bandas ya están definidas por una
+   * fuente oficial (el IPEM publica sus cinco quintiles en el informe del MME), donde
+   * recalcular cortes sobre los datos recibidos pintaría bandas que no son las
+   * publicadas. Devolver null deja el departamento con el relleno base.
+   */
+  colorDe?: (dato: DatoDepartamento) => string | null;
+  /** Formato del valor en el tooltip. Por defecto `fmtNum`. */
+  formatearValor?: (valor: number) => string;
 }
 
 const RAMPA_HIDROCARBUROS = ["#78350F", "#92400E", "#B45309", "#D97706", "#F59E0B", "#FCD34D"];
@@ -102,6 +112,8 @@ export default function MapaCoropletaDepartamentos({
   unidad,
   rampa = RAMPA_HIDROCARBUROS,
   etiquetaValor = "Valor",
+  colorDe,
+  formatearValor = fmtNum,
 }: Props) {
   const geoTransformado = useMemo(() => {
     if (!geoData) return null;
@@ -120,12 +132,24 @@ export default function MapaCoropletaDepartamentos({
   const { valorPorDepto, colorPorDepto, nombrePorDepto } = useMemo(() => {
     const valores = new Map<string, number>();
     const nombres = new Map<string, string>();
+    const coloresExplicitos = new Map<string, string>();
     for (const d of datos) {
       const k = d.codigoDane
         ? String(d.codigoDane).padStart(2, "0")
         : claveDepartamento(d.departamento);
       valores.set(k, (valores.get(k) ?? 0) + d.valor);
       if (!nombres.has(k)) nombres.set(k, d.departamento);
+      if (colorDe) {
+        const color = colorDe(d);
+        if (color) coloresExplicitos.set(k, color);
+      }
+    }
+    if (colorDe) {
+      return {
+        valorPorDepto: valores,
+        colorPorDepto: coloresExplicitos,
+        nombrePorDepto: nombres,
+      };
     }
     const ordenados = [...valores.values()].filter((v) => v > 0).sort((a, b) => a - b);
     const cortes = rampa.map(
@@ -138,7 +162,30 @@ export default function MapaCoropletaDepartamentos({
       colores.set(k, rampa[idx === -1 ? rampa.length - 1 : idx]);
     }
     return { valorPorDepto: valores, colorPorDepto: colores, nombrePorDepto: nombres };
-  }, [datos, rampa]);
+  }, [datos, rampa, colorDe]);
+
+  /**
+   * Firma de todo lo que alimenta los tooltips, para la `key` de la capa.
+   *
+   * react-leaflet solo reaplica `style` cuando cambian las props: su `updateGeoJSON`
+   * no vuelve a ejecutar `onEachFeature` (verificado en
+   * node_modules/react-leaflet/lib/GeoJSON.js). Si la capa no se remonta, el mapa se
+   * recolorea pero los tooltips se quedan con los valores del primer render.
+   *
+   * La `key` usaba `colorPorDepto.size`, que no cambia cuando dos conjuntos de datos
+   * traen los mismos departamentos: al alternar 2024/2025 en el tablero del IPEM los
+   * 33 departamentos tienen valor en ambos años, así que el color cambiaba y el
+   * tooltip seguía anunciando el año anterior.
+   */
+  const firmaDatos = useMemo(
+    () =>
+      [
+        etiquetaValor,
+        unidad ?? "",
+        ...datos.map((d) => `${d.codigoDane ?? d.departamento}:${d.valor}`),
+      ].join("|"),
+    [datos, etiquetaValor, unidad],
+  );
 
   if (!geoTransformado) {
     return (
@@ -173,7 +220,7 @@ export default function MapaCoropletaDepartamentos({
         <AjustarALimites />
         <ZoomControl position="bottomright" />
         <GeoJSON
-          key={`coropleta-${String(isDark)}-${colorPorDepto.size}`}
+          key={`coropleta-${String(isDark)}-${firmaDatos}`}
           data={geoTransformado as never}
           style={(feature?: { properties?: { DPTO?: string; NOMBRE_DPT?: string } }) => {
             const k = claveFeature(feature?.properties);
@@ -197,7 +244,7 @@ export default function MapaCoropletaDepartamentos({
               [
                 `<strong style="font-size:13px">${nombre}</strong>`,
                 valor != null
-                  ? `${etiquetaValor}: <strong>${fmtNum(valor)}${unidad ? ` ${unidad}` : ""}</strong>`
+                  ? `${etiquetaValor}: <strong>${formatearValor(valor)}${unidad ? ` ${unidad}` : ""}</strong>`
                   : `<em>Sin registros</em>`,
               ].join("<br/>"),
               { sticky: true, direction: "top", className: "dept-tooltip" }
