@@ -13,6 +13,7 @@
 
 import {
   catalogoEmpresasCte,
+  pagosUnicosCte,
   conteoValidacionesSql,
   empresaKeySql,
   estadoValidacionSql,
@@ -75,6 +76,7 @@ const MEDIDAS_PAGO = `
 export function consultaResumenPeriodo(mapaCte: string, whereVal: string, wherePag: string): string {
   return `
     WITH ${mapaCte},
+    ${pagosUnicosCte()},
     ${cteEstadoEmpresa(whereVal)},
     val AS (
       SELECT sv.anio, sv.trimestre, sv.fondo,
@@ -92,7 +94,7 @@ export function consultaResumenPeriodo(mapaCte: string, whereVal: string, whereP
              COALESCE(ee.estado, '${SIN_VALIDACION}') AS estado,
              COUNT(DISTINCT ${empresaKeySql("sp")})   AS empresas,
              ${MEDIDAS_PAGO}
-      FROM subsidios.subsidios_pagos sp
+      FROM pagos_unicos sp
       ${joinEstadoEmpresa()}
       WHERE ${wherePag}
       GROUP BY 1, 2, 3, 4
@@ -127,6 +129,7 @@ export function consultaResumenPeriodo(mapaCte: string, whereVal: string, whereP
 export function consultaDetalleGrupos(mapaCte: string, whereVal: string, wherePag: string): string {
   return `
     WITH ${mapaCte},
+    ${pagosUnicosCte()},
     ${catalogoEmpresasCte()},
     ${cteEstadoEmpresa(whereVal)},
     val AS (
@@ -151,7 +154,7 @@ export function consultaDetalleGrupos(mapaCte: string, whereVal: string, wherePa
              COALESCE(ee.estado, '${SIN_VALIDACION}') AS estado,
              MIN(sp.nombre_prestador) AS nombre,
              ${MEDIDAS_PAGO}
-      FROM subsidios.subsidios_pagos sp
+      FROM pagos_unicos sp
       ${joinEstadoEmpresa()}
       WHERE ${wherePag}
       GROUP BY 1, 2, 3, 4, 5

@@ -12,6 +12,7 @@ import {
   claveCorte,
   consultaMapaEmpresas,
   mapaEmpresasCte,
+  pagosUnicosCte,
   catalogoEmpresasCte,
   periodoLabel,
   pctEjecucion,
@@ -250,11 +251,12 @@ export async function GET(req: NextRequest) {
       anio: number; trimestre: number; pagos: number; valor_pagado: string | null;
     }>(
       `
-      WITH ${MAPA}
+      WITH ${MAPA},
+      ${pagosUnicosCte()}
       SELECT ${ANIO_SP} AS anio, ${TRIM_SP} AS trimestre,
              COUNT(DISTINCT ${resolucionDistintaSql("sp")})::int AS pagos,
              SUM(sp.valor_pagado) AS valor_pagado
-      FROM subsidios.subsidios_pagos sp
+      FROM pagos_unicos sp
       WHERE ${wPag.where}
       GROUP BY 1, 2
       ORDER BY 1, 2
@@ -272,12 +274,13 @@ export async function GET(req: NextRequest) {
       valor_pagado: string | null; saldo_pendiente: string | null;
     }>(
       `
-      WITH ${MAPA}
+      WITH ${MAPA},
+      ${pagosUnicosCte()}
       SELECT COUNT(DISTINCT ${resolucionDistintaSql("sp")})::int AS total_pagos,
              COALESCE(SUM(sp.valor_resolucion), 0) AS valor_resolucion,
              COALESCE(SUM(sp.valor_pagado), 0)     AS valor_pagado,
              COALESCE(SUM(sp.saldo_pendiente), 0)  AS saldo_pendiente
-      FROM subsidios.subsidios_pagos sp
+      FROM pagos_unicos sp
       WHERE ${wPag.where}
       `,
       [...M, ...wPag.values]
@@ -296,6 +299,7 @@ export async function GET(req: NextRequest) {
     const empresasOpcPromise = pool.query<{ key: string; nombre: string; nit: string | null }>(
       `
       WITH ${MAPA},
+      ${pagosUnicosCte()},
       ${catalogoEmpresasCte()},
       claves AS (
         SELECT key, MIN(nombre) AS nombre FROM (
@@ -303,7 +307,7 @@ export async function GET(req: NextRequest) {
           FROM subsidios.subsidios_validaciones sv WHERE ${wValEmp.where}
           UNION ALL
           SELECT ${empresaKeySql("sp")} AS key, sp.nombre_prestador AS nombre
-          FROM subsidios.subsidios_pagos sp WHERE ${wPagEmp.where}
+          FROM pagos_unicos sp WHERE ${wPagEmp.where}
         ) t
         -- Sin filtro sobre la clave: el COALESCE termina en 'NOM:' || nombre,
         -- así que nunca es nula ni vacía. Repetir la expresión en el WHERE

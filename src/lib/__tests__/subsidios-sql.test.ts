@@ -17,6 +17,8 @@ import {
   claveCorte,
   CODIGOS_UNIFICADOS,
   huellaValidacionSql,
+  pagosUnicosSql,
+  NOMBRES_UNIFICADOS,
   conteoValidacionesSql,
   codigoNormalizadoSql,
   catalogoEmpresasCte,
@@ -159,6 +161,65 @@ describe("filas de validación repetidas", () => {
   test("respeta el alias, para servir a los dos tableros", () => {
     expect(conteoValidacionesSql("v2")).toContain("v2.codigo_sui");
     expect(conteoValidacionesSql("v2")).not.toContain("sv.");
+  });
+});
+
+describe("pagos repetidos", () => {
+  test("se queda con una fila por huella antes de sumar", () => {
+    // Un SUM no sabe de repetidas: contar distintos no basta, hay que
+    // descartarlas. 95 filas de 13.835 inflaban el pagado en 29.577 millones.
+    const sql = pagosUnicosSql();
+
+    expect(sql).toContain("DISTINCT ON (md5(ROW(");
+    expect(sql).toContain("subsidios.subsidios_pagos");
+  });
+
+  test("la huella incluye el dinero y excluye lo técnico", () => {
+    const sql = pagosUnicosSql();
+
+    for (const col of ["valor_pagado", "no_resolucion", "observacion", "tipo_giro"]) {
+      expect(sql).toContain(`p.${col}`);
+    }
+    expect(sql).not.toContain("p.id,");
+    expect(sql).not.toContain("fecha_importacion");
+  });
+});
+
+describe("nombres de empresa sin código", () => {
+  test("el rescate por alias va después del mapa y antes del respaldo", () => {
+    // Orden: código propio, nombre exacto, alias auditado, y por último el
+    // nombre como clave. Adelantar el alias pisaría una coincidencia exacta.
+    const sql = empresaKeySql("sv");
+    const posMapa = sql.indexOf("j ->>");
+    // lastIndexOf, no indexOf: codigoBaseSql ya trae su propio jsonb, el de
+    // los códigos que SUI reparte entre el SIN y las ZNI.
+    const posAlias = sql.lastIndexOf("::jsonb ->>");
+    const posRespaldo = sql.indexOf("'NOM:'");
+
+    expect(posMapa).toBeLessThan(posAlias);
+    expect(posAlias).toBeLessThan(posRespaldo);
+  });
+
+  test("las claves son nombres ya normalizados, sin tildes ni signos", () => {
+    for (const clave of Object.keys(NOMBRES_UNIFICADOS)) {
+      expect(clave).toMatch(/^[A-Z0-9]+$/);
+    }
+  });
+
+  test("ningún alias apunta a un código que sea a su vez un alias", () => {
+    const destinos = new Set(Object.values(NOMBRES_UNIFICADOS));
+    for (const clave of Object.keys(NOMBRES_UNIFICADOS)) {
+      expect(destinos.has(clave)).toBe(false);
+    }
+  });
+
+  test("los tres pares que Jev rechazó no están en la lista", () => {
+    // GUAVIARE contra VICHADA, CARURU contra SIPÍ y META contra CAUCA: una
+    // regla de parecido los habría unido, y son empresas distintas.
+    const nombres = Object.keys(NOMBRES_UNIFICADOS).join("|");
+    expect(nombres).not.toContain("DELGUAVIARESAESP");
+    expect(nombres).not.toContain("MUNICIPIODECARURU");
+    expect(NOMBRES_UNIFICADOS["ELECTRIFICADORADELMETASAEMPRESADESERVICIOSPUBLICOS"]).toBeUndefined();
   });
 });
 

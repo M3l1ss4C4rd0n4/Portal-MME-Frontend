@@ -49,6 +49,95 @@ export const CODIGOS_UNIFICADOS: Record<string, string> = {
 };
 
 /**
+ * Nombres sin código SUI que pertenecen a una empresa que sí lo tiene.
+ *
+ * El rescate por nombre de `consultaMapaEmpresas` solo acierta cuando las dos
+ * grafías normalizan igual, y la fuente escribe la misma empresa unas veces
+ * con la sigla y otras sin ella: «EMPRESA DE ENERGIA DE ARAUCA S.A. E.S.P» y
+ * «... - ENELAR» son la misma y salían como dos en el tablero.
+ *
+ * La lista sale de auditar con Jev los 38 nombres sueltos que más se parecen a
+ * uno con código, contrastando cada juicio contra el catálogo. Se congela aquí
+ * en vez de resolverse con una heurística en tiempo de ejecución, porque una
+ * regla de parecido fusiona lo que no debe: la similitud de trigramas daba
+ * 0,65 entre GUAVIARE y VICHADA, 0,51 entre CARURU y SIPÍ y 0,49 entre META y
+ * CAUCA, tres pares de empresas distintas que Jev rechazó y que una regla
+ * automática habría unido.
+ *
+ * Fuera quedan, para que los mire el área: BAJO PIZARRO contra BAJO BAUDÓ
+ * PIZARRO (0,65), EMPRESA DISTRIBUIDORA DEL PACÍFICO contra EMPRESA DE ENERGÍA
+ * DEL PACÍFICO (0,40) y la UNIDAD contra la COMPAÑÍA de servicios de Bojayá
+ * (0,56).
+ *
+ * Las claves son el nombre ya normalizado por `nombreNormalizadoSql`, que
+ * descarta todo lo que no sea letra sin tilde o dígito.
+ */
+export const NOMBRES_UNIFICADOS: Record<string, string> = {
+  // EMPRESA DE SERVICIOS PÚBLICOS DE ENERGÍA LIMPIA DE COLOMBIA ENERLIMPIA S.A. 
+  "EMPRESADESERVICIOSPBLICOSDEENERGALIMPIADECOLOMBIAENERLIMPIASAESPENERLIMPIA": "43836", // Jev 0.98
+  // EMPRESA DE SERVICIOS PÚBLICOS Y ENERGIA DEL LITORAL DEL SAN JUAN S.A.S. E.S.
+  "EMPRESADESERVICIOSPUBLICOSYENERGIADELLITORALDELSANJUANSASESP": "34274", // Jev 0.95
+  // JUNTA ADMINISTRADORA DE SERVICIOS PÚBLICOS  DE  CAPURGANA
+  "JUNTAADMINISTRADORADESERVICIOSPUBLICOSDECAPURGANA": "2080", // Jev 0.95
+  // EMPRESA ASOCIATIVA DE TRABAJO EAT ELECTRIFICADORA DE SAN JUAN DE LA COSTA E.
+  "EMPRESAASOCIATIVADETRABAJOEATELECTRIFICADORADESANJUANDELACOSTAESPEATELECTROSANJUANESP": "3027", // Jev 0.96
+  // EMPRESA MUNICIPAL DE SERVICIOS PUBLICOS DE CARTAGENA DEL CHAIRA S.A. ESP
+  "EMPRESAMUNICIPALDESERVICIOSPUBLICOSDECARTAGENADELCHAIRA": "1279", // Jev 0.88
+  // E.A.T. DE PRESTACION DE SERVICIOS PUBLICOS DE LA LOCALIDAD DEL CHAJAL MUNINI
+  "EATDEPRESTACIONDESERVCIOSPUBLICOSDELALOCALIDADDELCHAJALMUNICIPIODETUMACO": "3173", // Jev 0.95
+  // ENERGIA Y CONECTIVIDAD COMUNITARIA MONTES DE MARIA S.A.S. E.S.P. (SISFV)
+  "ENERGIAYCONECTIVIDADCOMUNITARIAMONTESDEMARIASASESP": "49147S", // Jev 0.95
+  // COMPAÑÍA ENERGÉTICA DE OCCIDENTE S.A.S. E.S.P. -CEO
+  "COMPAAENERGTICADEOCCIDENTESASESP": "1240", // Jev 0.96
+  // CENTRAL HIDROELÉCTRICA DE CALDAS S.A. E.S.P.
+  "CENTRALHIDROELECTRICADECALDASSAESP": "1234", // Jev 0.98
+  // EMPRESA ASOCIATIVA DE TRABAJO PARA LA PRESTACION DE SERVICIOS PUBLICOS DE EN
+  "EMPRESAASOCIATIVADETRABAJOPARALAPRESTACIONDESERVICIOSPUBLICOSDEENERGIAACUEDUCTOALCANTARILLADOYASEODELMUNICIPIODESANTABARBARAISCUAEATSERPUBSANTABARBAYCOPASCOL": "31373", // Jev 0.94
+  // EMPRESA MUNICIPAL DE SERVICIOS PÚBLICOS DOMICILIARIOS DE VIGÍA DEL FUERTE
+  "EMPRESAMUNICIPALDESERVICIOSPBLICOSDOMICILIARIOSDEVIGADELFUERTEEMSPUVIF": "1930", // Jev 0.96
+  // EMPRESA ASOCIATIVA DE TRABAJO COMERCIALIZADORA SAN JOSE E.S.P.
+  "EMPRESAASOCIATIVADETRABAJOCOMERCIALIZADORASANJOSESPCOMSAN": "28352", // Jev 0.91
+  // EMPRESAS MUNICIPALES DE CALI E.I.C.E. E.S.P.-EMCALI
+  "EMPRESASMUNICIPALESDECALIEICEESP": "1232", // Jev 0.93
+  // ASOCIACIÓN DE USUARIOS DEL SERVICIO DE ENERGÍA ELÉCTRICA DE LA ZONA RURAL DE
+  "ASOCIACIONDEUSUARIOSDELSERVICIODEENERGIAELECTRICADELAZONARURALDESANTABARBARADEISCUANDE": "22594", // Jev 0.95
+  // EMPRESA DE ENERGIA DE CASANARE S.A. E.S.P - ENERCA
+  "EMPRESADEENERGIADECASANARESAESP": "1331", // Jev 0.96
+  // EMPRESA DE ENERGIA DE BOYACA S.A. E.S.P. -EBSA
+  "EMPRESADEENERGIADEBOYACASAESP": "1242", // Jev 0.98
+  // COOPERATIVA DE SERVICIOS PÚBLICOS DE LÓPEZ DE MICAY
+  "COOPERATIVADESERVICIOSPUBLICOSDELOPEZDEMICAY": "21597", // Jev 0.96
+  // ELECTRIFICADORA DEL CAQUETÁ S.A. E.S.P.-ELECTROCAQUETÁ
+  "ELECTRIFICADORADELCAQUETSAESP": "1238", // Jev 0.94
+  // ELECTRIFICADORA DEL HUILA S.A. E.S.P.-ELECTROHUILA
+  "ELECTRIFICADORADELHUILASAESP": "1237", // Jev 0.95
+  // EMPRESA DE ENERGIA DE ARAUCA S.A. E.S.P - ENELAR
+  "EMPRESADEENERGIADEARAUCASAESP": "1246", // Jev 0.95
+  // EMPRESA DE SERVICIOS PUBLICOS DEL CAQUETA S.A.S. ESP
+  "EMPRESADESERVICIOSPBLICOSDELCAQUETSASESP": "38893", // Jev 0.95
+  // EMPRESA DE ENERGIA ELECTRICA DEL PATIA SAS ESP
+  "EMPRESADEENERGIAELCTRICADELPATASASESP": "69939", // Jev 0.97
+  // HELIOS ENERGIA S.A. ESP
+  "HELIOSENERGASAESP": "42637", // Jev 0.92
+  // SOLUNA ENERGÍA S.A.S E.S.P. (SISFV)
+  "SOLUNAENERGASASESP": "53888S", // Jev 0.95
+  // CENTRALES ELÉCTRICAS DE NARIÑO S.A. E.S.P.-CEDENAR
+  "CENTRALESELECTRICASDENARIOSAESP": "1239", // Jev 0.93
+  // CENTRALES ELECTRICAS DEL NORTE DE SANTANDER S.A. E.S.P.
+  "CENTRALESELECTRICASDELNORTEDESANTANDERSAEMPRESADESERVICIOSPUBLICOS": "1233", // Jev 0.95
+  // EMPRESAS PÚBLICAS DE MEDELLÍN E.S.P. - EPM
+  "EMPRESASPUBLICASDEMEDELLINESP": "1250", // Jev 0.97
+  // EMPRESA DE ENERGÍA DEL QUINDÍO S.A. E.S.P  - EDEQ
+  "EMPRESADEENERGIADELQUINDIOSAESP": "1202", // Jev 0.97
+  // SOLING DEL SINU S.A.S. E.S.P.
+  "SOLINGDELSINUESPSAS": "48907", // Jev 0.94
+  // EMPRESA DE ENERGIA DEL GUAINIA LA CEIBA S.A. E.S.P.  (Localidades)
+  "EMPRESADEENERGADELGUAINIALACEIBASAESPEMELCESAESP": "2331", // Jev 0.86
+  // ENERGIA PARA EL AMAZONAS S.A. ESP
+  "EMPRESADEENERGAPARAELAMAZONASSAESPENAMSAESP": "23430", // Jev 0.95
+};
+
+/**
  * Clave estable de empresa.
  *
  * `nombre_prestador` no identifica una empresa: en `subsidios_pagos` hay 311
@@ -186,9 +275,11 @@ export function mapaEmpresasCte(paramNom: string, paramCod: string, nombre = "ma
  */
 export function empresaKeySql(alias: string, cte = "mapa_empresa"): string {
   const nom = nombreNormalizadoSql(alias);
+  const alias_jsonb = `'${JSON.stringify(NOMBRES_UNIFICADOS)}'::jsonb`;
   return `COALESCE(
     ${codigoBaseSql(alias)},
     (SELECT j ->> ${nom} FROM ${cte}),
+    ${alias_jsonb} ->> ${nom},
     'NOM:' || ${nom}
   )`;
 }
@@ -239,6 +330,40 @@ export function huellaValidacionSql(alias: string): string {
     "fecha_radicado", "observaciones", "estado_validacion_organizado", "cod_general",
   ];
   return `md5(ROW(${columnas.map((c) => `${alias}.${c}`).join(", ")})::text)`;
+}
+
+/**
+ * Pagos sin las filas que el Excel trae repetidas.
+ *
+ * Mismo defecto que en validaciones y con más consecuencia, porque aquí hay
+ * dinero: 95 de las 13.835 filas son idénticas en sus 26 columnas de negocio
+ * —misma resolución, mismo valor, mismo giro, misma observación— y sumarlas
+ * dos veces inflaba el valor pagado en 29.577 millones.
+ *
+ * Se descarta al leer y no al cargar: la tabla conserva lo que vino en el
+ * Excel. Un `SUM` no sabe de repetidas, así que no basta con contar distintos:
+ * hay que quedarse con una fila por huella antes de sumar.
+ *
+ * `id` y `fecha_importacion` quedan fuera de la huella porque son técnicas y
+ * siempre difieren.
+ */
+export function pagosUnicosSql(): string {
+  const columnas = [
+    "fecha_actualizacion", "persona_actualiza", "fondo", "area", "anio", "trimestre",
+    "concepto_trimestre", "codigo_sui", "nombre_prestador", "estado_resolucion",
+    "no_resolucion", "fecha_resolucion", "valor_resolucion", "link_resolucion", "tipo_giro",
+    "distribuidor_mayorista", "estado_pago", "tipo_pago", "valor_pagado", "pct_pagado",
+    "saldo_pendiente", "observacion", "cod_general", "anio_trimestre_resolucion",
+    "valor_disponible", "valor_disponible_2",
+  ];
+  const huella = `md5(ROW(${columnas.map((c) => `p.${c}`).join(", ")})::text)`;
+  return `SELECT DISTINCT ON (${huella}) p.*
+    FROM subsidios.subsidios_pagos p`;
+}
+
+/** La misma lectura como CTE, para las consultas que ya abren con `WITH`. */
+export function pagosUnicosCte(nombre = "pagos_unicos"): string {
+  return `${nombre} AS (${pagosUnicosSql()})`;
 }
 
 /** Conteo de validaciones que no cuenta dos veces una fila repetida. */

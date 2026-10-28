@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
-import { resolucionDistintaSql } from "@/lib/subsidios-sql";
+import { resolucionDistintaSql, pagosUnicosSql } from "@/lib/subsidios-sql";
 
 export const dynamic = "force-dynamic";
 
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
         -- (la 1463 aparece en ocho). Con el año de la resolución son 610, no 586.
         COUNT(DISTINCT ${resolucionDistintaSql('sp')}) as total_resoluciones,
         COUNT(DISTINCT CASE WHEN sp.saldo_pendiente > 0 THEN ${resolucionDistintaSql('sp')} END) as resoluciones_pendientes
-      FROM subsidios.subsidios_pagos sp
+      FROM (${pagosUnicosSql()}) sp
       LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
       ${where}
     `, params);
@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
         sp.anio_trimestre_resolucion as periodo,
         COALESCE(SUM(sp.valor_pagado), 0) as pagado,
         COALESCE(SUM(sp.saldo_pendiente), 0) as pendiente
-      FROM subsidios.subsidios_pagos sp
+      FROM (${pagosUnicosSql()}) sp
       LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
       ${whereTrim}
       GROUP BY sp.anio_trimestre_resolucion
@@ -174,7 +174,7 @@ export async function GET(request: NextRequest) {
         COALESCE(SUM(sp.valor_resolucion), 0) as valor_asignado,
         COALESCE(SUM(sp.valor_pagado), 0) as valor_pagado,
         COALESCE(SUM(sp.saldo_pendiente), 0) as saldo_pendiente
-      FROM subsidios.subsidios_pagos sp
+      FROM (${pagosUnicosSql()}) sp
       LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
       ${whereResol}
       GROUP BY sp.no_resolucion
@@ -196,7 +196,7 @@ export async function GET(request: NextRequest) {
       SELECT
         sp.nombre_prestador,
         COALESCE(SUM(sp.saldo_pendiente), 0) as saldo_pendiente
-      FROM subsidios.subsidios_pagos sp
+      FROM (${pagosUnicosSql()}) sp
       LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
       ${wherePrest}
       GROUP BY sp.nombre_prestador
@@ -220,7 +220,7 @@ export async function GET(request: NextRequest) {
         const { where, params } = buildWhere(baseFilters, 1);
         return pool.query<{ nombre_prestador: string }>(`
           SELECT DISTINCT sp.nombre_prestador 
-          FROM subsidios.subsidios_pagos sp
+          FROM (${pagosUnicosSql()}) sp
           LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
           ${where}
           ORDER BY sp.nombre_prestador
@@ -230,7 +230,7 @@ export async function GET(request: NextRequest) {
         const { where, params } = buildWhere(baseFilters, 2);
         return pool.query<{ anio: number }>(`
           SELECT DISTINCT sp.anio 
-          FROM subsidios.subsidios_pagos sp
+          FROM (${pagosUnicosSql()}) sp
           LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
           ${where}
           ORDER BY sp.anio DESC
@@ -240,7 +240,7 @@ export async function GET(request: NextRequest) {
         const { where, params } = buildWhere(baseFilters, 3);
         return pool.query<{ anio: number }>(`
           SELECT DISTINCT LEFT(sp.anio_trimestre_resolucion, 4)::int as anio 
-          FROM subsidios.subsidios_pagos sp
+          FROM (${pagosUnicosSql()}) sp
           LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
           ${where}
           ORDER BY anio DESC
@@ -250,7 +250,7 @@ export async function GET(request: NextRequest) {
         const { where, params } = buildWhere(baseFilters, 4);
         return pool.query<{ estado_pago: string }>(`
           SELECT DISTINCT sp.estado_pago 
-          FROM subsidios.subsidios_pagos sp
+          FROM (${pagosUnicosSql()}) sp
           LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
           ${where}
           ORDER BY sp.estado_pago
@@ -260,7 +260,7 @@ export async function GET(request: NextRequest) {
         const { where, params } = buildWhere(baseFilters, 5);
         return pool.query<{ no_resolucion: number }>(`
           SELECT DISTINCT sp.no_resolucion 
-          FROM subsidios.subsidios_pagos sp
+          FROM (${pagosUnicosSql()}) sp
           LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
           ${where}
           ORDER BY sp.no_resolucion DESC
@@ -271,7 +271,7 @@ export async function GET(request: NextRequest) {
         const { where, params } = buildWhere(baseFilters, 6);
         return pool.query<{ trimestre: number }>(`
           SELECT DISTINCT RIGHT(sp.anio_trimestre_resolucion, 1)::int as trimestre 
-          FROM subsidios.subsidios_pagos sp
+          FROM (${pagosUnicosSql()}) sp
           LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
           ${where}
           ORDER BY trimestre
@@ -281,7 +281,7 @@ export async function GET(request: NextRequest) {
         const { where, params } = buildWhere(baseFilters, 7);
         return pool.query<{ area: string | null }>(`
           SELECT DISTINCT sp.area 
-          FROM subsidios.subsidios_pagos sp
+          FROM (${pagosUnicosSql()}) sp
           LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
           ${where}
           ORDER BY sp.area
@@ -291,7 +291,7 @@ export async function GET(request: NextRequest) {
         const { where, params } = buildWhere(baseFilters, 8);
         return pool.query<{ fondo: string | null }>(`
           SELECT DISTINCT sp.fondo 
-          FROM subsidios.subsidios_pagos sp
+          FROM (${pagosUnicosSql()}) sp
           LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
           ${where}
           ORDER BY sp.fondo
@@ -301,7 +301,7 @@ export async function GET(request: NextRequest) {
         const { where, params } = buildWhere(baseFilters, 9);
         return pool.query<{ departamento: string | null }>(`
           SELECT DISTINCT COALESCE(se.departamento, 'Sin departamento') as departamento
-          FROM subsidios.subsidios_pagos sp
+          FROM (${pagosUnicosSql()}) sp
           LEFT JOIN subsidios.subsidios_empresas se ON sp.codigo_sui = se.codigo_sui
           ${where}
           ORDER BY departamento
