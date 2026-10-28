@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { ResponsiveBar } from "@nivo/bar";
 import { useTheme } from "@/providers/ThemeProvider";
 import DashboardLayout from "@/components/DashboardLayout";
 import Card from "@/components/dashboard/Card";
 import BarLineChart, { type BarLinePunto } from "@/components/dashboard/BarLineChart";
 import FiltrosEmpresas from "@/components/subsidios/FiltrosEmpresas";
-import TablaEmpresas from "@/components/subsidios/TablaEmpresas";
+import TablaResumenPeriodo from "@/components/subsidios/TablaResumenPeriodo";
 import { getNivoTheme } from "@/lib/nivo-theme";
 import { fmtCOP, fmtCompactNum, fmtNum, formatPct } from "@/lib/format";
 import {
@@ -26,6 +26,23 @@ const COLOR_ESTADO: Record<(typeof ESTADOS)[number], string> = {
   "VI SP": "#8B5CF6",
   Otros: "#64748B",
 };
+
+/**
+ * Espera antes de recargar al mover el deslizador.
+ *
+ * El control dispara `onChange` en cada píxel; sin esto, arrastrarlo de un
+ * extremo al otro lanzaría decenas de peticiones. Mismo valor que usa el
+ * deslizador de años del tablero de Supervisión.
+ */
+const DEBOUNCE_PERIODO_MS = 400;
+
+/** Período vigente. `null` significa «todo lo disponible», que fija el backend. */
+interface Periodo {
+  desde: number | null;
+  hasta: number | null;
+}
+
+const PERIODO_COMPLETO: Periodo = { desde: null, hasta: null };
 
 function Kpi({ label, valor, nota, color }: { label: string; valor: string; nota?: string; color?: string }) {
   return (
@@ -52,15 +69,40 @@ export default function DetalleEmpresasPage() {
   const [error, setError] = useState<string | null>(null);
   const [filtros, setFiltros] = useState<FiltrosEmpresasState>(FILTROS_VACIOS);
   const [corte, setCorte] = useState<string | null>(null);
+  // Dos estados para el período: `periodo` sigue al deslizador en cada píxel y
+  // `periodoAplicado` es el que viaja al backend, ya con la espera cumplida.
+  const [periodo, setPeriodo] = useState<Periodo>(PERIODO_COMPLETO);
+  const [periodoAplicado, setPeriodoAplicado] = useState<Periodo>(PERIODO_COMPLETO);
+  const esperaPeriodo = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const buildQuery = useCallback(() => {
     const params = new URLSearchParams();
-    (Object.keys(filtros) as (keyof FiltrosEmpresasState)[]).forEach((k) => {
-      filtros[k].forEach((v) => params.append(k, v));
-    });
+    filtros.empresa.forEach((v) => params.append("empresa", v));
+    if (periodoAplicado.desde !== null) params.set("desde", String(periodoAplicado.desde));
+    if (periodoAplicado.hasta !== null) params.set("hasta", String(periodoAplicado.hasta));
     if (corte) params.set("corte", corte);
     return params.toString();
-  }, [filtros, corte]);
+  }, [filtros, periodoAplicado, corte]);
+
+  /* Los filtros se leen de la URL al montar, igual que en el tablero de Pagos.
+   * Es lo que permite que la captura de Playwright del informe PDF abra la
+   * página ya filtrada: sin esto el PDF saldría siempre con el tablero
+   * completo, da igual lo que el usuario tuviera puesto. */
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.has("empresa")) setFiltros({ empresa: sp.getAll("empresa") });
+    if (sp.has("corte")) setCorte(sp.get("corte"));
+    const num = (k: string) => {
+      const v = sp.get(k);
+      const n = Number(v);
+      return v !== null && Number.isFinite(n) ? n : null;
+    };
+    const rango: Periodo = { desde: num("desde"), hasta: num("hasta") };
+    if (rango.desde !== null || rango.hasta !== null) {
+      setPeriodo(rango);
+      setPeriodoAplicado(rango);
+    }
+  }, []);
 
   // El estado de carga se marca al disparar el cambio, no dentro del efecto:
   // un setState síncrono en el cuerpo del efecto provoca un render extra.
@@ -92,6 +134,10 @@ export default function DetalleEmpresasPage() {
     // el estado está en null y el selector lo muestra desde la respuesta.
   }, [buildQuery]);
 
+  useEffect(() => () => {
+    if (esperaPeriodo.current) clearTimeout(esperaPeriodo.current);
+  }, []);
+
   const marcarCargando = useCallback(() => {
     setLoading(true);
     setError(null);
@@ -108,12 +154,26 @@ export default function DetalleEmpresasPage() {
   const handleLimpiar = useCallback(() => {
     marcarCargando();
     setFiltros(FILTROS_VACIOS);
+    setPeriodo(PERIODO_COMPLETO);
+    setPeriodoAplicado(PERIODO_COMPLETO);
   }, [marcarCargando]);
 
   const handleCorte = useCallback(
     (nuevo: string) => {
       marcarCargando();
       setCorte(nuevo);
+    },
+    [marcarCargando]
+  );
+
+  const handlePeriodo = useCallback(
+    (desde: number, hasta: number) => {
+      setPeriodo({ desde, hasta });
+      if (esperaPeriodo.current) clearTimeout(esperaPeriodo.current);
+      esperaPeriodo.current = setTimeout(() => {
+        marcarCargando();
+        setPeriodoAplicado({ desde, hasta });
+      }, DEBOUNCE_PERIODO_MS);
     },
     [marcarCargando]
   );
@@ -129,11 +189,14 @@ export default function DetalleEmpresasPage() {
   );
 
   const kpis = data?.kpis;
+  const disponible = data?.periodoDisponible;
 
   return (
     <DashboardLayout
       title="Detalle Empresas"
       subtitle="Estado de validaciones y pagos de subsidios, empresa por empresa"
+      downloadTablero="detalle-empresas"
+      downloadQueryString={buildQuery()}
     >
       {error && (
         <Card className="mb-4">
@@ -158,12 +221,18 @@ export default function DetalleEmpresasPage() {
 
       {/* ── Filtros ── */}
       <Card className="mb-4">
-        {data && (
+        {data && disponible && (
           <FiltrosEmpresas
             valores={filtros}
             opciones={data.filtrosOpciones}
             onChange={handleFiltro}
             onLimpiar={handleLimpiar}
+            periodo={{
+              desde: periodo.desde ?? disponible.min,
+              hasta: periodo.hasta ?? disponible.max,
+            }}
+            periodoDisponible={disponible}
+            onPeriodo={handlePeriodo}
             corte={corte ?? data.corte}
             cortes={data.cortesDisponibles}
             onCorte={handleCorte}
@@ -173,7 +242,10 @@ export default function DetalleEmpresasPage() {
 
       {/* ── Los dos paneles ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-        <Card className="flex flex-col">
+        {/* Los `id` no son decorativos: son los selectores con los que el
+            informe PDF fotografía estas dos tarjetas. Sus títulos, «Validación»
+            y «Pagos», son demasiado genéricos para localizarlas por texto. */}
+        <Card className="flex flex-col" id="grafico-validacion-trimestre">
           <div className="mb-1">
             <h2 className="text-sm font-semibold text-theme-primary">Validación</h2>
             <p className="text-[11px] text-theme-muted">
@@ -213,7 +285,7 @@ export default function DetalleEmpresasPage() {
           </div>
         </Card>
 
-        <Card className="flex flex-col">
+        <Card className="flex flex-col" id="grafico-pagos-trimestre">
           <div className="mb-1">
             <h2 className="text-sm font-semibold text-theme-primary">Pagos</h2>
             {/* Conteo y monto no comparten escala: el monto va en el eje derecho
@@ -238,16 +310,25 @@ export default function DetalleEmpresasPage() {
         </Card>
       </div>
 
-      {/* ── Tabla por empresa ── */}
+      {/* ── Resumen por período ── */}
       <Card>
         <div className="mb-3">
-          <h2 className="text-sm font-semibold text-theme-primary">Detalle por empresa</h2>
+          <h2 className="text-sm font-semibold text-theme-primary">Resumen por período</h2>
           <p className="text-[11px] text-theme-muted">
-            Clic en cualquier encabezado para ordenar. Los valores de validación corresponden al corte
-            seleccionado; los de pago, a todo el periodo filtrado.
+            Clic en una fila para ver sus empresas, o en un encabezado para ordenar. Los valores de
+            validación corresponden a la última carga del corte seleccionado
+            {data?.cargaValidaciones
+              ? ` (${new Date(data.cargaValidaciones).toLocaleDateString("es-CO")})`
+              : ""}
+            . La fila «Sin validación» recoge los pagos del período que no cruzan con ninguna
+            validación de ese corte: sin ella el total de la tabla no cuadraría con los KPIs.
           </p>
         </div>
-        <TablaEmpresas empresas={data?.empresas ?? []} loading={loading} />
+        <TablaResumenPeriodo
+          resumen={data?.resumen ?? []}
+          detalle={data?.detalle ?? []}
+          loading={loading}
+        />
       </Card>
 
       {data?.fechaCarga && (

@@ -13,7 +13,7 @@ export async function GET(
     const validos = [
       "subsidios", "fenoge", "contratos-or", "supervision",
       "presupuesto", "comunidades", "pagos", "validaciones",
-      "energia", "colombia-solar", "predicciones",
+      "detalle-empresas", "energia", "colombia-solar", "predicciones",
     ];
 
     if (!validos.includes(tablero)) {

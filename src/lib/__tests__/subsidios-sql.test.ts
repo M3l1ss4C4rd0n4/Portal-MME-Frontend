@@ -12,6 +12,15 @@ import {
   nombreNormalizadoSql,
   mapaEmpresasCte,
   consultaMapaEmpresas,
+  consultaCortes,
+  corteWhereSql,
+  claveCorte,
+  CODIGOS_UNIFICADOS,
+  indiceTrimestre,
+  periodoDesdeIndice,
+  rangoPeriodoSql,
+  rangoPeriodoPagosSql,
+  clavePeriodoPagos,
   periodoLabel,
   pctEjecucion,
 } from "../subsidios-sql";
@@ -37,8 +46,7 @@ describe("empresaKeySql", () => {
   test("prefiere codigo_sui y cae al nombre normalizado", () => {
     const sql = empresaKeySql("sp");
 
-    expect(sql).toContain("TRIM(sp.codigo_sui)");
-    expect(sql).toMatch(/NULLIF\([\s\S]*sp\.codigo_sui/);
+    expect(sql).toContain("sp.codigo_sui");
     expect(sql).toContain("'NOM:'");
     expect(sql).toContain("sp.nombre_prestador");
   });
@@ -59,7 +67,70 @@ describe("empresaKeySql", () => {
     expect(empresaKeySql("sp")).toContain("'-F$', ''");
   });
 
+  test("NO quita el sufijo -N: ahí sí hay dos empresas distintas", () => {
+    // El catálogo da `1213-F` = CELSIA COLOMBIA y `1213-N` = CELSIA TOLIMA.
+    expect(codigoBaseSql("sp")).not.toContain("-N$");
+    expect(codigoBaseSql("sp")).not.toContain("-(F|N)$");
+  });
+});
 
+describe("codigoBaseSql: normalización", () => {
+  test("pasa a mayúsculas y quita los espacios internos", () => {
+    // `34833s`/`34833S` y `67580 - 1757`/`67580-1757` eran dos empresas cada par.
+    const sql = codigoBaseSql("sv");
+
+    expect(sql).toContain("UPPER(");
+    expect(sql).toContain("'\\s+', '', 'g'");
+  });
+
+  test("trata los marcadores de la fuente como código ausente", () => {
+    // MUNICIPIO DE CUMBAL salía partido: `N.A.2-N` en validaciones, `N.A.-N` en pagos.
+    expect(codigoBaseSql("sv")).toContain("'^(N\\.A\\.|NAN$)'");
+  });
+
+  test("unifica los códigos que SUI reparte entre el SIN y las ZNI", () => {
+    expect(CODIGOS_UNIFICADOS["520"]).toBe("1239"); //  CEDENAR
+    expect(CODIGOS_UNIFICADOS["1426"]).toBe("2170"); // SIGLO XXI
+    // Viajan a SQL como un jsonb literal, no como una cadena de CASE a mano.
+    expect(codigoBaseSql("sv")).toContain('{"520":"1239","1426":"2170"}');
+  });
+
+  test("ningún par unificado se apunta a sí mismo ni encadena", () => {
+    // Un valor que fuera a su vez clave dejaría la unificación a medias.
+    for (const [origen, destino] of Object.entries(CODIGOS_UNIFICADOS)) {
+      expect(origen).not.toBe(destino);
+      expect(CODIGOS_UNIFICADOS[destino]).toBeUndefined();
+    }
+  });
+});
+
+describe("período como índice de trimestre", () => {
+  test("avanza de uno en uno y da la vuelta al cambiar de año", () => {
+    expect(indiceTrimestre(2026, 2) - indiceTrimestre(2026, 1)).toBe(1);
+    expect(indiceTrimestre(2026, 1) - indiceTrimestre(2025, 4)).toBe(1);
+  });
+
+  test("periodoDesdeIndice es el inverso exacto", () => {
+    for (const [anio, trimestre] of [[2014, 1], [2020, 3], [2026, 4]] as const) {
+      expect(periodoDesdeIndice(indiceTrimestre(anio, trimestre))).toEqual({ anio, trimestre });
+    }
+  });
+
+  test("el rango de validaciones compara por filas, para usar el índice", () => {
+    // `anio * 4 + trimestre BETWEEN …` dejaría `idx_sv_anio_trim` sin usar.
+    const sql = rangoPeriodoSql("sv", ["$3", "$4", "$5", "$6"]);
+
+    expect(sql).toContain("(sv.anio, sv.trimestre) >= ($3::int, $4::int)");
+    expect(sql).toContain("(sv.anio, sv.trimestre) <= ($5::int, $6::int)");
+  });
+
+  test("el de pagos compara el texto YYYY/TN, que ordena igual que la fecha", () => {
+    expect(clavePeriodoPagos(2026, 1)).toBe("2026/T1");
+    expect(clavePeriodoPagos(2014, 4) < clavePeriodoPagos(2015, 1)).toBe(true);
+    expect(rangoPeriodoPagosSql("sp", "$3", "$4")).toBe(
+      "sp.anio_trimestre_resolucion BETWEEN $3 AND $4"
+    );
+  });
 });
 
 describe("mapa de empresas", () => {
@@ -108,6 +179,37 @@ describe("empresaKeySql: rescate sin JOIN", () => {
 
     expect(posCodigo).toBeLessThan(posRescate);
     expect(posRescate).toBeLessThan(posRespaldo);
+  });
+});
+
+describe("cortes de validaciones", () => {
+  test("cada mes se resuelve a la fecha de su última carga", () => {
+    // Un mes trae dos cargas, y cada una es un snapshot completo: filtrar por
+    // el mes entero duplicaba los conteos (VI daba 3.068 contra 1.536 reales).
+    const q = consultaCortes();
+
+    expect(q).toContain("MAX(fecha_actualizacion)::date");
+    expect(q).toContain("GROUP BY 1, 2");
+    expect(q).toContain("ORDER BY anio DESC, mes DESC");
+  });
+
+  test("la restricción es un rango de un día, sin envolver la columna", () => {
+    const sql = corteWhereSql("sv", "$3");
+
+    expect(sql).toContain("sv.fecha_actualizacion >= $3::date");
+    expect(sql).toContain("sv.fecha_actualizacion < $3::date + 1");
+    // Envolver la columna en una función impediría usar un índice sobre ella.
+    expect(sql).not.toContain("fecha_actualizacion::date =");
+    expect(sql).not.toContain("EXTRACT");
+  });
+
+  test("no quedan cortes resueltos por mes", () => {
+    expect(corteWhereSql("sv", "$1")).not.toContain("MONTH");
+  });
+
+  test("la clave del corte lleva el mes con dos dígitos", () => {
+    expect(claveCorte({ anio: 2026, mes: 10 })).toBe("2026-10");
+    expect(claveCorte({ anio: 2026, mes: 5 })).toBe("2026-05");
   });
 });
 

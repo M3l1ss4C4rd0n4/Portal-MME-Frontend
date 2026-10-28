@@ -21,10 +21,32 @@ export const ESTADOS_VALIDACION = [
 
 export type EstadoValidacion = (typeof ESTADOS_VALIDACION)[number];
 
-/** Etiqueta corta para ejes y leyendas, sin el prefijo de ordenamiento. */
+/**
+ * Etiqueta corta para ejes y leyendas, sin el prefijo de ordenamiento.
+ *
+ * El rango llega hasta la `z` por «z. Sin validación», que no es un estado de
+ * la fuente sino la fila del resumen por período donde caen los pagos que no
+ * cruzan con ninguna validación del corte.
+ */
 export function etiquetaEstado(estado: string): string {
-  return estado.replace(/^[a-e]\.\s*/, "");
+  return estado.replace(/^[a-z]\.\s*/, "");
 }
+
+/**
+ * Códigos que SUI asigna por mercado a una misma empresa: uno en el SIN y otro
+ * en las ZNI. El catálogo `subsidios_empresas` les da entradas separadas, pero
+ * son el mismo prestador, así que el tablero los suma.
+ *
+ * Es una lista explícita y no una regla de sufijos a propósito. `-F` sí marca
+ * el fondo y se puede quitar siempre (`1411` y `1411-F` son la misma CARIBEMAR),
+ * pero `-N` no: el catálogo dice que `1213-F` es CELSIA COLOMBIA y `1213-N` es
+ * CELSIA TOLIMA, razón social distinta. Quitar `-N` fusionaría dos empresas
+ * que no lo son.
+ */
+export const CODIGOS_UNIFICADOS: Record<string, string> = {
+  "520": "1239", //  CENTRALES ELÉCTRICAS DE NARIÑO (CEDENAR): ZNI → SIN
+  "1426": "2170", // SIGLO XXI E.I.C.E. E.S.P.: SIN → ZNI (2170 trae 707 filas contra 225)
+};
 
 /**
  * Clave estable de empresa.
@@ -39,13 +61,26 @@ export function etiquetaEstado(estado: string): string {
  * letras y dígitos — necesario porque el 5 % de las filas de pagos no trae
  * código.
  *
- * Al código se le quita el sufijo `-F`: no es otra empresa, es la misma bajo
- * el fondo FOES. En el catálogo, `1411` y `1411-F` comparten razón social
- * (CARIBEMAR DE LA COSTA S.A.S. E.S.P.). Sin quitarlo, 17 empresas salen
- * duplicadas en la tabla.
+ * El código se normaliza antes de agrupar, porque la fuente escribe el mismo
+ * con caja y espacios distintos y cada variante salía como una empresa aparte:
+ * `34833s`/`34833S`, `42637s`/`42637S`, `67580 - 1757`/`67580-1757`.
+ *
+ * Se le quita el sufijo `-F`: no es otra empresa, es la misma bajo el fondo
+ * FOES. En el catálogo, `1411` y `1411-F` comparten razón social. Sin quitarlo,
+ * 17 empresas salen duplicadas.
+ *
+ * `N.A.`, `N.A.1`, `N.A.2` y `NaN` no son códigos, son el marcador de «no hay
+ * código»: se devuelven como ausentes para que la clave caiga en el nombre. Sin
+ * eso, MUNICIPIO DE CUMBAL salía partido en dos, `N.A.2-N` en validaciones y
+ * `N.A.-N` en pagos.
  */
 export function codigoBaseSql(alias: string): string {
-  return `NULLIF(REGEXP_REPLACE(TRIM(${alias}.codigo_sui), '-F$', ''), '')`;
+  const base = `REGEXP_REPLACE(UPPER(REGEXP_REPLACE(COALESCE(${alias}.codigo_sui, ''), '\\s+', '', 'g')), '-F$', '')`;
+  const unificados = `'${JSON.stringify(CODIGOS_UNIFICADOS)}'::jsonb`;
+  return `CASE
+    WHEN ${base} = '' OR ${base} ~ '^(N\\.A\\.|NAN$)' THEN NULL
+    ELSE COALESCE(${unificados} ->> ${base}, ${base})
+  END`;
 }
 
 export function nombreNormalizadoSql(alias: string): string {
@@ -138,6 +173,47 @@ export function estadoValidacionSql(alias: string): string {
 }
 
 /**
+ * Cortes disponibles: cada mes con la fecha de su última carga.
+ *
+ * `fecha_actualizacion` no es una marca de importación —eso es
+ * `fecha_importacion`—, es la fecha en que el área tocó cada registro, y **cada
+ * mes trae dos cargas**, a mitad y a fin de mes. Las dos son snapshots
+ * completos: octubre de 2026 tiene 3.642 filas con fecha del día 13 y 3.647 con
+ * fecha del 26, ambas con las mismas 178 empresas y los mismos periodos
+ * 2014-2026.
+ *
+ * Restringir el corte al mes sumaba las dos cargas y duplicaba todos los
+ * conteos por estado: VI salía 3.068 cuando el snapshot tiene 1.536. De ahí que
+ * el mes se resuelva a la fecha de su última carga.
+ */
+export function consultaCortes(): string {
+  return `
+    SELECT EXTRACT(YEAR FROM fecha_actualizacion)::int  AS anio,
+           EXTRACT(MONTH FROM fecha_actualizacion)::int AS mes,
+           MAX(fecha_actualizacion)::date               AS carga
+    FROM subsidios.subsidios_validaciones
+    WHERE fecha_actualizacion IS NOT NULL
+    GROUP BY 1, 2
+    ORDER BY anio DESC, mes DESC`;
+}
+
+/**
+ * Restricción a una sola carga de validaciones.
+ *
+ * Se compara contra un rango de un día en vez de `fecha_actualizacion::date =`
+ * para no envolver la columna en una función.
+ */
+export function corteWhereSql(alias: string, param: string): string {
+  return `${alias}.fecha_actualizacion >= ${param}::date
+      AND ${alias}.fecha_actualizacion < ${param}::date + 1`;
+}
+
+/** Clave `YYYY-MM` con la que viaja un corte entre el tablero y el endpoint. */
+export function claveCorte(c: { anio: number; mes: number }): string {
+  return `${c.anio}-${String(c.mes).padStart(2, "0")}`;
+}
+
+/**
  * Área normalizada: las filas de FOES llegan con `area` nula o 'NA' y
  * corresponden al SIN. Mismo criterio que ya aplica el tablero de Validaciones.
  */
@@ -182,6 +258,52 @@ export function resolucionDistintaSql(alias: string): string {
 /** Etiqueta de periodo para el eje de las gráficas: «2026 T1». */
 export function periodoLabel(anio: number, trimestre: number): string {
   return `${anio} T${trimestre}`;
+}
+
+/* ─── Período como un solo número ──────────────────────────────────────────
+ * El deslizador de período necesita un eje entero y continuo, igual que el del
+ * tablero de balance oferta-demanda, que se mueve sobre días y traduce a fecha
+ * con `formatValue`. Aquí la unidad es el trimestre.
+ */
+
+/** Trimestres transcurridos desde el año 0: el eje del deslizador. */
+export function indiceTrimestre(anio: number, trimestre: number): number {
+  return anio * 4 + (trimestre - 1);
+}
+
+/** Inverso de `indiceTrimestre`. */
+export function periodoDesdeIndice(indice: number): { anio: number; trimestre: number } {
+  return { anio: Math.floor(indice / 4), trimestre: (indice % 4) + 1 };
+}
+
+/**
+ * Restricción de rango sobre `anio`/`trimestre` de validaciones.
+ *
+ * Es una comparación por filas y no `anio * 4 + trimestre BETWEEN …` para que
+ * pueda usar `idx_sv_anio_trim`: envolver las columnas en aritmética deja el
+ * índice fuera de juego.
+ */
+export function rangoPeriodoSql(
+  alias: string,
+  [anioDesde, trimDesde, anioHasta, trimHasta]: [string, string, string, string]
+): string {
+  return `(${alias}.anio, ${alias}.trimestre) >= (${anioDesde}::int, ${trimDesde}::int)
+      AND (${alias}.anio, ${alias}.trimestre) <= (${anioHasta}::int, ${trimHasta}::int)`;
+}
+
+/**
+ * El mismo rango sobre pagos, donde el período es texto `YYYY/TN`.
+ *
+ * Ese formato ordena igual como texto que como fecha, así que un `BETWEEN`
+ * alfabético es correcto y aprovecha `idx_sp_anio_trim_resol`.
+ */
+export function rangoPeriodoPagosSql(alias: string, desde: string, hasta: string): string {
+  return `${alias}.anio_trimestre_resolucion BETWEEN ${desde} AND ${hasta}`;
+}
+
+/** Clave de período `YYYY/TN`, la que guarda `anio_trimestre_resolucion`. */
+export function clavePeriodoPagos(anio: number, trimestre: number): string {
+  return `${anio}/T${trimestre}`;
 }
 
 /**

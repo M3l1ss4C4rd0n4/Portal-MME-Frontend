@@ -6,11 +6,18 @@ export interface CardProps {
   children: React.ReactNode;
   className?: string;
   delay?: number;
+  /**
+   * Identificador del contenedor. Lo usan las capturas de Playwright del
+   * informe PDF para localizar una tarjeta concreta cuando su título es
+   * demasiado genérico para buscarla por texto.
+   */
+  id?: string;
 }
 
-export default function Card({ children, className = "", delay = 0 }: CardProps) {
+export default function Card({ children, className = "", delay = 0, id }: CardProps) {
   return (
     <motion.div
+      id={id}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}

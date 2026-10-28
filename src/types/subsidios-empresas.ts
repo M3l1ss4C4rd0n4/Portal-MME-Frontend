@@ -1,25 +1,5 @@
 /** Formas que devuelve `GET /api/subsidios/empresas-detalle`. */
 
-export interface EmpresaDetalle {
-  key: string;
-  nombre: string;
-  nit: string | null;
-  departamento: string;
-  fondo: string | null;
-  area: string | null;
-  vf: number;
-  vp: number;
-  vi: number;
-  viSp: number;
-  otros: number;
-  totalValidaciones: number;
-  pagos: number;
-  valorResolucion: number;
-  valorPagado: number;
-  saldoPendiente: number;
-  pctEjecucion: number;
-}
-
 export interface PuntoValidacion {
   periodo: string;
   anio: number;
@@ -49,17 +29,48 @@ export interface KpisEmpresas {
   totalValidaciones: number;
 }
 
+/** Medidas comunes al resumen y a su despliegue por empresa. */
+interface MedidasPeriodo {
+  anio: number;
+  trimestre: number;
+  fondo: string | null;
+  /** Estado con prefijo de orden («e. VF», «z. Sin validación»). */
+  estado: string;
+  validaciones: number;
+  resoluciones: number;
+  /** Extremos del número de resolución; nulos si el grupo no tiene pagos. */
+  resMin: number | null;
+  resMax: number | null;
+  valorResolucion: number;
+  valorPagado: number;
+  saldoPendiente: number;
+  pctEjecucion: number;
+}
+
+/** Una fila de la tabla: año, trimestre, fondo y estado de validación. */
+export interface FilaResumen extends MedidasPeriodo {
+  empresas: number;
+}
+
+/** Una empresa dentro de una fila del resumen. */
+export interface FilaDetalleEmpresa extends MedidasPeriodo {
+  empresaKey: string;
+  nombre: string;
+  /** Código SUI, o null cuando la clave se resolvió por nombre. */
+  codigo: string | null;
+  nit: string | null;
+}
+
 export interface OpcionEmpresa {
   key: string;
   nombre: string;
+  /** Código SUI y NIT: distinguen las empresas que comparten razón social. */
+  codigo: string | null;
+  nit: string | null;
 }
 
 export interface FiltrosOpciones {
   empresas: OpcionEmpresa[];
-  anios: number[];
-  trimestres: number[];
-  fondos: string[];
-  areas: string[];
 }
 
 export interface Corte {
@@ -67,30 +78,40 @@ export interface Corte {
   mes: number;
 }
 
+/** Extremos del período disponible, en índice de trimestre. */
+export interface RangoPeriodo {
+  min: number;
+  max: number;
+}
+
 export interface EmpresasDetalleData {
   corte: string | null;
   cortesDisponibles: Corte[];
+  /** Fecha de la carga de validaciones que se muestra del corte elegido. */
+  cargaValidaciones: string | null;
   fechaCarga: string | null;
   kpis: KpisEmpresas;
   validacionPorTrimestre: PuntoValidacion[];
   pagosPorTrimestre: PuntoPago[];
-  empresas: EmpresaDetalle[];
+  resumen: FilaResumen[];
+  /** Despliegue por empresa de cada fila del resumen, ya resuelto. */
+  detalle: FilaDetalleEmpresa[];
+  periodoDisponible: RangoPeriodo;
   filtrosOpciones: FiltrosOpciones;
 }
 
-/** Selección vigente de los cinco filtros. Un arreglo vacío significa "Todos". */
+/**
+ * Selección vigente de los filtros.
+ *
+ * Quedan dos: la empresa (multivalor, un arreglo vacío significa «Todas») y el
+ * período, que viaja como índice de trimestre y siempre tiene valor. Fondo y
+ * área salieron del filtro a pedido del área; siguen siendo columnas de la
+ * tabla.
+ */
 export interface FiltrosEmpresasState {
   empresa: string[];
-  anio: string[];
-  trimestre: string[];
-  fondo: string[];
-  area: string[];
 }
 
 export const FILTROS_VACIOS: FiltrosEmpresasState = {
   empresa: [],
-  anio: [],
-  trimestre: [],
-  fondo: [],
-  area: [],
 };

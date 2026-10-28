@@ -1,21 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
+import {
+  estadoValidacionSql,
+  consultaCortes,
+  corteWhereSql,
+  claveCorte,
+} from "@/lib/subsidios-sql";
 
 export const dynamic = "force-dynamic";
 
 /* ─── SQL helpers ─────────────────────────────────────────────────────────── */
 
-// Mapear estado_validacion → código estándar cuando estado_validacion_organizado es NULL
-const ESTADO_SQL = `
-  CASE
-    WHEN sv.estado_validacion_organizado IS NOT NULL THEN sv.estado_validacion_organizado
-    WHEN sv.estado_validacion = 'VF'    THEN 'e. VF'
-    WHEN sv.estado_validacion = 'VP'    THEN 'd. VP'
-    WHEN sv.estado_validacion = 'VI'    THEN 'b. VI'
-    WHEN sv.estado_validacion = 'VI SP' THEN 'c. VI SP'
-    ELSE 'a. Otros'
-  END
-`;
+// Clasificación de estados: la comparte con Detalle Empresas. La copia local
+// que vivía aquí comparaba el texto crudo y solo reconocía 'VI SP', así que las
+// 569 filas que la fuente escribe 'VI_SP' —más las variantes de caja y con
+// espacio final— caían en «Otros».
+const ESTADO_SQL = estadoValidacionSql("sv");
 
 // Mapear area: FOES con NA o NULL → SIN
 const AREA_SQL = `
@@ -36,6 +36,7 @@ interface FilterParams {
   prestador?: string | null;
   departamento?: string | null;
   fechaActualizacion: string; // YYYY-MM — siempre requerido
+  cargaCorte: string; // fecha de la última carga de ese mes
 }
 
 function buildWhere(
@@ -50,12 +51,11 @@ function buildWhere(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const values: any[] = [];
 
-  // Fecha de actualización SIEMPRE se aplica (nunca se excluye)
-  const [faAnio, faMes] = p.fechaActualizacion.split("-").map(Number);
-  values.push(faAnio);
-  conditions.push(`EXTRACT(YEAR FROM sv.fecha_actualizacion) = $${values.length}`);
-  values.push(faMes);
-  conditions.push(`EXTRACT(MONTH FROM sv.fecha_actualizacion) = $${values.length}`);
+  // El corte SIEMPRE se aplica (nunca se excluye). Se filtra por la fecha de
+  // la última carga del mes, no por el mes: cada mes trae dos cargas y las dos
+  // son snapshots completos, así que el mes entero duplicaba los conteos.
+  values.push(p.cargaCorte);
+  conditions.push(corteWhereSql("sv", `$${values.length}`));
 
   if (p.fondo && exclude !== "fondo") {
     values.push(p.fondo);
@@ -96,39 +96,36 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
 
-    let fechaActualizacion = searchParams.get("fechaActualizacion");
+    const pedido = searchParams.get("fechaActualizacion");
 
-    // Si no se proporciona fecha, usar la más reciente disponible en la tabla
-    if (!fechaActualizacion) {
-      const ultimaRes = await pool.query(
-        `SELECT MAX(fecha_actualizacion) AS ultima FROM subsidios.subsidios_validaciones`
-      );
-      const ultima = ultimaRes.rows[0]?.ultima;
-      if (ultima) {
-        const d = new Date(ultima);
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, "0");
-        fechaActualizacion = `${yyyy}-${mm}`;
-      } else {
-        // No hay datos en la tabla, devolver respuesta vacía
-        return NextResponse.json({
-          serie: [],
-          resumen: {},
-          ultimaActualizacion: null,
-          filtros: {
-            fondos: [],
-            anios: [],
-            trimestres: [],
-            prestadores: [],
-            departamentos: [],
-            fechasActualizacion: [],
-          },
-        });
-      }
+    // Los cortes que existen, cada uno con la fecha de su última carga. Sirve
+    // para resolver el pedido y para poblar el selector, así que se pide una vez.
+    const cortesRes = await pool.query<{ anio: number; mes: number; carga: string }>(
+      consultaCortes()
+    );
+    const elegido =
+      cortesRes.rows.find((c) => claveCorte(c) === pedido) ?? cortesRes.rows[0] ?? null;
+
+    if (!elegido) {
+      // No hay datos en la tabla, devolver respuesta vacía
+      return NextResponse.json({
+        serie: [],
+        resumen: {},
+        ultimaActualizacion: null,
+        filtros: {
+          fondos: [],
+          anios: [],
+          trimestres: [],
+          prestadores: [],
+          departamentos: [],
+          fechasActualizacion: [],
+        },
+      });
     }
 
     const p: FilterParams = {
-      fechaActualizacion,
+      fechaActualizacion: claveCorte(elegido),
+      cargaCorte: elegido.carga,
       fondo: searchParams.get("fondo") || null,
       area: searchParams.get("area") || null,
       anioDesde: searchParams.get("anioDesde") ? Number(searchParams.get("anioDesde")) : null,
@@ -280,17 +277,6 @@ export async function GET(request: NextRequest) {
       deptoWhere.values
     );
 
-    /* ── Todas las fechas de actualización (SIN filtros cruzados) ─────────
-       El usuario debe poder elegir cualquier carga que exista en la DB    */
-    const fechasRes = await pool.query(
-      `SELECT DISTINCT
-         EXTRACT(YEAR FROM fecha_actualizacion)::int AS anio,
-         EXTRACT(MONTH FROM fecha_actualizacion)::int AS mes
-       FROM subsidios.subsidios_validaciones
-       WHERE fecha_actualizacion IS NOT NULL
-       ORDER BY anio DESC, mes DESC`
-    );
-
     /* ── Última actualización global ────────────────────────────────────── */
     const ultimaActRes = await pool.query(
       `SELECT MAX(fecha_actualizacion) AS ultima FROM subsidios.subsidios_validaciones`
@@ -311,7 +297,7 @@ export async function GET(request: NextRequest) {
         trimestres: trimRes.rows.map((r) => String(r.trimestre)),
         prestadores: prestadoresRes.rows.map((r) => r.nombre_prestador),
         departamentos: deptosRes.rows.map((r) => r.departamento),
-        fechasActualizacion: fechasRes.rows.map((r) => ({
+        fechasActualizacion: cortesRes.rows.map((r) => ({
           anio: Number(r.anio),
           mes: Number(r.mes),
         })),
