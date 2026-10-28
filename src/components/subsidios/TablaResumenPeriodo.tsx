@@ -132,19 +132,20 @@ export default function TablaResumenPeriodo({
     });
   }, [resumen, orden]);
 
-  const totales = useMemo(
-    () =>
-      resumen.reduce(
-        (acc, r) => ({
-          validaciones: acc.validaciones + r.validaciones,
-          valorResolucion: acc.valorResolucion + r.valorResolucion,
-          valorPagado: acc.valorPagado + r.valorPagado,
-          saldoPendiente: acc.saldoPendiente + r.saldoPendiente,
-        }),
-        { validaciones: 0, valorResolucion: 0, valorPagado: 0, saldoPendiente: 0 }
-      ),
-    [resumen]
-  );
+  const totales = useMemo(() => {
+    const sumas = resumen.reduce(
+      (acc, r) => ({
+        validaciones: acc.validaciones + r.validaciones,
+        valorResolucion: acc.valorResolucion + r.valorResolucion,
+        valorPagado: acc.valorPagado + r.valorPagado,
+        saldoPendiente: acc.saldoPendiente + r.saldoPendiente,
+      }),
+      { validaciones: 0, valorResolucion: 0, valorPagado: 0, saldoPendiente: 0 }
+    );
+    // Las empresas se cuentan distintas sobre el despliegue, no se suman:
+    // una misma aparece en tantas filas como períodos y estados tenga.
+    return { ...sumas, empresas: new Set(detalle.map((d) => d.empresaKey)).size };
+  }, [resumen, detalle]);
 
   const alternarOrden = (col: ColKey) =>
     setOrden((o) => (o?.col === col ? { col, desc: !o.desc } : { col, desc: true }));
@@ -281,13 +282,23 @@ export default function TablaResumenPeriodo({
             })}
           </tbody>
           <tfoot className="sticky bottom-0 bg-theme-secondary">
+            {/* Una celda por columna, en el mismo orden que COLUMNAS y con la
+                del chevron delante. Llevaba una de menos, así que cada total se
+                pintaba en la columna de su izquierda. */}
             <tr className="border-t border-theme-card font-semibold text-theme-primary">
               <td />
-              <td className="px-3 py-2">Total</td>
-              <td colSpan={3} />
+              <td className="px-3 py-2" colSpan={4}>Total</td>
+              {/* Las empresas no se suman: una misma aparece en muchos períodos
+                  y estados. Es el número de empresas distintas de la tabla. */}
+              <td
+                className="px-3 py-2 text-right tabular-nums"
+                title="Empresas distintas en toda la tabla, no la suma de la columna: una misma empresa aparece en varios períodos"
+              >
+                {fmtNum(totales.empresas)}
+              </td>
               <td className="px-3 py-2 text-right tabular-nums">{fmtNum(totales.validaciones)}</td>
-              {/* Las resoluciones no se suman: 7 de las 18 de 2026 pagan a
-                  empresas en estados distintos, así que aparecen en varias filas. */}
+              {/* Las resoluciones tampoco: 7 de las 18 de 2026 pagan a empresas
+                  en estados distintos, así que aparecen en varias filas. */}
               <td
                 className="px-3 py-2 text-right text-theme-muted"
                 title="Una resolución puede pagar a empresas en estados distintos, así que la suma por fila no es el total de resoluciones"
@@ -305,7 +316,14 @@ export default function TablaResumenPeriodo({
                   1
                 )}
               </td>
-              <td />
+              {/* El número de resolución no tiene total: se reinicia cada año,
+                  así que un rango de toda la tabla no significa nada. */}
+              <td
+                className="px-3 py-2 text-right text-theme-muted"
+                title="El número de resolución se reinicia cada año: un rango de toda la tabla no significa nada"
+              >
+                —
+              </td>
             </tr>
           </tfoot>
         </table>

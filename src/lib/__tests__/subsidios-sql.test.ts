@@ -103,7 +103,10 @@ describe("codigoBaseSql: normalización", () => {
 
     expect(cte).toContain("DISTINCT ON (cod)");
     expect(cte).toContain("subsidios.subsidios_empresas");
-    expect(cte).toContain("NULLIF(se.nit, 'NaN')");
+    // El ETL leyó la columna como decimal: el NaN de pandas quedó como texto
+    // y los NIT reales arrastran un '.0' que no debe salir en pantalla.
+    expect(cte).toContain("'NaN'");
+    expect(cte).toContain("'\\.0$'");
     // Entre dos entradas del mismo código gana la que trae NIT.
     expect(cte).toContain("ORDER BY cod, (nit IS NULL)");
   });

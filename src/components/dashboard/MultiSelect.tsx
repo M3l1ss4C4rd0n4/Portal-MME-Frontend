@@ -111,7 +111,18 @@ export default function MultiSelect({
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1 z-50 bg-theme-primary border border-theme-primary rounded-lg shadow-2xl min-w-[170px] max-h-[240px] overflow-y-auto">
+        /* Con buscador el panel se ensancha y deja que los nombres envuelvan:
+           las razones sociales llegan a 150 caracteres y 60 de ellas pasan de
+           60, así que truncarlas dejaba media lista ilegible. Ninguna anchura
+           fija las muestra enteras — por eso envuelven en vez de recortarse. */
+        <div
+          className={`absolute top-full left-0 mt-1 z-50 bg-theme-primary border border-theme-primary
+            rounded-lg shadow-2xl overflow-y-auto ${
+              buscable
+                ? "w-[620px] max-w-[88vw] max-h-[420px]"
+                : "min-w-[170px] max-h-[240px]"
+            }`}
+        >
           {buscable && (
             // Pegado arriba: el panel tiene scroll y, sin esto, el campo se va
             // de la vista en cuanto el usuario baja por la lista.
@@ -140,15 +151,23 @@ export default function MultiSelect({
           {visibles.map((opt) => (
             <label
               key={opt}
-              className="flex items-center gap-2 px-3 py-1.5 hover:bg-theme-hover cursor-pointer text-xs select-none"
+              className={`flex gap-2 px-3 py-1.5 hover:bg-theme-hover cursor-pointer text-xs select-none ${
+                buscable ? "items-start" : "items-center"
+              }`}
             >
               <input
                 type="checkbox"
                 checked={!isTodos && selected.includes(opt)}
                 onChange={() => toggle(opt)}
-                className="accent-amber-500 shrink-0"
+                className={`accent-amber-500 shrink-0 ${buscable ? "mt-0.5" : ""}`}
               />
-              <span className="text-slate-300 truncate max-w-[200px]">
+              <span
+                className={
+                  buscable
+                    ? "text-slate-300 whitespace-normal break-words leading-snug"
+                    : "text-slate-300 truncate max-w-[200px]"
+                }
+              >
                 {renderLabel ? renderLabel(opt) : opt}
               </span>
             </label>

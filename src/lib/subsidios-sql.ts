@@ -115,9 +115,10 @@ export function catalogoEmpresasCte(nombre = "catalogo_empresa"): string {
     FROM (
       SELECT ${codigoNormalizadoSql("se.codigo_sui")} AS cod,
              se.nombre_prestador,
-             -- El ETL escribió el NaN de pandas como texto en 115 de las 219
-             -- empresas del catálogo; se devuelve como ausente.
-             NULLIF(se.nit, 'NaN') AS nit,
+             -- Dos secuelas de que el ETL leyera la columna como decimal: el
+             -- NaN de pandas quedó escrito como texto en 115 de las 219
+             -- empresas, y los NIT reales arrastran un '.0' al final.
+             NULLIF(REGEXP_REPLACE(se.nit, '\\.0$', ''), 'NaN') AS nit,
              se.departamento
       FROM subsidios.subsidios_empresas se
     ) t
