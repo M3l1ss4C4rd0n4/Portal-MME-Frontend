@@ -217,6 +217,36 @@ export function estadoValidacionSql(alias: string): string {
 }
 
 /**
+ * Huella de una fila de validación: sus quince columnas de negocio.
+ *
+ * El Excel del área trae filas repetidas y el ETL las inserta tal cual, a
+ * propósito, para que la tabla conserve lo que dijo la fuente. En el corte de
+ * octubre hay 83 de 3.576 idénticas carácter por carácter en las quince
+ * columnas —incluidas la justificación, el radicado y quién las actualizó—,
+ * así que contarlas dos veces infla los estados: VI sale 1.536 cuando los
+ * registros distintos son 1.479.
+ *
+ * Contando por esta huella, cada registro vale uno. Se descarta al leer y no
+ * al cargar: la auditoría de lo que vino en el Excel no se pierde.
+ *
+ * Quedan fuera `id` y `fecha_importacion`, que son técnicas y siempre
+ * difieren.
+ */
+export function huellaValidacionSql(alias: string): string {
+  const columnas = [
+    "fecha_actualizacion", "persona_actualiza", "fondo", "area", "anio", "trimestre",
+    "codigo_sui", "nombre_prestador", "estado_validacion", "justificacion", "radicado",
+    "fecha_radicado", "observaciones", "estado_validacion_organizado", "cod_general",
+  ];
+  return `md5(ROW(${columnas.map((c) => `${alias}.${c}`).join(", ")})::text)`;
+}
+
+/** Conteo de validaciones que no cuenta dos veces una fila repetida. */
+export function conteoValidacionesSql(alias: string): string {
+  return `COUNT(DISTINCT ${huellaValidacionSql(alias)})`;
+}
+
+/**
  * Cortes disponibles: cada mes con la fecha de su última carga.
  *
  * `fecha_actualizacion` no es una marca de importación —eso es

@@ -13,6 +13,7 @@
 
 import {
   catalogoEmpresasCte,
+  conteoValidacionesSql,
   empresaKeySql,
   estadoValidacionSql,
   anioPagosSql,
@@ -78,7 +79,7 @@ export function consultaResumenPeriodo(mapaCte: string, whereVal: string, whereP
     val AS (
       SELECT sv.anio, sv.trimestre, sv.fondo,
              ${estadoValidacionSql("sv")}         AS estado,
-             COUNT(*)                             AS validaciones,
+             ${conteoValidacionesSql("sv")}       AS validaciones,
              COUNT(DISTINCT ${empresaKeySql("sv")}) AS empresas
       FROM subsidios.subsidios_validaciones sv
       WHERE ${whereVal}
@@ -133,7 +134,7 @@ export function consultaDetalleGrupos(mapaCte: string, whereVal: string, wherePa
              sv.anio, sv.trimestre, sv.fondo,
              ${estadoValidacionSql("sv")} AS estado,
              MIN(sv.nombre_prestador)         AS nombre,
-             COUNT(*)                         AS validaciones,
+             ${conteoValidacionesSql("sv")}   AS validaciones,
              -- Para distinguir las dos razones por las que una empresa puede
              -- tener más de una cuenta: dos códigos SUI (opera en el SIN y en
              -- las ZNI) o la misma fila repetida en la fuente.

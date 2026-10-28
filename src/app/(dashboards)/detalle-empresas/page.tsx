@@ -328,9 +328,10 @@ export default function DetalleEmpresasPage() {
           <p className="text-[11px] text-theme-muted mt-1">
             Una <strong className="text-theme-secondary">cuenta</strong> es cada registro de la hoja
             de validaciones: una empresa, en un trimestre, un fondo y un mercado —SIN o ZNI—, con el
-            estado al que llegó. Casi siempre hay una por empresa, y por eso la columna muestra el
-            número de empresas; cuando alguna tiene cuentas de más, la marca{" "}
-            <span className="text-amber-500">+N</span> dice cuántas y por qué.
+            estado al que llegó. Las filas que la hoja trae repetidas, idénticas en sus quince
+            columnas, no se cuentan dos veces. Queda la marca{" "}
+            <span className="text-amber-500">+N</span> para las empresas que sí tienen varias
+            cuentas, normalmente porque operan a la vez en el SIN y en las ZNI.
           </p>
         </div>
         <TablaResumenPeriodo

@@ -16,6 +16,8 @@ import {
   corteWhereSql,
   claveCorte,
   CODIGOS_UNIFICADOS,
+  huellaValidacionSql,
+  conteoValidacionesSql,
   codigoNormalizadoSql,
   catalogoEmpresasCte,
   indiceTrimestre,
@@ -131,6 +133,32 @@ describe("codigoBaseSql: normalización", () => {
       expect(origen).not.toBe(destino);
       expect(CODIGOS_UNIFICADOS[destino]).toBeUndefined();
     }
+  });
+});
+
+describe("filas de validación repetidas", () => {
+  test("la huella compara las quince columnas de negocio, no el id", () => {
+    const h = huellaValidacionSql("sv");
+
+    for (const col of ["justificacion", "radicado", "observaciones", "persona_actualiza"]) {
+      expect(h).toContain(`sv.${col}`);
+    }
+    // `id` y `fecha_importacion` son técnicas y siempre difieren: incluirlas
+    // haría única cada fila y no se descartaría ninguna repetida.
+    expect(h).not.toContain("sv.id");
+    expect(h).not.toContain("fecha_importacion");
+  });
+
+  test("el conteo cuenta huellas distintas, no filas", () => {
+    // 83 de las 3.576 filas del corte de octubre son idénticas carácter por
+    // carácter; contarlas dos veces daba VI 1.536 en vez de 1.479.
+    expect(conteoValidacionesSql("sv")).toContain("COUNT(DISTINCT");
+    expect(conteoValidacionesSql("sv")).toContain("md5(ROW(");
+  });
+
+  test("respeta el alias, para servir a los dos tableros", () => {
+    expect(conteoValidacionesSql("v2")).toContain("v2.codigo_sui");
+    expect(conteoValidacionesSql("v2")).not.toContain("sv.");
   });
 });
 

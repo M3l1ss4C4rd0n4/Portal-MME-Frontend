@@ -3,6 +3,7 @@ import { getPool } from "@/lib/db";
 import {
   empresaKeySql,
   estadoValidacionSql,
+  conteoValidacionesSql,
   anioPagosSql,
   trimestrePagosSql,
   resolucionDistintaSql,
@@ -235,7 +236,8 @@ export async function GET(req: NextRequest) {
     }>(
       `
       WITH ${MAPA}
-      SELECT sv.anio, sv.trimestre, ${ESTADO} AS estado, COUNT(*)::int AS conteo
+      SELECT sv.anio, sv.trimestre, ${ESTADO} AS estado,
+             ${conteoValidacionesSql("sv")}::int AS conteo
       FROM subsidios.subsidios_validaciones sv
       WHERE ${wVal.where}
       GROUP BY sv.anio, sv.trimestre, ${ESTADO}

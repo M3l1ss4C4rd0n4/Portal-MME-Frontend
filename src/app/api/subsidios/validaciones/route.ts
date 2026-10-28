@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
 import {
   estadoValidacionSql,
+  conteoValidacionesSql,
   consultaCortes,
   corteWhereSql,
   claveCorte,
@@ -144,7 +145,7 @@ export async function GET(request: NextRequest) {
         sv.anio,
         sv.trimestre,
         ${ESTADO_SQL} AS estado,
-        COUNT(*)::int AS conteo
+        ${conteoValidacionesSql("sv")}::int AS conteo
       FROM subsidios.subsidios_validaciones sv
       LEFT JOIN subsidios.subsidios_empresas se ON sv.codigo_sui = se.codigo_sui
       WHERE ${serieWhere.where}
@@ -158,7 +159,7 @@ export async function GET(request: NextRequest) {
     const resumenWhere = buildWhere(p);
     const resumenRes = await pool.query(
       `
-      SELECT ${ESTADO_SQL} AS estado, COUNT(*)::int AS total
+      SELECT ${ESTADO_SQL} AS estado, ${conteoValidacionesSql("sv")}::int AS total
       FROM subsidios.subsidios_validaciones sv
       LEFT JOIN subsidios.subsidios_empresas se ON sv.codigo_sui = se.codigo_sui
       WHERE ${resumenWhere.where}
@@ -178,7 +179,7 @@ export async function GET(request: NextRequest) {
     const foesWhere = buildWhere({ ...p, fondo: 'FOES' }, "fondo");
     const foesRes = await pool.query(
       `
-      SELECT ${ESTADO_SQL} AS estado, COUNT(*)::int AS total
+      SELECT ${ESTADO_SQL} AS estado, ${conteoValidacionesSql("sv")}::int AS total
       FROM subsidios.subsidios_validaciones sv
       LEFT JOIN subsidios.subsidios_empresas se ON sv.codigo_sui = se.codigo_sui
       WHERE ${foesWhere.where} AND sv.fondo = 'FOES'
@@ -194,7 +195,7 @@ export async function GET(request: NextRequest) {
     const zniWhere = buildWhere({ ...p, area: 'ZNI' }, "area");
     const zniRes = await pool.query(
       `
-      SELECT ${ESTADO_SQL} AS estado, COUNT(*)::int AS total
+      SELECT ${ESTADO_SQL} AS estado, ${conteoValidacionesSql("sv")}::int AS total
       FROM subsidios.subsidios_validaciones sv
       LEFT JOIN subsidios.subsidios_empresas se ON sv.codigo_sui = se.codigo_sui
       WHERE ${zniWhere.where} AND ${AREA_SQL} = 'ZNI'
@@ -210,7 +211,7 @@ export async function GET(request: NextRequest) {
     const sinWhere = buildWhere({ ...p, area: 'SIN' }, "area");
     const sinRes = await pool.query(
       `
-      SELECT ${ESTADO_SQL} AS estado, COUNT(*)::int AS total
+      SELECT ${ESTADO_SQL} AS estado, ${conteoValidacionesSql("sv")}::int AS total
       FROM subsidios.subsidios_validaciones sv
       LEFT JOIN subsidios.subsidios_empresas se ON sv.codigo_sui = se.codigo_sui
       WHERE ${sinWhere.where} AND ${AREA_SQL} = 'SIN'

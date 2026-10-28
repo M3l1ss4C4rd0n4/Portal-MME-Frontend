@@ -42,7 +42,7 @@ const COLUMNAS: Columna[] = [
   {
     key: "empresas", label: "Empresas", tipo: "entero", grupo: "validacion",
     ayuda:
-      "Empresas distintas de esa fila. Una CUENTA es cada registro de la hoja de validaciones: una empresa, en un trimestre, un fondo y un mercado (SIN o ZNI), con el estado al que llegó. Casi siempre hay una cuenta por empresa y los dos números coinciden; cuando no, la marca «+N» dice cuántas cuentas sobran y por qué.",
+      "Empresas distintas de esa fila. Una CUENTA es cada registro de la hoja de validaciones: una empresa, en un trimestre, un fondo y un mercado (SIN o ZNI), con el estado al que llegó. Las filas que la hoja trae repetidas no se cuentan dos veces, así que los números coinciden salvo cuando una empresa tiene de verdad más de una cuenta: ahí aparece la marca «+N».",
   },
   {
     key: "resoluciones", label: "Resoluciones", tipo: "entero", grupo: "pago",
@@ -86,17 +86,19 @@ function cuentasDeMas(fila: { empresas?: number; validaciones: number }): number
 /**
  * Por qué una empresa tiene más de una cuenta en el mismo trimestre.
  *
- * Son dos cosas distintas y conviene no confundirlas. De los 84 grupos con
- * cuentas de más en el corte de octubre, 10 son empresas que operan a la vez
- * en el SIN y en las ZNI —SUI les da un código por mercado, como SIGLO XXI con
- * el 1426 y el 2170— y 74 son filas que la fuente trae repetidas, idénticas en
- * todas sus columnas.
+ * Desde que las filas idénticas dejaron de contarse dos veces, el caso que
+ * queda es el de las empresas que operan a la vez en el SIN y en las ZNI: SUI
+ * les da un código por mercado, como SIGLO XXI con el 1426 y el 2170. En el
+ * corte de octubre es la única fila marcada de las 286.
+ *
+ * La otra rama sigue por si la hoja trae dos filas casi iguales —que difieran
+ * en una coma y por tanto no colapsen—, un caso que hoy no se da.
  */
 function motivoCuentasDeMas(empresas: readonly FilaDetalleEmpresa[]): string {
   const dosMercados = empresas.some((e) => e.codigos > 1);
   return dosMercados
     ? "La empresa opera en el SIN y en las ZNI, y SUI le da un código distinto en cada mercado: son dos cuentas reales, una por mercado."
-    : "La hoja de validaciones trae la misma fila repetida, idéntica en todas sus columnas. Es un defecto de la fuente, no del tablero.";
+    : "La hoja de validaciones trae dos filas casi iguales para la misma empresa. Conviene revisarlo con el área: las idénticas ya se descartan solas.";
 }
 
 /** «186» si es una sola, «186 – 235» si son varias, «—» si el grupo no tiene pagos. */
@@ -427,7 +429,7 @@ function FilaConDespliegue({
                   title={
                     e.codigos > 1
                       ? `${e.validaciones} cuentas: esta empresa opera en el SIN y en las ZNI, y SUI le da un código por mercado`
-                      : `${e.validaciones} cuentas con el mismo código: la fuente trae la fila repetida`
+                      : `${e.validaciones} cuentas con el mismo código, y no son idénticas: conviene revisarlo con el área`
                   }
                 >
                   +{e.validaciones - 1}
