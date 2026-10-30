@@ -88,3 +88,48 @@ export function countKeywordHits(
   }
   return count;
 }
+
+/** Una noticia tal como la devuelve el orquestador. Los nombres vienen en
+ *  español o en inglés según la fuente, así que se aceptan los dos. */
+export interface NoticiaCruda {
+  titulo?: string;
+  title?: string;
+  resumen?: string;
+  description?: string;
+  [clave: string]: unknown;
+}
+
+export interface SeleccionNoticias<T> {
+  seleccionadas: T[];
+  /** true cuando el filtro temático descartó todas y se usó el pool entero. */
+  usoRespaldo: boolean;
+}
+
+/**
+ * Elige las noticias de energía del pool.
+ *
+ * Una noticia es de energía si tiene al menos un término de energía y más que
+ * de hidrocarburos: muchas hablan de los dos y gana el tema dominante.
+ *
+ * Si el filtro descarta TODAS, devuelve el pool sin filtrar y lo marca en
+ * `usoRespaldo`. Una noticia de hidrocarburos colada en la sección de energía
+ * es un desacierto menor que dejar el slider del portal en blanco, que es lo
+ * que pasaba antes.
+ */
+export function seleccionarNoticiasEnergia<T extends NoticiaCruda>(
+  pool: T[],
+  cuantas: number = 3
+): SeleccionNoticias<T> {
+  const deEnergia = pool.filter((n) => {
+    const texto = `${n.titulo ?? n.title ?? ""} ${n.resumen ?? n.description ?? ""}`;
+    const energia = countKeywordHits(texto, ENERGY_KEYWORDS);
+    const hidro = countKeywordHits(texto, HYDRO_KEYWORDS);
+    return energia > 0 && energia > hidro;
+  });
+
+  const usoRespaldo = deEnergia.length === 0 && pool.length > 0;
+  return {
+    seleccionadas: (usoRespaldo ? pool : deEnergia).slice(0, cuantas),
+    usoRespaldo,
+  };
+}

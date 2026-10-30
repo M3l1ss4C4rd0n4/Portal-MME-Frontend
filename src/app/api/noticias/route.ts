@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ENERGY_KEYWORDS, HYDRO_KEYWORDS, countKeywordHits } from "@/lib/news-keywords";
+import { seleccionarNoticiasEnergia } from "@/lib/news-keywords";
 
 export const dynamic = "force-dynamic";
 
@@ -120,31 +120,17 @@ export async function GET() {
       ...(Array.isArray(extraList) ? extraList : []),
     ];
 
-    // Sistema de scoring: energía vs hidrocarburos
-    // Un artículo va a ENERGÍA si tiene más hits de energía que de hidrocarburos
-    const energyNews = pool.filter((n: Record<string, string>) => {
-      const text = `${n.titulo ?? n.title ?? ""} ${n.resumen ?? n.description ?? ""}`;
-      const energyHits = countKeywordHits(text, ENERGY_KEYWORDS);
-      const hydroHits = countKeywordHits(text, HYDRO_KEYWORDS);
-      return energyHits > 0 && energyHits > hydroHits;
-    });
-
     if (pool.length === 0) {
       return sinNoticias("el orquestador respondió sin noticias");
     }
 
-    // Si el filtro temático deja fuera TODO, se muestran las del pool antes
-    // que dejar el slider vacío: una noticia de hidrocarburos en la sección
-    // de energía es un desacierto menor que tres huecos en blanco.
-    const seleccionables = energyNews.length > 0 ? energyNews : pool;
-    if (energyNews.length === 0) {
+    const { seleccionadas: selected, usoRespaldo } = seleccionarNoticiasEnergia(pool);
+    if (usoRespaldo) {
       console.error(
         `[API /noticias] Ninguna de las ${pool.length} noticias pasó el filtro ` +
           `de energía; se usan sin filtrar.`
       );
     }
-
-    const selected = seleccionables.slice(0, 3);
 
     // Enriquecer con imagen OG en paralelo; si ya viene imagen del orquestador la usamos
     const noticias = await Promise.all(
