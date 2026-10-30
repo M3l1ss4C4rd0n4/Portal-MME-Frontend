@@ -22,7 +22,10 @@ import {
   type KpisIpem,
   type MunicipioIpem,
 } from "@/lib/ipem";
-import TablaMunicipiosIpem, { type FilaMunicipioIpem } from "./TablaMunicipiosIpem";
+import TablaMunicipiosIpem, {
+  type FilaMunicipioIpem,
+  type FiltrosIpem,
+} from "./TablaMunicipiosIpem";
 
 const MapaCoropletaDepartamentos = dynamic(
   () => import("@/components/maps/MapaCoropletaDepartamentos"),
@@ -86,6 +89,14 @@ export default function IpemPage() {
   // Sin esto, los KPI muestran «0 municipios que mejoran» mientras carga y también si
   // la carga falla: un cero con aspecto de cifra real. Hasta que haya datos, van «—».
   const [cargado, setCargado] = useState(false);
+  // Espejo de los filtros de la tabla, solo para que el informe PDF salga con lo
+  // mismo que hay en pantalla. `setFiltros` es estable, así que sirve de callback.
+  const [filtros, setFiltros] = useState<FiltrosIpem>({
+    busqueda: "",
+    regiones: [],
+    departamentos: [],
+    quintiles: [],
+  });
 
   useEffect(() => {
     fetch("/api/energia/ipem")
@@ -114,6 +125,21 @@ export default function IpemPage() {
       .then(setGeoMunicipios)
       .catch(() => setGeoMpioError(true));
   }, []);
+
+  /**
+   * Filtros vigentes como query string, que `DashboardLayout` reenvía al generador
+   * del informe PDF. Las listas viajan separadas por coma, igual que en los demás
+   * tableros del portal.
+   */
+  const buildQuery = (): string => {
+    const q = new URLSearchParams();
+    q.set("anio", anio);
+    if (filtros.busqueda.trim()) q.set("busqueda", filtros.busqueda.trim());
+    if (filtros.regiones.length) q.set("region", filtros.regiones.join(","));
+    if (filtros.departamentos.length) q.set("departamento", filtros.departamentos.join(","));
+    if (filtros.quintiles.length) q.set("quintil", filtros.quintiles.join(","));
+    return q.toString();
+  };
 
   /** Conteos: «—» mientras no haya datos, para no mostrar ceros que parecen reales. */
   const cuenta = (n: number): string => (cargado ? formatNumber(n) : "—");
@@ -201,6 +227,8 @@ export default function IpemPage() {
     <DashboardLayout
       title="IPEM — Índice de Pobreza Energética Multidimensional"
       subtitle="Resultados 2024 y 2025 por departamento y municipio · Ministerio de Minas y Energía"
+      downloadTablero="ipem"
+      downloadQueryString={buildQuery()}
     >
       {error && (
         <Card className="border-red-500/40">
@@ -323,7 +351,7 @@ export default function IpemPage() {
               ))}
             </div>
           </div>
-          <div className="h-[420px]">
+          <div id="mapa-ipem-departamental" className="h-[420px]">
             {geoError ? (
               <div className="h-full flex items-center justify-center text-center px-4">
                 <p className="text-xs text-red-400">
@@ -377,7 +405,7 @@ export default function IpemPage() {
               {cuenta(kpis.municipios)} territorios · año {anio}
             </span>
           </div>
-          <div className="h-[420px]">
+          <div id="mapa-ipem-municipal" className="h-[420px]">
             {geoMpioError ? (
               <div className="h-full flex items-center justify-center text-center px-4">
                 <p className="text-xs text-red-400">
@@ -480,6 +508,7 @@ export default function IpemPage() {
           filas={filas}
           regiones={regiones}
           departamentos={nombresDepto}
+          onFiltrosChange={setFiltros}
         />
       </Card>
     </DashboardLayout>

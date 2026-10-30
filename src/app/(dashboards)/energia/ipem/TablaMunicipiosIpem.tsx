@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import MultiSelect from "@/components/dashboard/MultiSelect";
@@ -28,10 +28,25 @@ const MAX_FILAS_VISIBLES = 200;
 
 type Columna = "municipio" | "departamento" | "ipem2024" | "ipem2025" | "variacion";
 
+/** Los filtros vigentes, tal como los ve el usuario. */
+export interface FiltrosIpem {
+  busqueda: string;
+  regiones: string[];
+  departamentos: string[];
+  quintiles: string[];
+}
+
 interface Props {
   filas: FilaMunicipioIpem[];
   regiones: string[];
   departamentos: string[];
+  /**
+   * Espejo de los filtros hacia la página. El estado sigue viviendo aquí porque es
+   * estado de esta interfaz; la página solo necesita leerlo para que el informe PDF
+   * se genere con lo mismo que hay en pantalla. Debe ser una referencia estable
+   * (un `setState` sirve), o el efecto se dispara en bucle.
+   */
+  onFiltrosChange?: (filtros: FiltrosIpem) => void;
 }
 
 /** Null siempre al final, sin importar la dirección del orden. */
@@ -55,7 +70,12 @@ function EtiquetaQuintil({ valor }: { valor: string | null }) {
   );
 }
 
-export default function TablaMunicipiosIpem({ filas, regiones, departamentos }: Props) {
+export default function TablaMunicipiosIpem({
+  filas,
+  regiones,
+  departamentos,
+  onFiltrosChange,
+}: Props) {
   const [busqueda, setBusqueda] = useState("");
   const [regionesSel, setRegionesSel] = useState<string[]>([]);
   const [deptosSel, setDeptosSel] = useState<string[]>([]);
@@ -66,6 +86,15 @@ export default function TablaMunicipiosIpem({ filas, regiones, departamentos }: 
   // arriba, y ahí sí tiene contexto.
   const [columna, setColumna] = useState<Columna>("municipio");
   const [asc, setAsc] = useState(true);
+
+  useEffect(() => {
+    onFiltrosChange?.({
+      busqueda,
+      regiones: regionesSel,
+      departamentos: deptosSel,
+      quintiles: quintilesSel,
+    });
+  }, [busqueda, regionesSel, deptosSel, quintilesSel, onFiltrosChange]);
 
   const filtradas = useMemo(() => {
     const texto = busqueda

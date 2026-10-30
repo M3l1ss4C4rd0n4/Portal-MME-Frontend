@@ -14,6 +14,7 @@ export async function GET(
       "subsidios", "fenoge", "contratos-or", "supervision",
       "presupuesto", "comunidades", "pagos", "validaciones",
       "detalle-empresas", "energia", "colombia-solar", "predicciones",
+      "ipem",
     ];
 
     if (!validos.includes(tablero)) {
