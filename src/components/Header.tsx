@@ -48,6 +48,7 @@ const navItems: NavItem[] = [
     label: 'Dirección energía',
     href: '/presupuesto',
     children: [
+      { label: 'Informe semanal', href: '/informe-direccion-energia' },
       { label: 'Presupuesto', href: '/presupuesto' },
       { label: 'Supervisión', href: '/supervision' },
       {

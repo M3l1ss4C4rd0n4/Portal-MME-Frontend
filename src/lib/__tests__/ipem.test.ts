@@ -4,7 +4,6 @@ import {
   BANDAS_DEPARTAMENTAL,
   QUINTILES,
   colorQuintil,
-  distribucionPorQuintil,
   fmtIpemPct,
   fmtVariacionPp,
   ipemDe,
@@ -129,32 +128,11 @@ describe("normalizarQuintil", () => {
   });
 });
 
-describe("ipemDe y distribucionPorQuintil", () => {
-  it("ipemDe toma la columna del año pedido", () => {
+describe("ipemDe", () => {
+  it("toma la columna del año pedido", () => {
     const m = municipio({ ipem2024: 0.31, ipem2025: 0.28 });
     expect(ipemDe(m, "2024")).toBe(0.31);
     expect(ipemDe(m, "2025")).toBe(0.28);
-  });
-
-  it("cuenta por quintil en el orden oficial y rellena con 0 los vacíos", () => {
-    // Arrange
-    const municipios = [
-      municipio({ codMunicipio: "05001", quintil2025: "MUY BAJO" }),
-      municipio({ codMunicipio: "05002", quintil2025: "MUY BAJO" }),
-      municipio({ codMunicipio: "05004", quintil2025: "MEDIO" }),
-    ];
-
-    // Act
-    const dist = distribucionPorQuintil(municipios, "2025");
-
-    // Assert
-    expect(dist.map((d) => d.quintil)).toEqual([...QUINTILES]);
-    expect(dist.map((d) => d.municipios)).toEqual([2, 0, 1, 0, 0]);
-  });
-
-  it("no cuenta una fila cuya etiqueta no se reconoce", () => {
-    const dist = distribucionPorQuintil([municipio({ quintil2025: "???" })], "2025");
-    expect(dist.reduce((a, d) => a + d.municipios, 0)).toBe(0);
   });
 });
 

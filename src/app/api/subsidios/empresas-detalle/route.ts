@@ -233,16 +233,16 @@ export async function GET(req: NextRequest) {
     );
 
     const serieValPromise = pool.query<{
-      anio: number; trimestre: number; estado: string; conteo: number;
+      anio: number; trimestre: number; fondo: string | null; estado: string; conteo: number;
     }>(
       `
       WITH ${MAPA}
-      SELECT sv.anio, sv.trimestre, ${ESTADO} AS estado,
+      SELECT sv.anio, sv.trimestre, sv.fondo, ${ESTADO} AS estado,
              ${conteoValidacionesSql("sv")}::int AS conteo
       FROM subsidios.subsidios_validaciones sv
       WHERE ${wVal.where}
-      GROUP BY sv.anio, sv.trimestre, ${ESTADO}
-      ORDER BY sv.anio, sv.trimestre
+      GROUP BY sv.anio, sv.trimestre, sv.fondo, ${ESTADO}
+      ORDER BY sv.anio, sv.trimestre, sv.fondo
       `,
       [...M, ...wVal.values]
     );
@@ -366,16 +366,21 @@ export async function GET(req: NextRequest) {
       nit: r.nit,
     }));
 
+    /* La gráfica separa cada período por fondo: una barra de FOES y otra de
+     * FSSRI. Antes los sumaba, y desde el gráfico no había manera de saber a
+     * cuál correspondía cada barra sin bajar a la tabla. */
     const porPeriodo = new Map<string, Record<string, number | string>>();
     for (const row of serieValRes.rows) {
       const periodo = periodoLabel(row.anio, row.trimestre);
-      const actual = porPeriodo.get(periodo) ?? {
-        periodo, anio: row.anio, trimestre: row.trimestre,
+      const fondo = row.fondo ?? "Sin fondo";
+      const id = `${periodo} · ${fondo}`;
+      const actual = porPeriodo.get(id) ?? {
+        id, periodo, fondo, anio: row.anio, trimestre: row.trimestre,
         VF: 0, VP: 0, VI: 0, "VI SP": 0, Otros: 0,
       };
       const etiqueta = row.estado.replace(/^[a-z]\.\s*/, "");
       actual[etiqueta] = toNum(actual[etiqueta]) + toNum(row.conteo);
-      porPeriodo.set(periodo, actual);
+      porPeriodo.set(id, actual);
     }
 
     const kpisPagos = kpisPagosRes.rows[0];

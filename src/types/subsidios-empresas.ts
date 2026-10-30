@@ -1,7 +1,10 @@
 /** Formas que devuelve `GET /api/subsidios/empresas-detalle`. */
 
 export interface PuntoValidacion {
+  /** Clave del eje: «2025 T3 · FSSRI». Un período aporta una barra por fondo. */
+  id: string;
   periodo: string;
+  fondo: string;
   anio: number;
   trimestre: number;
   VF: number;

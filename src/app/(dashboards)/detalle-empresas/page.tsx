@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { ResponsiveBar } from "@nivo/bar";
 import { useTheme } from "@/providers/ThemeProvider";
 import DashboardLayout from "@/components/DashboardLayout";
 import Card from "@/components/dashboard/Card";
 import BarLineChart, { type BarLinePunto } from "@/components/dashboard/BarLineChart";
 import FiltrosEmpresas from "@/components/subsidios/FiltrosEmpresas";
+import GraficaValidacion from "@/components/subsidios/GraficaValidacion";
 import TablaResumenPeriodo from "@/components/subsidios/TablaResumenPeriodo";
 import { getNivoTheme } from "@/lib/nivo-theme";
 import { fmtCOP, fmtCompactNum, fmtNum, formatPct } from "@/lib/format";
@@ -15,17 +15,6 @@ import {
   type EmpresasDetalleData,
   type FiltrosEmpresasState,
 } from "@/types/subsidios-empresas";
-
-const ESTADOS = ["VF", "VP", "VI", "VI SP", "Otros"] as const;
-
-/** VF cierra el ciclo, VI apenas lo abre: la escala de color va de ahí. */
-const COLOR_ESTADO: Record<(typeof ESTADOS)[number], string> = {
-  VF: "#10B981",
-  VP: "#F59E0B",
-  VI: "#3B82F6",
-  "VI SP": "#8B5CF6",
-  Otros: "#64748B",
-};
 
 /**
  * Espera antes de recargar al mover el deslizador.
@@ -254,31 +243,7 @@ export default function DetalleEmpresasPage() {
           </div>
           <div style={{ height: 320 }}>
             {data && data.validacionPorTrimestre.length > 0 ? (
-              <ResponsiveBar
-                data={data.validacionPorTrimestre as unknown as Record<string, string | number>[]}
-                keys={[...ESTADOS]}
-                indexBy="periodo"
-                groupMode="grouped"
-                innerPadding={1}
-                padding={0.25}
-                margin={{ top: 10, right: 10, bottom: 64, left: 56 }}
-                colors={ESTADOS.map((e) => COLOR_ESTADO[e])}
-                theme={nivoTheme}
-                axisBottom={{ tickRotation: -45 }}
-                axisLeft={{ format: (v: number) => fmtCompactNum(v) }}
-                enableLabel={false}
-                legends={[
-                  {
-                    dataFrom: "keys",
-                    anchor: "bottom",
-                    direction: "row",
-                    translateY: 56,
-                    itemWidth: 68,
-                    itemHeight: 16,
-                    symbolSize: 10,
-                  },
-                ]}
-              />
+              <GraficaValidacion datos={data.validacionPorTrimestre} nivoTheme={nivoTheme} />
             ) : (
               <p className="text-xs text-theme-muted pt-8 text-center">Sin validaciones para los filtros aplicados.</p>
             )}

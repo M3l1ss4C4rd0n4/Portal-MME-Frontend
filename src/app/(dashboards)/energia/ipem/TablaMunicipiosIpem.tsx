@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import * as XLSX from "xlsx";
+import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import MultiSelect from "@/components/dashboard/MultiSelect";
 import {
   QUINTILES,
@@ -58,8 +60,12 @@ export default function TablaMunicipiosIpem({ filas, regiones, departamentos }: 
   const [regionesSel, setRegionesSel] = useState<string[]>([]);
   const [deptosSel, setDeptosSel] = useState<string[]>([]);
   const [quintilesSel, setQuintilesSel] = useState<string[]>([]);
-  const [columna, setColumna] = useState<Columna>("ipem2025");
-  const [asc, setAsc] = useState(false);
+  // Alfabético por defecto, a propósito. Ordenada por IPEM descendente, la tabla
+  // abría con veinte filas «MUY ALTO» seguidas y daba una impresión del país más
+  // grave que la que describen las cifras. El ranking de mayor incidencia ya está
+  // arriba, y ahí sí tiene contexto.
+  const [columna, setColumna] = useState<Columna>("municipio");
+  const [asc, setAsc] = useState(true);
 
   const filtradas = useMemo(() => {
     const texto = busqueda
@@ -93,6 +99,37 @@ export default function TablaMunicipiosIpem({ filas, regiones, departamentos }: 
   }, [filas, busqueda, regionesSel, deptosSel, quintilesSel, columna, asc]);
 
   const visibles = filtradas.slice(0, MAX_FILAS_VISIBLES);
+
+  /**
+   * Exporta lo FILTRADO, no lo visible: el corte de 200 filas es para que el
+   * navegador no se atasque, no un criterio de negocio. Sin filtros, salen los 1.121.
+   *
+   * Los porcentajes van como número, no como texto, para que en Excel se puedan
+   * promediar y graficar. Las celdas sin dato quedan vacías en vez de en cero, que
+   * se confundiría con una privación nula.
+   */
+  const exportarExcel = () => {
+    const pct = (v: number | null) => (v === null ? "" : Number((v * 100).toFixed(4)));
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      libro,
+      XLSX.utils.json_to_sheet(
+        filtradas.map((f) => ({
+          "Código DIVIPOLA": f.codMunicipio,
+          Municipio: f.municipio,
+          Departamento: f.departamento,
+          Región: f.region,
+          "IPEM 2024 (%)": pct(f.ipem2024),
+          "IPEM 2025 (%)": pct(f.ipem2025),
+          "Variación (pp)": f.variacion === null ? "" : Number(f.variacion.toFixed(4)),
+          "Quintil 2024": f.quintil2024 ?? "",
+          "Quintil 2025": f.quintil2025 ?? "",
+        }))
+      ),
+      "IPEM municipal"
+    );
+    XLSX.writeFile(libro, "ipem-municipal.xlsx");
+  };
 
   function ordenarPor(col: Columna) {
     if (col === columna) {
@@ -145,6 +182,16 @@ export default function TablaMunicipiosIpem({ filas, regiones, departamentos }: 
           selected={quintilesSel}
           onChange={setQuintilesSel}
         />
+        <button
+          type="button"
+          onClick={exportarExcel}
+          disabled={filtradas.length === 0}
+          className="flex items-center gap-1.5 rounded-lg border border-theme-card bg-theme-primary px-3 py-2 text-xs font-semibold text-theme-secondary transition-colors hover:border-amber-500/60 hover:text-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
+          title={`Descargar ${filtradas.length} municipios en Excel`}
+        >
+          <ArrowDownTrayIcon className="h-4 w-4" />
+          Excel
+        </button>
       </div>
 
       <div className="overflow-auto max-h-[520px] rounded-xl border border-theme-card">
@@ -225,7 +272,8 @@ export default function TablaMunicipiosIpem({ filas, regiones, departamentos }: 
         {filtradas.length > MAX_FILAS_VISIBLES
           ? `Mostrando ${MAX_FILAS_VISIBLES} de ${filtradas.length} municipios filtrados — afine la búsqueda o los filtros para ver el resto.`
           : `${filtradas.length} municipio${filtradas.length === 1 ? "" : "s"} de ${filas.length}.`}{" "}
-        Variación negativa (verde) = el índice bajó, es decir mejoró.
+        Variación negativa (verde) = el índice bajó, es decir mejoró. El botón Excel
+        descarga todos los municipios que pasan el filtro, no solo los visibles.
       </p>
     </div>
   );

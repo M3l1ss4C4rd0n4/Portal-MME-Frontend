@@ -1,8 +1,9 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import { useEffect, useMemo } from "react";
-import { MapContainer, GeoJSON, ZoomControl, useMap } from "react-leaflet";
+import { useMemo } from "react";
+import { MapContainer, GeoJSON, ZoomControl } from "react-leaflet";
+import AjustarALimites from "@/components/maps/AjustarALimites";
 import type { ColeccionGeoJSON } from "@/components/maps/mapUtils";
 import { COL_BOUNDS, MAP_TOOLTIP_STYLES, SAN_ANDRES_KEY, SA_LNG_OFFSET, shiftGeometryLng } from "@/components/maps/mapUtils";
 import { fmtNum } from "@/lib/format";
@@ -54,34 +55,6 @@ export function claveDepartamento(nombre: string): string {
   return base;
 }
 
-/**
- * Reajusta el mapa a los límites del país cuando el contenedor cambia de
- * tamaño. Sin esto, Leaflet mide el contenedor antes de que la rejilla CSS lo
- * dimensione y el país queda diminuto en una esquina.
- */
-function AjustarALimites() {
-  const map = useMap();
-
-  useEffect(() => {
-    const ajustar = () => {
-      map.invalidateSize();
-      map.fitBounds(COL_BOUNDS, { padding: [8, 8] });
-    };
-    ajustar();
-    const t = setTimeout(ajustar, 180);
-
-    const contenedor = map.getContainer();
-    const observer = new ResizeObserver(ajustar);
-    observer.observe(contenedor);
-
-    return () => {
-      clearTimeout(t);
-      observer.disconnect();
-    };
-  }, [map]);
-
-  return null;
-}
 
 interface Props {
   geoData: object | null;

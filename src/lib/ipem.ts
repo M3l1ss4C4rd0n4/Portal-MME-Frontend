@@ -254,19 +254,3 @@ export function ipemDe(
 export function quintilDe(fila: MunicipioIpem, anio: AnioIpem): Quintil | null {
   return normalizarQuintil(anio === "2024" ? fila.quintil2024 : fila.quintil2025);
 }
-
-/**
- * Conteo de municipios por quintil para un año, en el orden de `QUINTILES`.
- * Usa la etiqueta del Excel, que es la clasificación oficial de la fuente.
- */
-export function distribucionPorQuintil(
-  municipios: MunicipioIpem[],
-  anio: AnioIpem,
-): Array<{ quintil: Quintil; municipios: number }> {
-  const conteo = new Map<Quintil, number>(QUINTILES.map((q) => [q, 0]));
-  for (const m of municipios) {
-    const q = quintilDe(m, anio);
-    if (q) conteo.set(q, (conteo.get(q) ?? 0) + 1);
-  }
-  return QUINTILES.map((quintil) => ({ quintil, municipios: conteo.get(quintil) ?? 0 }));
-}

@@ -1,19 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { ResponsiveBar } from "@nivo/bar";
 import { useTheme } from "@/providers/ThemeProvider";
 import DashboardLayout from "@/components/DashboardLayout";
 import Card from "@/components/dashboard/Card";
 import KpiChip from "@/components/dashboard/KpiChip";
-import { getNivoTheme } from "@/lib/nivo-theme";
 import { formatNumber } from "@/lib/format";
 import {
   ANIOS_IPEM,
   BANDAS_DEPARTAMENTAL,
+  BANDAS_MUNICIPAL,
   colorQuintil,
-  distribucionPorQuintil,
   fmtIpemPct,
   fmtVariacionPp,
   ipemDe,
@@ -28,6 +26,18 @@ import TablaMunicipiosIpem, { type FilaMunicipioIpem } from "./TablaMunicipiosIp
 
 const MapaCoropletaDepartamentos = dynamic(
   () => import("@/components/maps/MapaCoropletaDepartamentos"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-full flex items-center justify-center text-theme-muted text-xs">
+        Cargando mapa…
+      </div>
+    ),
+  },
+);
+
+const MapaCoropletaMunicipios = dynamic(
+  () => import("@/components/maps/MapaCoropletaMunicipios"),
   {
     ssr: false,
     loading: () => (
@@ -63,15 +73,16 @@ function pctDirecto(valor: number | null): string {
 export default function IpemPage() {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
-  const T = getNivoTheme(isDark);
 
   const [kpis, setKpis] = useState<KpisIpem>(KPIS_VACIOS);
   const [departamentos, setDepartamentos] = useState<DepartamentoIpem[]>([]);
   const [municipios, setMunicipios] = useState<MunicipioIpem[]>([]);
   const [geoData, setGeoData] = useState<object | null>(null);
+  const [geoMunicipios, setGeoMunicipios] = useState<object | null>(null);
   const [anio, setAnio] = useState<AnioIpem>("2025");
   const [error, setError] = useState<string | null>(null);
   const [geoError, setGeoError] = useState(false);
+  const [geoMpioError, setGeoMpioError] = useState(false);
   // Sin esto, los KPI muestran «0 municipios que mejoran» mientras carga y también si
   // la carga falla: un cero con aspecto de cifra real. Hasta que haya datos, van «—».
   const [cargado, setCargado] = useState(false);
@@ -96,6 +107,12 @@ export default function IpemPage() {
       // Antes esto era `.catch(() => {})`: si el geojson fallaba, el mapa se quedaba
       // en «Cargando mapa…» para siempre y nadie se enteraba.
       .catch(() => setGeoError(true));
+    // El geojson municipal son 1.121 polígonos (411 KB): se pide en paralelo y su
+    // fallo no afecta al mapa departamental ni a las cifras.
+    fetch("/municipios_colombia.geojson")
+      .then((r) => r.json())
+      .then(setGeoMunicipios)
+      .catch(() => setGeoMpioError(true));
   }, []);
 
   /** Conteos: «—» mientras no haya datos, para no mostrar ceros que parecen reales. */
@@ -140,15 +157,27 @@ export default function IpemPage() {
     [departamentos, anio],
   );
 
-  const distribucion = useMemo(() => {
-    const d2024 = distribucionPorQuintil(municipios, "2024");
-    const d2025 = distribucionPorQuintil(municipios, "2025");
-    return d2024.map((fila, i) => ({
-      quintil: fila.quintil,
-      "2024": fila.municipios,
-      "2025": d2025[i].municipios,
-    }));
-  }, [municipios]);
+  const datosMapaMunicipal = useMemo(
+    () =>
+      filas.flatMap((f) => {
+        const valor = ipemDe(f, anio);
+        return valor === null
+          ? []
+          : [{
+              codMunicipio: f.codMunicipio,
+              municipio: f.municipio,
+              departamento: f.departamento,
+              valor,
+            }];
+      }),
+    [filas, anio],
+  );
+
+  /** Color por banda publicada, igual que el mapa departamental pero en escala municipal. */
+  const colorMunicipio = useCallback(
+    (d: { valor: number }) => colorQuintil(quintilPublicado(d.valor, "municipal")),
+    [],
+  );
 
   const mayorIncidencia = useMemo(
     () =>
@@ -340,44 +369,55 @@ export default function IpemPage() {
         </Card>
 
         <Card delay={0.15} className="flex flex-col">
-          <h3 className="text-sm font-semibold text-theme-primary mb-1">
-            Municipios por quintil
-          </h3>
-          <p className="text-xs text-theme-muted mb-3">
-            Clasificación oficial de la fuente. Los dos años tienen un reparto parecido por
-            construcción: son quintiles de cada año, no bandas fijas.
-          </p>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-theme-primary">
+              IPEM por municipio
+            </h3>
+            <span className="text-[11px] text-theme-muted">
+              {cuenta(kpis.municipios)} territorios · año {anio}
+            </span>
+          </div>
           <div className="h-[420px]">
-            <ResponsiveBar
-              data={distribucion}
-              keys={["2024", "2025"]}
-              indexBy="quintil"
-              groupMode="grouped"
-              margin={{ top: 10, right: 20, bottom: 70, left: 50 }}
-              padding={0.25}
-              innerPadding={3}
-              colors={["#64748B", "#F59E0B"]}
-              theme={T}
-              axisBottom={{ tickRotation: -25 }}
-              axisLeft={{ legend: "Municipios", legendOffset: -42, legendPosition: "middle" }}
-              enableLabel={false}
-              legends={[
-                {
-                  dataFrom: "keys",
-                  anchor: "bottom",
-                  direction: "row",
-                  translateY: 60,
-                  itemWidth: 70,
-                  itemHeight: 16,
-                  symbolSize: 10,
-                },
-              ]}
-              tooltip={({ id, value, indexValue }) => (
-                <div className="bg-slate-900 text-slate-100 text-xs px-2 py-1 rounded border border-slate-600">
-                  {indexValue} · {id}: <strong>{formatNumber(value)}</strong> municipios
-                </div>
-              )}
-            />
+            {geoMpioError ? (
+              <div className="h-full flex items-center justify-center text-center px-4">
+                <p className="text-xs text-red-400">
+                  No se pudo cargar el mapa de municipios. Las cifras de la tabla y de
+                  los indicadores no están afectadas.
+                </p>
+              </div>
+            ) : (
+              <MapaCoropletaMunicipios
+                geoData={geoMunicipios}
+                datos={datosMapaMunicipal}
+                isDark={isDark}
+                etiquetaValor={`IPEM ${anio}`}
+                formatearValor={(v) => fmtIpemPct(v)}
+                colorDe={colorMunicipio}
+              />
+            )}
+          </div>
+          <div className="mt-3">
+            <p className="text-[11px] uppercase tracking-wide text-theme-muted mb-1.5">
+              Niveles de incidencia publicados (escala municipal)
+            </p>
+            <p className="text-[11px] text-theme-muted mb-1.5 normal-case">
+              La escala municipal es distinta de la departamental: un mismo valor cae en
+              bandas diferentes según la escala, por eso cada mapa tiene su leyenda.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {BANDAS_MUNICIPAL.map((b) => (
+                <span key={b.quintil} className="flex items-center gap-1.5 text-[11px]">
+                  <span
+                    className="inline-block w-3 h-3 rounded"
+                    style={{ backgroundColor: colorQuintil(b.quintil) }}
+                  />
+                  <span className="text-theme-secondary">
+                    {b.quintil} ({b.desdePct.toLocaleString("es-CO")} –{" "}
+                    {b.hastaPct.toLocaleString("es-CO")} %)
+                  </span>
+                </span>
+              ))}
+            </div>
           </div>
         </Card>
       </div>
