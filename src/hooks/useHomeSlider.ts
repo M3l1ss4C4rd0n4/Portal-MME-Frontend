@@ -48,34 +48,85 @@ export function useHomeSlider(extraSlidesCount: number = 0): UseHomeSliderReturn
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Fetch news — refresca 3 veces al día (cada 8 h) para coincidir con
-  // los ciclos de noticias de mañana / tarde / noche
+  // los ciclos de noticias de mañana / tarde / noche.
+  //
+  // Con reintentos: el orquestador tarda hasta 20 s y alguna vez se pasa. Sin
+  // reintento, UNA caída puntual dejaba el slider sin noticias las 8 horas
+  // siguientes, porque la única otra oportunidad era el intervalo. Ocurrió el
+  // 2026-10-30 y desde el portal no se veía ninguna diferencia con "hoy no hay
+  // noticias".
   useEffect(() => {
-    const fetchNews = () => {
-      // Noticias del sector energético
-      fetch("/api/noticias")
-        .then((r) => r.json())
-        .then((data) => {
-          if (Array.isArray(data.noticias) && data.noticias.length > 0)
-            setNews(data.noticias.slice(0, 3));
-          if (data.fetchedAt) setFetchedAt(formatFetchedAt(data.fetchedAt));
+    let vigente = true;
+    const reintentos: ReturnType<typeof setTimeout>[] = [];
+
+    /** Espera creciente entre intentos: 5 s, 20 s, 60 s. */
+    const ESPERAS_MS = [5_000, 20_000, 60_000];
+
+    const pedir = async (ruta: string): Promise<NewsItem[] | null> => {
+      // Con barra final: `trailingSlash: true` hace que la ruta sin barra
+      // devuelva 308 y gaste un viaje de más en cada carga.
+      const res = await fetch(`${ruta}/`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (!Array.isArray(data.noticias) || data.noticias.length === 0) {
+        if (data.motivo) console.error(`[slider] ${ruta} sin noticias: ${data.motivo}`);
+        return null;
+      }
+      if (data.fetchedAt) setFetchedAt(formatFetchedAt(data.fetchedAt));
+      return data.noticias.slice(0, 3) as NewsItem[];
+    };
+
+    const pedirConReintentos = (
+      ruta: string,
+      aplicar: (n: NewsItem[]) => void,
+      intento = 0
+    ): void => {
+      pedir(ruta)
+        .then((noticias) => {
+          if (!vigente) return;
+          if (noticias) {
+            aplicar(noticias);
+            return;
+          }
+          if (intento < ESPERAS_MS.length) {
+            reintentos.push(
+              setTimeout(
+                () => pedirConReintentos(ruta, aplicar, intento + 1),
+                ESPERAS_MS[intento]
+              )
+            );
+          }
         })
-        .catch(() => undefined);
+        .catch((e: unknown) => {
+          if (!vigente) return;
+          console.error(`[slider] ${ruta} falló: ${e instanceof Error ? e.message : e}`);
+          if (intento < ESPERAS_MS.length) {
+            reintentos.push(
+              setTimeout(
+                () => pedirConReintentos(ruta, aplicar, intento + 1),
+                ESPERAS_MS[intento]
+              )
+            );
+          }
+        });
+    };
+
+    const fetchNews = () => {
+      pedirConReintentos("/api/noticias", setNews);
 
       // Noticias de hidrocarburos (paralelo). Con la sección oculta, hydroNews
       // se queda vacío: no suma slides ni puntos, y se evita la petición.
       if (!HIDROCARBUROS_VISIBLE) return;
-      fetch("/api/noticias/hidrocarburos")
-        .then((r) => r.json())
-        .then((data) => {
-          if (Array.isArray(data.noticias) && data.noticias.length > 0)
-            setHydroNews(data.noticias.slice(0, 3));
-        })
-        .catch(() => undefined);
+      pedirConReintentos("/api/noticias/hidrocarburos", setHydroNews);
     };
 
     fetchNews();
     const timer = setInterval(fetchNews, 8 * 60 * 60 * 1000); // 8 h
-    return () => clearInterval(timer);
+    return () => {
+      vigente = false;
+      clearInterval(timer);
+      reintentos.forEach(clearTimeout);
+    };
   }, []);
 
   // Total slides: 8 KPI + news + hydrocarbon news + extra sections

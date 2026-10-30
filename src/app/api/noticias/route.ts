@@ -50,6 +50,19 @@ async function fetchOgImage(url: string): Promise<string> {
   }
 }
 
+/** Respuesta vacía que DICE por qué lo está.
+ *
+ * Antes había cuatro `return { noticias: [] }` sin distinguir entre "el
+ * orquestador no respondió", "respondió pero ninguna noticia pasó el filtro"
+ * y "no hay credenciales". El slider se quedaba en blanco y desde fuera las
+ * tres se veían igual, que es como una caída de 20 s dejó el portal sin
+ * noticias sin que nadie pudiera decir por qué.
+ */
+function sinNoticias(motivo: string) {
+  console.error(`[API /noticias] Sin noticias: ${motivo}`);
+  return NextResponse.json({ noticias: [], motivo, fetchedAt: null });
+}
+
 /**
  * GET /api/noticias
  * Obtiene las noticias más recientes del sector energético
@@ -62,7 +75,7 @@ export async function GET() {
     const apiKey = process.env.CHATBOT_API_KEY;
 
     if (!apiUrl || !apiKey) {
-      return NextResponse.json({ noticias: [] });
+      return sinNoticias("CHATBOT_API_URL o CHATBOT_API_KEY sin configurar");
     }
 
     const res = await fetch(apiUrl, {
@@ -83,7 +96,9 @@ export async function GET() {
     });
 
     if (!res.ok) {
-      return NextResponse.json({ noticias: [] });
+      // El 403 por una API key rotada ya dejó el portal 3 semanas sin
+      // noticias en 2026: el código importa y tiene que quedar en el log.
+      return sinNoticias(`el orquestador respondió HTTP ${res.status}`);
     }
 
     const data = await res.json();
@@ -114,7 +129,22 @@ export async function GET() {
       return energyHits > 0 && energyHits > hydroHits;
     });
 
-    const selected = energyNews.slice(0, 3);
+    if (pool.length === 0) {
+      return sinNoticias("el orquestador respondió sin noticias");
+    }
+
+    // Si el filtro temático deja fuera TODO, se muestran las del pool antes
+    // que dejar el slider vacío: una noticia de hidrocarburos en la sección
+    // de energía es un desacierto menor que tres huecos en blanco.
+    const seleccionables = energyNews.length > 0 ? energyNews : pool;
+    if (energyNews.length === 0) {
+      console.error(
+        `[API /noticias] Ninguna de las ${pool.length} noticias pasó el filtro ` +
+          `de energía; se usan sin filtrar.`
+      );
+    }
+
+    const selected = seleccionables.slice(0, 3);
 
     // Enriquecer con imagen OG en paralelo; si ya viene imagen del orquestador la usamos
     const noticias = await Promise.all(
@@ -134,8 +164,11 @@ export async function GET() {
     );
 
     return NextResponse.json({ noticias, fetchedAt: new Date().toISOString() });
-  } catch {
-    // No propagamos el error; simplemente devolvemos vacío
-    return NextResponse.json({ noticias: [], fetchedAt: null });
+  } catch (error: unknown) {
+    // No se propaga el error al cliente, pero sí se deja registrado: un
+    // AbortError por timeout y una caída del orquestador necesitan respuestas
+    // distintas y antes eran indistinguibles.
+    const detalle = error instanceof Error ? `${error.name}: ${error.message}` : "desconocido";
+    return sinNoticias(detalle);
   }
 }

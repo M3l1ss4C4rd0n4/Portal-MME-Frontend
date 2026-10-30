@@ -51,13 +51,19 @@ async function fetchOgImage(url: string): Promise<string> {
  * Obtiene noticias del sector energético y filtra aquellas
  * relacionadas con hidrocarburos (petróleo, gas, combustibles, etc.).
  */
+/** Misma razón que en /api/noticias: una respuesta vacía tiene que decir por qué. */
+function sinNoticias(motivo: string) {
+  console.error(`[API /noticias/hidrocarburos] Sin noticias: ${motivo}`);
+  return NextResponse.json({ noticias: [], motivo, fetchedAt: null });
+}
+
 export async function GET() {
   try {
     const apiUrl = process.env.CHATBOT_API_URL;
     const apiKey = process.env.CHATBOT_API_KEY;
 
     if (!apiUrl || !apiKey) {
-      return NextResponse.json({ noticias: [] });
+      return sinNoticias("CHATBOT_API_URL o CHATBOT_API_KEY sin configurar");
     }
 
     const res = await fetch(apiUrl, {
@@ -74,7 +80,7 @@ export async function GET() {
       signal: AbortSignal.timeout(15_000),
     });
 
-    if (!res.ok) return NextResponse.json({ noticias: [] });
+    if (!res.ok) return sinNoticias(`el orquestador respondió HTTP ${res.status}`);
 
     const data = await res.json();
     const topList =
@@ -112,7 +118,8 @@ export async function GET() {
     );
 
     return NextResponse.json({ noticias, fetchedAt: new Date().toISOString() });
-  } catch {
-    return NextResponse.json({ noticias: [], fetchedAt: null });
+  } catch (error: unknown) {
+    const detalle = error instanceof Error ? `${error.name}: ${error.message}` : "desconocido";
+    return sinNoticias(detalle);
   }
 }
