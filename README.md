@@ -46,10 +46,11 @@ El **Portal de Dirección MME** es una plataforma de business intelligence que i
 
 ### Dashboards Disponibles
 
-> **Corregido 2026-09-30:** esta tabla tenía 12 filas; hay **16 carpetas de dashboard reales** en
-> `src/app/(dashboards)/` más el Asistente IA en `src/app/asistente/`. "Predicciones" e "Informes"
-> no son carpetas de nivel raíz — son subpáginas de `energia/` (`energia/predicciones`,
-> `energia/informes`). Se agregaron los 7 módulos que faltaban.
+> **Corregido 2026-10-30:** el 21-oct el portal se renombró de "Portal Viceministerio de Energía"
+> a "Portal Dirección de Energía" y se agregó el interruptor `HIDROCARBUROS_VISIBLE`
+> (`src/lib/featureFlags.ts`) que oculta de la navegación, el carrusel y las rutas `/hidrocarburos/*`
+> todo lo de Hidrocarburos — el contenido se oculta, no se elimina: el ETL de SICOM y los datos en
+> Postgres siguen activos. El 28-oct se agregó el tablero IPEM.
 
 | Dashboard | Estado | Fuente de Datos | Descripción |
 |-----------|--------|-----------------|-------------|
@@ -58,11 +59,12 @@ El **Portal de Dirección MME** es una plataforma de business intelligence que i
 | **Comunidades** | ✅ Producción | PostgreSQL | Comunidades Energéticas |
 | **Contratos OR** | ✅ Producción | PostgreSQL | Contratos Operadores de Red |
 | **Supervisión** | ✅ Producción | PostgreSQL | Supervisión de contratos FNCER |
-| **Subsidios** | ✅ Producción | PostgreSQL | Subsidios de energía DEE |
-| **Energía** | ✅ Producción | PostgreSQL | Gestión del sector eléctrico (incluye las subpáginas `predicciones` e `informes`) |
+| **Subsidios** | ✅ Producción (4 subpáginas) | PostgreSQL | Subsidios de energía DEE; agregada la subsección **Detalle Empresas** (21-oct) |
+| **Energía** | ✅ Producción | PostgreSQL | Gestión del sector eléctrico (incluye las subpáginas `predicciones`, `informes` e `ipem`) |
+| **IPEM** (28-oct) | ✅ Producción | PostgreSQL | Índice de Pobreza Energética Multidimensional 2024-2025, nivel municipal y departamental |
 | **FENOGE** | ✅ Producción | PostgreSQL | Fondo Nacional de Eficiencia Energética |
 | **Colombia Solar** | ✅ Producción | PostgreSQL | Curvas S del programa Colombia Solar |
-| **Hidrocarburos** | ✅ Producción (2 subpáginas) | Excel/scraping | Presupuesto y exploración del sector hidrocarburos |
+| **Hidrocarburos** | ⏸️ Oculto desde 21-oct (2 subpáginas) | Excel/scraping | Presupuesto y exploración del sector hidrocarburos; oculto del portal por directriz del supervisor, código y datos intactos |
 | **Balance Oferta-Demanda** (29-sep) | ✅ Producción | PostgreSQL + proyectos UPME | Brecha oferta/demanda del SIN, proyectos de expansión UPME con retraso, simuladores contrafactuales |
 | **Catálogo de Métricas** | ✅ Producción | PostgreSQL (ontología) | Catálogo navegable de las métricas del sistema |
 | **Explorador de Red** | ✅ Producción | PostgreSQL | Búsqueda de empresas y su red de relaciones (vecindario) |
@@ -71,6 +73,7 @@ El **Portal de Dirección MME** es una plataforma de business intelligence que i
 | **Validaciones** | ✅ Producción | PostgreSQL | Validación final de cuentas de subsidios por prestador |
 | **Vista Departamental** | ✅ Producción | PostgreSQL + GeoJSON | Resumen por departamento (comunidades, contratos, supervisión) |
 | **Asistente IA** (`/asistente`) | ✅ Producción | API + RAG | Chat del Asistente IA, multimodal, con voz en tiempo real |
+| **Informe Semanal Dirección de Energía** (30-oct) | ✅ Producción | PostgreSQL | 10 tableros resumidos en 5 secciones y 28 indicadores; genera viernes 7 a. m., envía 8 a. m. |
 
 ---
 
@@ -490,7 +493,7 @@ PGPORT=5432
 PGDATABASE=portal_energetico
 PGUSER=mme_user
 PGPASSWORD=<password>
-NEXT_PUBLIC_SITE_URL=https://portaldireccionee.minenergia.gov.co
+NEXT_PUBLIC_SITE_URL=https://portaldireccionenergia.minenergia.gov.co
 
 # Corregido 2026-09-30 — usadas por el código y antes no documentadas:
 BACKEND_API_URL=http://127.0.0.1:8000       # URL del backend FastAPI
@@ -560,8 +563,8 @@ sudo tail -f /var/log/nginx/portal-direccion-ee.*.log
 
 | Servicio | URL Interna | URL Pública |
 |----------|-------------|-------------|
-| Portal | http://localhost:3001 | https://portaldireccionee.minenergia.gov.co |
-| API | http://localhost:8000 | https://portaldireccionee.minenergia.gov.co/api |
+| Portal | http://localhost:3001 | https://portaldireccionenergia.minenergia.gov.co |
+| API | http://localhost:8000 | https://portaldireccionenergia.minenergia.gov.co/api |
 | Dashboard | http://localhost:8050 | No expuesto públicamente |
 
 ---
@@ -731,5 +734,5 @@ Dirección de Energía Eléctrica
 
 ---
 
-*Documentación actualizada: 31 de marzo de 2026*  
-*Versión: 4.0*
+*Documentación actualizada: 30 de octubre de 2026*  
+*Versión: 5.0*
