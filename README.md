@@ -732,6 +732,8 @@ python etl/etl_todas_metricas_xm.py --verbose
 © 2026 Ministerio de Minas y Energía - República de Colombia  
 Dirección de Energía Eléctrica
 
+**Elaboró:** Melissa Cardona Navarro
+
 ---
 
 *Documentación actualizada: 30 de octubre de 2026*  
