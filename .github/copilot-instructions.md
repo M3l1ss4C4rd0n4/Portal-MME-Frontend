@@ -233,7 +233,7 @@ Regla: PESO ≥ 0.7 → EJECUTAR | 0.5-0.69 → EJECUTAR + verify extra | <0.5 �
 
 # Verificación post-deploy
 curl -s http://localhost:3001/api/health | jq .
-curl -s -o /dev/null -w "home: %{http_code}\n" https://portalviceministerioenergia.minenergia.gov.co/
+curl -s -o /dev/null -w "home: %{http_code}\n" https://portaldireccionenergia.minenergia.gov.co/
 ```
 
 **PROHIBIDO:** `npm run build` sin `pm2 restart portal-mme` inmediato — causa pantalla blanca masiva (incidente 2026-06-02).

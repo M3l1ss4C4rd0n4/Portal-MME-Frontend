@@ -17,7 +17,7 @@
 ```bash
 # MINUTO 0-5: Diagnóstico rápido
 pm2 status | grep portal
-curl -sI https://portalviceministerioenergia.minenergia.gov.co | head -1
+curl -sI https://portaldireccionenergia.minenergia.gov.co | head -1
 pm2 logs portal-mme --lines 50 --nostream
 
 # MINUTO 5-10: Rollback si es cambio reciente

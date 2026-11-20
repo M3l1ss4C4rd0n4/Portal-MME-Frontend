@@ -27,7 +27,7 @@ npm run build   # sin pm2 restart
 
 ```bash
 curl -s http://localhost:3001/api/health | head -c 300
-curl -s -o /dev/null -w "home: %{http_code}\n" https://portalviceministerioenergia.minenergia.gov.co/
+curl -s -o /dev/null -w "home: %{http_code}\n" https://portaldireccionenergia.minenergia.gov.co/
 ```
 
 ## Si el portal está en blanco (HTTP 200)
