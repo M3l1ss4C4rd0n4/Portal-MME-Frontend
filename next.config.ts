@@ -44,6 +44,20 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // El Informe Semanal se muestra dentro de un <iframe> en su propia
+        // página (mismo origen). La regla global de arriba le pone DENY a
+        // todas las rutas, lo que bloquea justo ese iframe. Aquí se relaja
+        // solo para esta ruta, a SAMEORIGIN (sigue bloqueando a cualquier
+        // otro origen, solo permite el propio).
+        source: '/api/informe-direccion-energia',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
+          },
+        ],
+      },
+      {
         source: '/energia',
         headers: [
           {
