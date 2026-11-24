@@ -610,3 +610,12 @@ html.light svg text[style*="fill:#94A3B8"] { fill: var(--text-primary) !importan
     max-width: 100%;
   }
 }
+
+/* Legibilidad móvil: los tableros usan texto de 8-10 px pensado para escritorio.
+   En teléfono se sube a 11 px como mínimo. */
+@media (max-width: 767px) {
+  .text-\[8px\], .text-\[9px\], .text-\[10px\] {
+    font-size: 11px;
+    line-height: 1.35;
+  }
+}

@@ -26,6 +26,8 @@ import {
 import { embalseDepartamento } from "@/lib/embalses-coords";
 import { fmtCortePresupuesto, formatPct } from "@/lib/format";
 import { HIDROCARBUROS_VISIBLE } from "@/lib/featureFlags";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import InicioMovil from "@/components/movil/InicioMovil";
 
 // ─── Mapa embalses SVG (no SSR) ───────────────────────────────────────────
 const MapaEmbalsesSVG = dynamic(
@@ -210,7 +212,7 @@ function _ceToReactMapName(geo: string): string {
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────
-export default function Home() {
+function HomeEscritorio() {
   const [embalseDepto, setEmbalseDepto] = useState<{
     name: string;
     pct: number;
@@ -1723,4 +1725,15 @@ export default function Home() {
       </main>
     </div>
   );
+}
+
+/**
+ * En teléfonos (< 768 px) el tablero de presentación de escritorio no es usable:
+ * se muestra el inicio móvil. Mientras no se sabe el ancho no se monta ninguno,
+ * para no cargar el tablero pesado en el teléfono.
+ */
+export default function Home() {
+  const esMovil = useMediaQuery("(max-width: 767px)");
+  if (esMovil === null) return null;
+  return esMovil ? <InicioMovil /> : <HomeEscritorio />;
 }

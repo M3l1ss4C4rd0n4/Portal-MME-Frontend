@@ -49,3 +49,34 @@ export function tituloDeRuta(pathname: string, items: readonly NavItem[] = visib
     );
   return mejor?.label ?? TITULO_POR_DEFECTO;
 }
+
+export interface TarjetaInicio {
+  label: string;
+  href: string;
+  externo: boolean;
+}
+
+export interface SeccionInicio {
+  titulo: string;
+  tarjetas: TarjetaInicio[];
+}
+
+/**
+ * Secciones de la pantalla de inicio móvil, derivadas del mismo menú del
+ * portal. Los destinos anidados (p. ej. Subsidios → Detalle de pagos) se
+ * aplanan con el nombre de su grupo como prefijo. Las secciones sin enlaces
+ * propios (Inicio, Asistente IA) no se incluyen: tienen su propio acceso.
+ */
+export function seccionesInicio(items: readonly NavItem[] = visibleNavItems): SeccionInicio[] {
+  const aTarjeta = (label: string, href: string): TarjetaInicio => ({ label, href, externo: href.startsWith('http') });
+  return items
+    .filter((item) => item.children?.length)
+    .map((item) => ({
+      titulo: item.label,
+      tarjetas: (item.children ?? []).flatMap((hijo) =>
+        hijo.children?.length
+          ? hijo.children.map((nieto) => aTarjeta(`${hijo.label}: ${nieto.label}`, nieto.href))
+          : [aTarjeta(hijo.label, hijo.href)],
+      ),
+    }));
+}

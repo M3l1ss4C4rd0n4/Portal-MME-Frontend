@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { esRutaActiva, normalizarRuta, tituloDeRuta } from '../navegacionMovil';
+import { esRutaActiva, normalizarRuta, seccionesInicio, tituloDeRuta } from '../navegacionMovil';
 import type { NavItem } from '../navegacionPortal';
 
 const MENU: NavItem[] = [
@@ -55,5 +55,40 @@ describe('tituloDeRuta', () => {
 
   test('ignora los enlaces externos', () => {
     expect(tituloDeRuta('/https:', MENU)).toBe('Portal Dirección de Energía');
+  });
+});
+
+describe('seccionesInicio', () => {
+  const MENU_CON_SUBGRUPO: NavItem[] = [
+    { label: 'Inicio', href: '/' },
+    {
+      label: 'Dirección',
+      href: '/presupuesto',
+      children: [
+        { label: 'Presupuesto', href: '/presupuesto' },
+        { label: 'Subsidios', href: '/subsidios', children: [
+          { label: 'Déficit histórico', href: '/subsidios' },
+          { label: 'Detalle de pagos', href: '/pagos' },
+        ] },
+        { label: 'Portal Energético', href: 'https://portalenergetico.minenergia.gov.co/' },
+      ],
+    },
+    { label: 'Asistente IA', href: '/asistente' },
+  ];
+
+  test('omite los ítems sin hijos (Inicio, Asistente IA)', () => {
+    expect(seccionesInicio(MENU_CON_SUBGRUPO).map((s) => s.titulo)).toEqual(['Dirección']);
+  });
+
+  test('aplana los subgrupos con el nombre del grupo como prefijo', () => {
+    const [seccion] = seccionesInicio(MENU_CON_SUBGRUPO);
+    expect(seccion.tarjetas.map((t) => t.label)).toEqual([
+      'Presupuesto', 'Subsidios: Déficit histórico', 'Subsidios: Detalle de pagos', 'Portal Energético',
+    ]);
+  });
+
+  test('marca como externos solo los enlaces absolutos', () => {
+    const [seccion] = seccionesInicio(MENU_CON_SUBGRUPO);
+    expect(seccion.tarjetas.map((t) => t.externo)).toEqual([false, false, false, true]);
   });
 });
