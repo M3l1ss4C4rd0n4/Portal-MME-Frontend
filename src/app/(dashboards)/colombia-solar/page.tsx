@@ -225,7 +225,7 @@ export default function ColombiaSolarDashboard() {
         </div>
 
         {/* KPI ROW */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Card>
             <div style={{ fontSize: 10, color: "#64748B", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 8 }}>
               Usuarios Planeados
@@ -299,7 +299,7 @@ export default function ColombiaSolarDashboard() {
         </Card>
 
         {/* CHARTS ROW */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
           <Card style={{ display: "flex", flexDirection: "column", minHeight: 340 }}>
             <div style={{ fontSize: 10, color: "var(--color-gold)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 10 }}>
               Planeado vs Ejecutado · Usuarios por Mes
@@ -453,7 +453,7 @@ export default function ColombiaSolarDashboard() {
                 </select>
               </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {curvaS.categorias.map((cat) => {
                 const proyecto = cat.proyectos.find((p) => p.nombre === proyectoSeleccionado) ?? cat.proyectos[0];
                 return (

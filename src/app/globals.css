@@ -627,3 +627,10 @@ html.light svg text[style*="fill:#94A3B8"] { fill: var(--text-primary) !importan
   .text-3xl { font-size: 1.5rem; line-height: 2rem; }
   .text-2xl { font-size: 1.25rem; line-height: 1.75rem; }
 }
+
+/* Móvil: un elemento de cuadrícula no puede ser más ancho que su columna.
+   Sin esto, una tabla ancha dentro de un contenedor con desplazamiento propio
+   ensancha toda la página y el teléfono la muestra desplazada hacia un lado. */
+@media (max-width: 767px) {
+  .app-content .grid > * { min-width: 0; }
+}
