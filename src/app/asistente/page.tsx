@@ -2,6 +2,9 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { AnimatePresence } from "framer-motion";
+import {
+  ArrowUpIcon, MicrophoneIcon, PaperClipIcon, SparklesIcon,
+} from "@heroicons/react/24/outline";
 import { useAsistenteVoz } from "@/hooks/useAsistenteVoz";
 import { useTheme } from "@/providers/ThemeProvider";
 import {
@@ -11,6 +14,9 @@ import {
 } from "@/hooks/useAsistenteChat";
 import { Burbuja } from "@/components/asistente/Burbuja";
 import { SECTION_PROMPTS } from "@/lib/asistenteSecciones";
+import { EVENTO_NUEVO_CHAT } from "@/lib/navegacionMovil";
+
+const ALTO_MAX_CAMPO_PX = 128;
 
 const PREGUNTAS_SUGERIDAS = [
   "¿Cuántas comunidades energéticas hay en el Chocó?",
@@ -26,26 +32,41 @@ export default function AsistentePage() {
     mensajes, enviando, herramientaActiva,
     archivo, errorArchivo, fileInputRef,
     seleccionarArchivo, setArchivo,
-    enviar, regenerar, enviarFeedback,
+    enviar, regenerar, enviarFeedback, reiniciar,
   } = useAsistenteChat();
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const campoRef = useRef<HTMLTextAreaElement>(null);
   const voz = useAsistenteVoz();
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [mensajes]);
 
+  // «Nuevo chat» de la barra superior y del cajón móvil.
+  useEffect(() => {
+    window.addEventListener(EVENTO_NUEVO_CHAT, reiniciar);
+    return () => window.removeEventListener(EVENTO_NUEVO_CHAT, reiniciar);
+  }, [reiniciar]);
+
+  const ajustarAlto = useCallback(() => {
+    const campo = campoRef.current;
+    if (!campo) return;
+    campo.style.height = "auto";
+    campo.style.height = `${Math.min(campo.scrollHeight, ALTO_MAX_CAMPO_PX)}px`;
+  }, []);
+
   const enviarTexto = useCallback(
     async (texto: string) => {
       setInput("");
+      requestAnimationFrame(ajustarAlto);
       await enviar(texto);
     },
-    [enviar]
+    [enviar, ajustarAlto]
   );
 
   return (
-    <div className="h-[calc(100dvh-var(--bottom-nav-h,0px))] flex bg-theme-primary pt-24">
+    <div className="h-dvh flex bg-theme-primary pt-[var(--topbar-h)] md:pt-24">
       {/* ── Barra lateral permanente — mismos accesos a secciones que el drawer del
           portal, siempre visibles para aprovechar el ancho disponible en esta página ── */}
       <aside className="hidden lg:flex w-72 shrink-0 flex-col gap-2 border-r border-theme-card px-4 py-6 overflow-y-auto">
@@ -73,18 +94,21 @@ export default function AsistentePage() {
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto py-6 space-y-4">
           {mensajes.length === 0 && (
-            <div className="text-center py-16">
-              <h1 className="text-2xl font-bold text-theme-primary mb-2">Asistente IA — MinMinas</h1>
-              <p className="text-sm text-theme-muted mb-8">
-                Pregunta lo que quieras sobre el ministerio — datos reales de comunidades
-                energéticas, contratos, subsidios, sector eléctrico y más.
+            <div className="flex flex-col items-center px-1 pb-4 pt-8 text-center md:py-16">
+              <div className="mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-[var(--color-gold)] to-[var(--color-gold-light)] shadow-lg">
+                <SparklesIcon className="h-7 w-7 text-[#2A2826]" />
+              </div>
+              <h1 className="mb-2 text-2xl font-semibold text-theme-primary">¿En qué puedo ayudarle?</h1>
+              <p className="mb-8 max-w-sm text-sm leading-relaxed text-theme-muted">
+                Asistente IA de la Dirección de Energía. Consulte datos reales de comunidades
+                energéticas, contratos, subsidios y sector eléctrico.
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl mx-auto">
+              <div className="grid w-full max-w-xl grid-cols-1 gap-2.5 sm:grid-cols-2">
                 {PREGUNTAS_SUGERIDAS.map((p) => (
                   <button
                     key={p}
                     onClick={() => enviarTexto(p)}
-                    className="text-left text-xs px-4 py-3 rounded-xl bg-theme-secondary border border-theme-card hover:border-amber-500/40 transition-colors text-theme-secondary"
+                    className="min-h-14 rounded-2xl border border-theme-card bg-theme-secondary px-4 py-3 text-left text-sm leading-snug text-theme-secondary transition-colors hover:border-amber-500/40 active:bg-theme-hover"
                   >
                     {p}
                   </button>
@@ -117,13 +141,13 @@ export default function AsistentePage() {
         </div>
       </div>
 
-      <div className="border-t border-theme-card bg-theme-primary px-4 sm:px-6 lg:px-8 py-4">
+      <div className="border-t border-theme-card bg-theme-primary px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 md:py-4 lg:px-8">
         <div className="max-w-3xl mx-auto">
           {(archivo || errorArchivo) && (
             <div className="mb-2 flex items-center gap-2">
               {archivo && (
                 <div className="inline-flex items-center gap-2 text-xs bg-dash-chip border border-theme-card rounded-lg px-3 py-1.5">
-                  <span className="text-theme-secondary">📎 {archivo.nombre}</span>
+                  <span className="inline-flex items-center gap-1 text-theme-secondary"><PaperClipIcon className="h-4 w-4" />{archivo.nombre}</span>
                   <button
                     type="button"
                     onClick={() => setArchivo(null)}
@@ -168,7 +192,7 @@ export default function AsistentePage() {
                 e.preventDefault();
                 enviarTexto(input);
               }}
-              className="flex items-center gap-1 bg-dash-chip border border-theme-card rounded-full pl-2 pr-1.5 py-1.5 shadow-sm focus-within:border-amber-500/50 transition-colors"
+              className="flex items-end gap-1 bg-dash-chip border border-theme-card rounded-3xl pl-1.5 pr-1.5 py-1.5 shadow-sm focus-within:border-amber-500/50 transition-colors"
             >
               <input
                 ref={fileInputRef}
@@ -182,13 +206,15 @@ export default function AsistentePage() {
                 onClick={() => fileInputRef.current?.click()}
                 disabled={enviando}
                 title="Adjuntar imagen o PDF"
-                className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-theme-secondary hover:bg-theme-hover disabled:opacity-40 transition-colors"
+                className="shrink-0 h-11 w-11 md:h-9 md:w-9 flex items-center justify-center rounded-full text-theme-secondary hover:bg-theme-hover disabled:opacity-40 transition-colors"
+                aria-label="Adjuntar imagen o PDF"
               >
-                📎
+                <PaperClipIcon className="h-5 w-5" />
               </button>
               <textarea
+                ref={campoRef}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => { setInput(e.target.value); ajustarAlto(); }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
@@ -206,23 +232,25 @@ export default function AsistentePage() {
                 placeholder="Escribe tu pregunta…"
                 rows={1}
                 disabled={enviando}
-                className="flex-1 resize-none bg-transparent border-none px-2 py-1.5 text-sm text-theme-primary placeholder:text-theme-muted focus:outline-none disabled:opacity-60"
+                className="flex-1 resize-none bg-transparent border-none px-2 py-2.5 text-base md:py-1.5 md:text-sm text-theme-primary placeholder:text-theme-muted focus:outline-none disabled:opacity-60"
               />
               <button
                 type="button"
                 onClick={voz.iniciar}
                 disabled={enviando}
                 title="Hablar con el asistente"
-                className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-theme-secondary hover:bg-theme-hover disabled:opacity-40 transition-colors"
+                className="shrink-0 h-11 w-11 md:h-9 md:w-9 flex items-center justify-center rounded-full text-theme-secondary hover:bg-theme-hover disabled:opacity-40 transition-colors"
+                aria-label="Hablar con el asistente"
               >
-                🎙️
+                <MicrophoneIcon className="h-5 w-5" />
               </button>
               <button
                 type="submit"
                 disabled={enviando || (!input.trim() && !archivo)}
-                className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-xs font-bold bg-amber-500 text-black hover:bg-amber-400 disabled:opacity-30 disabled:bg-theme-hover disabled:text-theme-muted transition-colors"
+                className="shrink-0 h-11 w-11 md:h-9 md:w-9 flex items-center justify-center rounded-full bg-amber-500 text-black hover:bg-amber-400 disabled:opacity-30 transition-colors"
+                aria-label="Enviar"
               >
-                {enviando ? "…" : "➤"}
+                {enviando ? <span aria-hidden="true">…</span> : <ArrowUpIcon className="h-5 w-5" />}
               </button>
             </form>
           )}

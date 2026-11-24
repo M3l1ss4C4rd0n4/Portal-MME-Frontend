@@ -7,6 +7,7 @@ import { useTheme } from "@/providers/ThemeProvider";
 import DashboardLayout from "@/components/DashboardLayout";
 import Card from "@/components/dashboard/Card";
 import { getNivoTheme } from "@/lib/nivo-theme";
+import { useIsNarrow } from "@/hooks/useIsNarrow";
 
 interface LegendItem { key: string; color: string; isLine?: boolean; }
 
@@ -22,7 +23,7 @@ function ChartLegend({ items, hidden, onToggle }: {
           key={key}
           onClick={() => onToggle(key)}
           title={hidden.has(key) ? `Mostrar ${key}` : `Ocultar ${key}`}
-          className={`flex items-center gap-1.5 transition-opacity cursor-pointer
+          className={`flex items-center gap-1.5 min-h-11 transition-opacity cursor-pointer lg:min-h-0
             ${hidden.has(key) ? "opacity-30" : "opacity-100"}`}
         >
           {isLine ? (
@@ -127,6 +128,7 @@ function buildLineLayer(
 export default function SubsidiosPage() {
   const { resolvedTheme } = useTheme();
   const T = getNivoTheme(resolvedTheme === "dark");
+  const isNarrow = useIsNarrow();
 
   // ── Estado (todos los hooks ANTES del early return) ──
   const [rows, setRows] = useState<DeficitRow[]>([]);
@@ -212,6 +214,11 @@ export default function SubsidiosPage() {
 
   const years = rows.map(d => String(d.anio));
   const xTicks = years.filter(y => Number(y) % 5 === 0);
+  // En móvil se rotula 1 de cada 5 años para que las etiquetas no se encimen.
+  const narrowXTicks = years.filter((_, i) => i % 5 === 0);
+  const xTickValues = selectedYear === "Todas"
+    ? (isNarrow ? narrowXTicks : xTicks)
+    : undefined;
 
   // ────────────────────────────────────────────────────────────────────────────
   // GRÁFICA 1: Subsidios vs Contribuciones (barras agrupadas)
@@ -315,15 +322,16 @@ export default function SubsidiosPage() {
       <motion.div
         initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="grid grid-cols-6 bg-theme-secondary border border-amber-500/40 rounded-xl mb-4 overflow-hidden"
+        className="grid grid-cols-2 lg:grid-cols-6 bg-theme-secondary border border-amber-500/40 rounded-xl mb-4 overflow-hidden"
       >
-        <div className="flex flex-col justify-center p-3 border-r border-amber-700/30">
+        <div className="col-span-2 flex flex-col justify-center p-3 border-b border-amber-700/30 lg:col-span-1 lg:border-b-0 lg:border-r">
           <div className="text-[10px] text-gold/80 font-semibold uppercase tracking-wide">Año</div>
           <select
             value={selectedYear}
             onChange={e => setSelectedYear(e.target.value)}
-            className="mt-1.5 bg-theme-tertiary text-amber-600 text-sm font-bold border border-amber-500/50
-              rounded px-2 py-1 focus:outline-none focus:border-amber-400 cursor-pointer"
+            className="mt-1.5 w-full min-h-11 bg-theme-tertiary text-amber-600 text-sm font-bold border border-amber-500/50
+              rounded px-2 py-1 focus:outline-none focus:border-amber-400 cursor-pointer
+              lg:w-auto lg:min-h-0"
           >
             <option value="Todas">Todas</option>
             {years.map(y => <option key={y} value={y}>{y}</option>)}
@@ -339,9 +347,13 @@ export default function SubsidiosPage() {
           { label: "Contribuciones agregados",   value: kpis.contribuciones },
         ].map(({ label, value }, i) => (
           <div key={label}
-            className={`p-3 text-center ${i < 4 ? "border-r border-amber-700/30" : ""}`}
+            className={`p-3 text-center border-amber-700/30 ${
+              i === 4
+                ? "col-span-2 lg:col-span-1"
+                : `border-b ${i % 2 === 0 ? "border-r" : ""} lg:border-b-0 lg:border-r`
+            }`}
           >
-            <div className="text-sm font-extrabold text-theme-primary leading-none tabular-nums">
+            <div className="text-xs sm:text-sm font-extrabold text-theme-primary leading-none tabular-nums">
               {label === "Déficit acumulado" && kpis.deficit_acumulado === 0
                 ? "(En blanco)"
                 : fmtNum(value)}
@@ -363,15 +375,16 @@ export default function SubsidiosPage() {
             </span>
             <button
               onClick={() => setSelectedYear("Todas")}
-              className="text-[10px] text-gold/60 hover:text-gold border
-                border-amber-700/40 rounded px-2 py-0.5 transition-colors"
+              className="inline-flex min-h-11 items-center text-[10px] text-gold/60 hover:text-gold border
+                border-amber-700/40 rounded px-2 py-0.5 transition-colors lg:min-h-0"
             >
               × limpiar
             </button>
           </>
         ) : (
           <span className="text-[10px] text-theme-muted">
-            Clic en una barra para filtrar · Clic en leyenda para mostrar/ocultar serie
+            <span className="lg:hidden">Toque una barra para filtrar · Toque la leyenda para mostrar/ocultar serie</span>
+            <span className="hidden lg:inline">Clic en una barra para filtrar · Clic en leyenda para mostrar/ocultar serie</span>
           </span>
         )}
       </div>
@@ -392,7 +405,7 @@ export default function SubsidiosPage() {
                 keys={c1Keys}
                 indexBy="anio"
                 theme={T}
-                margin={{ top: 8, right: 20, bottom: 50, left: 65 }}
+                margin={{ top: 8, right: isNarrow ? 32 : 20, bottom: 50, left: 65 }}
                 groupMode="grouped"
                 valueScale={{ type: "linear" }}
                 indexScale={{ type: "band", round: true }}
@@ -403,7 +416,7 @@ export default function SubsidiosPage() {
                 axisLeft={{ tickSize: 0, tickPadding: 6, format: v => `${v} mill.` }}
                 axisBottom={{
                   tickSize: 0, tickPadding: 8, tickRotation: -45,
-                  tickValues: selectedYear === "Todas" ? xTicks : undefined,
+                  tickValues: xTickValues,
                 }}
                 onClick={handleBarClick}
                 tooltip={({ id, indexValue }) => {
@@ -439,13 +452,13 @@ export default function SubsidiosPage() {
             Suma de Déficit acumulado, Suma de Apropiación PGN y Suma de Déficit Año por Año
           </span>
           <ChartLegend items={C2_SERIES} hidden={c2Hidden} onToggle={toggleC2} />
-          <div className="h-[370px]">
+          <div className="h-[290px] lg:h-[370px]">
             <ResponsiveBar
               data={chart2Data}
               keys={c2BarKeys}
               indexBy="anio"
               theme={T}
-              margin={{ top: 8, right: 20, bottom: 50, left: 65 }}
+              margin={{ top: 8, right: isNarrow ? 32 : 20, bottom: 50, left: 65 }}
               groupMode="grouped"
               valueScale={{ type: "linear", max: chart2MaxY }}
               indexScale={{ type: "band", round: true }}
@@ -461,7 +474,7 @@ export default function SubsidiosPage() {
               }}
               axisBottom={{
                 tickSize: 0, tickPadding: 8, tickRotation: -45,
-                tickValues: selectedYear === "Todas" ? xTicks : undefined,
+                tickValues: xTickValues,
               }}
               layers={chart2Layers}
               onClick={handleBarClick}
@@ -493,7 +506,7 @@ export default function SubsidiosPage() {
               keys={c3Keys}
               indexBy="anio"
               theme={T}
-              margin={{ top: 8, right: 20, bottom: 50, left: 65 }}
+              margin={{ top: 8, right: isNarrow ? 32 : 20, bottom: 50, left: 65 }}
               groupMode="stacked"
               valueScale={{ type: "linear" }}
               indexScale={{ type: "band", round: true }}
@@ -504,7 +517,7 @@ export default function SubsidiosPage() {
               axisLeft={{ tickSize: 0, tickPadding: 6, format: v => `${v} mill.` }}
               axisBottom={{
                 tickSize: 0, tickPadding: 8, tickRotation: -45,
-                tickValues: selectedYear === "Todas" ? xTicks : undefined,
+                tickValues: xTickValues,
               }}
               onClick={handleBarClick}
               tooltip={({ id, indexValue }) => {

@@ -119,15 +119,18 @@ body {
   transition: margin-right 0.25s ease;
 }
 
-/* Alto de la barra de navegación inferior (BottomNav.tsx). 0 en pantallas
-   anchas; en móvil incluye la zona segura inferior del iPhone. */
+/* Versión móvil (< 768 px): el Header de escritorio se oculta y lo reemplaza
+   BarraSuperiorMovil, de menor alto. Las páginas que reservaban el alto del
+   Header con pt-20/24/28 pasan a reservar el de la barra superior. */
 :root {
-  --bottom-nav-h: 0px;
+  --topbar-h: 0px;
 }
 @media (max-width: 767px) {
   :root {
-    --bottom-nav-h: calc(4rem + env(safe-area-inset-bottom));
+    --topbar-h: calc(3.5rem + env(safe-area-inset-top));
   }
+  .pt-28 { padding-top: calc(var(--topbar-h) + 1rem); }
+  .pt-24, .pt-20 { padding-top: calc(var(--topbar-h) + 0.5rem); }
 }
 body.ai-panel-open .app-content {
   margin-right: 420px;
@@ -594,4 +597,16 @@ html.light svg text[style*="fill:#94A3B8"] { fill: var(--text-primary) !importan
 
   /* SankeyFlow: evitar desborde en A4 cuando hay min-w-[960px] */
   [class*="min-w-\["] { min-width: auto !important; }
+}
+
+/* Respuestas del asistente en móvil: texto a todo el ancho, sin globo (como las
+   apps de chat con IA); el globo se conserva para el mensaje del usuario. */
+@media (max-width: 767px) {
+  .burbuja-asistente {
+    background: transparent;
+    border-color: transparent;
+    padding-left: 0;
+    padding-right: 0;
+    max-width: 100%;
+  }
 }

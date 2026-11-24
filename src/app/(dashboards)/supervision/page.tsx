@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ResponsivePie } from "@nivo/pie";
 import { ResponsiveLine } from "@nivo/line";
-import * as XLSX from "xlsx";
 import { useTheme } from "@/providers/ThemeProvider";
 import DashboardLayout from "@/components/DashboardLayout";
 import Card from "@/components/dashboard/Card";
@@ -11,6 +10,7 @@ import BaseKpiChip, { type KpiChipProps } from "@/components/dashboard/KpiChip";
 import SemiGauge from "@/components/ui/SemiGauge";
 import { RangeSlider } from "@/components/ui/RangeSlider";
 import { getNivoTheme } from "@/lib/nivo-theme";
+import { useIsNarrow } from "@/hooks/useIsNarrow";
 import { fmtCOP, fmtCOPShort, fmtNum } from "@/lib/format";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -103,8 +103,54 @@ function SankeyFlow({
     { key: "municipio",    label: "MUNICIPIO",    nodes: sankey.municipio    },
   ];
 
+  const activeCount = Object.values(filters).filter(Boolean).length;
+
   return (
-    <div className="w-full overflow-x-auto">
+    <>
+      {/* Móvil (< md): una lista vertical por columna — mismos filtros, sin desplazamiento horizontal */}
+      <div className="md:hidden">
+        <details className="group rounded-xl border border-theme-card bg-dash-chip/40">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-[11px] font-semibold text-gold">
+            <span>{activeCount === 0 ? "Filtrar por fondo, estado, etapa, departamento o municipio" : `Filtros activos: ${activeCount}`}</span>
+            <span aria-hidden="true" className="text-theme-muted transition-transform group-open:rotate-180">▾</span>
+          </summary>
+          <div className="space-y-4 border-t border-theme-card p-3">
+            {cols.map(({ key, label, nodes }) => (
+              <section key={key}>
+                <h3 className="mb-1.5 text-[9px] font-bold uppercase tracking-widest text-gold/70">{label}</h3>
+                <ul className="max-h-72 space-y-1.5 overflow-y-auto">
+                  {nodes.map((node, ni) => {
+                    const isActive = filters[key] === node.valor;
+                    const color = COLORS[ni % COLORS.length];
+                    return (
+                      <li key={node.valor}>
+                        <button
+                          onClick={() => onFilter(key, isActive ? null : node.valor)}
+                          aria-pressed={isActive}
+                          className={`flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-xs ${
+                            isActive ? "border-amber-500/60 bg-amber-500/15 text-gold" : "border-theme-card bg-dash-chip text-theme-primary"
+                          }`}>
+                          <span className="truncate">{node.valor}</span>
+                          <span className="shrink-0 font-bold" style={{ color }}>{node.n}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                  {nodes.length === 0 && <li className="py-2 text-center text-[10px] italic text-theme-muted">—</li>}
+                </ul>
+              </section>
+            ))}
+            {activeCount > 0 && (
+              <button onClick={onClearAll} className="min-h-11 w-full rounded-lg border border-amber-500/30 text-xs text-gold">
+                Limpiar filtros
+              </button>
+            )}
+          </div>
+        </details>
+      </div>
+
+      {/* Escritorio y tableta (≥ md): flujo horizontal original */}
+      <div className="hidden w-full overflow-x-auto md:block">
       <div className="flex gap-0 min-w-[960px]">
         <div className="flex flex-col items-center justify-center w-28 shrink-0 pr-2">
           <div className="bg-amber-500/20 border border-amber-500/50 rounded-xl px-3 py-3 text-center w-full">
@@ -172,6 +218,7 @@ function SankeyFlow({
         </div>
       )}
     </div>
+    </>
   );
 }
 
@@ -180,6 +227,7 @@ export default function SupervisionPage() {
   const { resolvedTheme } = useTheme();
   const T = getNivoTheme(resolvedTheme === "dark");
   const isDark = resolvedTheme === "dark";
+  const isNarrow = useIsNarrow();
   const [data, setData] = useState<SupervisionData>(DEFAULT);
   const [filters, setFilters] = useState<SankeyFilters>({
     fondo: null, estado: null, etapa: null, departamento: null, municipio: null,
@@ -310,6 +358,8 @@ export default function SupervisionPage() {
   const handleExportExcel = useCallback(async () => {
     setExporting(true);
     try {
+      // Import diferido: xlsx pesa y solo se necesita al pulsar «Exportar Excel».
+      const XLSX = await import("xlsx");
       const qs = buildParams(filters, anoMin, anoMax);
       const res = await fetch(`/api/supervision/detalle${qs.toString() ? "?" + qs.toString() : ""}`);
       const json = await res.json();
@@ -372,6 +422,11 @@ export default function SupervisionPage() {
     data: data.avancePorAnio.map(a => ({ x: String(a.anio), y: +a.avg_avance_obra.toFixed(1) })),
   }] : [];
 
+  // En móvil se rotula 1 de cada 3 años para que las etiquetas del eje X no se encimen.
+  const lineTickValues = isNarrow && avanceLine[0]
+    ? avanceLine[0].data.filter((_, i) => i % 3 === 0).map(p => p.x)
+    : undefined;
+
   const hasFilter = Object.values(filters).some(Boolean) || anoMin !== DEFAULT_ANO_MIN || anoMax !== YEAR_MAX;
 
   const filterNote = (() => {
@@ -418,9 +473,9 @@ export default function SupervisionPage() {
             <button
               onClick={handleExportExcel}
               disabled={exporting || !canExport}
-              className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl
+              className="flex items-center gap-2 min-h-11 px-4 py-2 text-xs font-semibold rounded-xl
                 bg-amber-500/15 border border-amber-500/40 text-gold
-                hover:bg-amber-500/25 transition-colors disabled:opacity-40"
+                hover:bg-amber-500/25 transition-colors disabled:opacity-40 lg:min-h-0"
             >
               {exporting ? "Generando…" : "Exportar Excel"}
             </button>
@@ -551,10 +606,10 @@ export default function SupervisionPage() {
             <span className="text-gold font-bold uppercase tracking-widest text-[11px]">PORTAFOLIO FINANCIERO</span>
             <p className="text-[9px] text-theme-muted mt-0.5 mb-1">Suma del portafolio · {data.financiero.filasConValor.toLocaleString("es-CO")} proyectos con valor</p>
             {filterNote && <p className="text-[9px] text-gold/60 mb-2">{filterNote}</p>}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
               <KpiChip label="Valor total" value={fmtCOPShort(data.financiero.valorProyecto)} colorClass="text-gold" note={yearNote} />
               <KpiChip label="Valor desembolsado" value={fmtCOPShort(data.financiero.valorDesembolsado)} colorClass="text-emerald-400" note={yearNote} />
-              <KpiChip label="Valor por desembolsar" value={fmtCOPShort(data.financiero.valorPorDesembolsar)} colorClass="text-cyan-400" note={yearNote} />
+              <KpiChip label="Valor por desembolsar" value={fmtCOPShort(data.financiero.valorPorDesembolsar)} colorClass="text-cyan-400" note={yearNote} className="col-span-2 lg:col-span-1" />
             </div>
             <p className="text-[9px] text-theme-muted/70 mt-2 leading-relaxed">
               Detalle: {fmtCOP(data.financiero.valorProyecto)} · {fmtCOP(data.financiero.valorDesembolsado)} · {fmtCOP(data.financiero.valorPorDesembolsar)}
@@ -598,7 +653,7 @@ export default function SupervisionPage() {
             <span className="text-gold font-bold uppercase tracking-widest text-[11px]">EVOLUCIÓN DEL AVANCE DE OBRA PROMEDIO (%)</span>
           </div>
           {filterNote && <p className="text-[9px] text-gold/60 mb-2">{filterNote}</p>}
-          <div className="h-[220px] mt-4">
+          <div className="h-[250px] mt-4 lg:h-[220px]">
             <ResponsiveLine
               data={avanceLine}
               theme={T}
@@ -615,7 +670,7 @@ export default function SupervisionPage() {
               axisTop={null}
               axisRight={null}
               axisLeft={{ tickSize: 0, tickPadding: 6, tickValues: 5, format: (v) => `${v}%` }}
-              axisBottom={{ tickSize: 0, tickPadding: 8 }}
+              axisBottom={{ tickSize: 0, tickPadding: 8, tickValues: lineTickValues }}
               colors={["#22C55E"]}
               lineWidth={2}
               enableArea

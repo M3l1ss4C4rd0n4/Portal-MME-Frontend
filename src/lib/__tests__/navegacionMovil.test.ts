@@ -1,7 +1,20 @@
 import { describe, expect, test } from 'vitest';
-import { ITEMS_NAV_MOVIL, esRutaActiva, normalizarRuta } from '../navegacionMovil';
+import { esRutaActiva, normalizarRuta, tituloDeRuta } from '../navegacionMovil';
+import type { NavItem } from '../navegacionPortal';
 
-const prefijosDe = (id: string) => ITEMS_NAV_MOVIL.find((i) => i.id === id)!.prefijos;
+const MENU: NavItem[] = [
+  { label: 'Inicio', href: '/' },
+  {
+    label: 'Sector',
+    href: '/energia',
+    children: [
+      { label: 'Gestión del sector', href: '/energia' },
+      { label: 'Predicciones SIN', href: '/energia/predicciones' },
+      { label: 'Portal Energético', href: 'https://portalenergetico.minenergia.gov.co/' },
+    ],
+  },
+  { label: 'Asistente IA', href: '/asistente' },
+];
 
 describe('normalizarRuta', () => {
   test('quita la barra final salvo en la raíz', () => {
@@ -12,33 +25,35 @@ describe('normalizarRuta', () => {
 
 describe('esRutaActiva', () => {
   test('reconoce la ruta propia con y sin barra final', () => {
-    expect(esRutaActiva('/asistente', prefijosDe('asistente'))).toBe(true);
-    expect(esRutaActiva('/asistente/', prefijosDe('asistente'))).toBe(true);
+    expect(esRutaActiva('/asistente/', '/asistente')).toBe(true);
+    expect(esRutaActiva('/asistente', '/asistente/')).toBe(true);
   });
 
-  test('reconoce rutas hijas del mismo grupo', () => {
-    expect(esRutaActiva('/energia/predicciones/', prefijosDe('sector'))).toBe(true);
+  test('reconoce rutas hijas', () => {
+    expect(esRutaActiva('/energia/predicciones/', '/energia')).toBe(true);
   });
 
   test('no confunde rutas que solo comparten el comienzo del nombre', () => {
-    expect(esRutaActiva('/energiaX', prefijosDe('sector'))).toBe(false);
-    expect(esRutaActiva('/comunidades-otra', prefijosDe('comunidades'))).toBe(false);
-  });
-
-  test('marca Dirección al estar en Supervisión o Subsidios', () => {
-    expect(esRutaActiva('/supervision/', prefijosDe('direccion'))).toBe(true);
-    expect(esRutaActiva('/subsidios/', prefijosDe('direccion'))).toBe(true);
-  });
-
-  test('ningún ítem queda activo en la portada', () => {
-    const activos = ITEMS_NAV_MOVIL.filter((i) => esRutaActiva('/', i.prefijos));
-    expect(activos).toHaveLength(0);
+    expect(esRutaActiva('/energiaX', '/energia')).toBe(false);
   });
 });
 
-describe('ITEMS_NAV_MOVIL', () => {
-  test('el Asistente es el único destacado y todos los destinos llevan barra final', () => {
-    expect(ITEMS_NAV_MOVIL.filter((i) => i.destacado).map((i) => i.id)).toEqual(['asistente']);
-    expect(ITEMS_NAV_MOVIL.every((i) => i.href.endsWith('/'))).toBe(true);
+describe('tituloDeRuta', () => {
+  test('usa la etiqueta del destino exacto', () => {
+    expect(tituloDeRuta('/asistente/', MENU)).toBe('Asistente IA');
+  });
+
+  test('prefiere el destino más específico', () => {
+    expect(tituloDeRuta('/energia/predicciones/', MENU)).toBe('Predicciones SIN');
+    expect(tituloDeRuta('/energia/', MENU)).toBe('Gestión del sector');
+  });
+
+  test('la portada se llama Inicio y una ruta desconocida usa el nombre del portal', () => {
+    expect(tituloDeRuta('/', MENU)).toBe('Inicio');
+    expect(tituloDeRuta('/ruta-que-no-existe/', MENU)).toBe('Portal Dirección de Energía');
+  });
+
+  test('ignora los enlaces externos', () => {
+    expect(tituloDeRuta('/https:', MENU)).toBe('Portal Dirección de Energía');
   });
 });

@@ -75,7 +75,7 @@ export default function DashboardLayout({
           transition={{ duration: 0.5 }}
         >
           <div className="mb-2 flex items-start justify-between gap-4">
-            <h1 className="text-3xl font-bold text-theme-primary">
+            <h1 className="text-2xl font-bold text-theme-primary sm:text-3xl">
               {title}
             </h1>
             {headerActions && (
@@ -87,10 +87,10 @@ export default function DashboardLayout({
               <button
                 onClick={handleDownload}
                 disabled={downloading}
-                className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl
+                className="flex items-center gap-2 min-h-11 px-4 py-2 text-xs font-semibold rounded-xl
                   bg-amber-500/15 border border-amber-500/40 text-gold
                   hover:bg-amber-500/25 transition-colors disabled:opacity-40 disabled:cursor-wait
-                  shrink-0"
+                  shrink-0 lg:min-h-0"
                 title="Descargar informe PDF"
               >
                 {downloading ? (

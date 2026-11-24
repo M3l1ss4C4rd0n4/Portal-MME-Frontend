@@ -2,15 +2,15 @@
 
 import Header from './Header';
 import ChatbotWidget from './ChatbotWidget';
-import BottomNav from './BottomNav';
+import BarraSuperiorMovil from './movil/BarraSuperiorMovil';
 import ServiceWorkerRegister from './ServiceWorkerRegister';
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Header />
+      <BarraSuperiorMovil />
       <div className="app-content">{children}</div>
-      <BottomNav />
       <ChatbotWidget />
       <ServiceWorkerRegister />
     </>

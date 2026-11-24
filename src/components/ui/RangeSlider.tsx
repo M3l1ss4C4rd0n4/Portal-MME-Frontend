@@ -64,7 +64,7 @@ export function RangeSlider({
           </button>
         )}
       </div>
-      <div ref={trackRef} className="relative h-7 flex items-center mx-1" onMouseMove={handleTrackMouseMove}>
+      <div ref={trackRef} className="relative h-11 flex items-center mx-1 lg:h-7" onMouseMove={handleTrackMouseMove}>
         <div className="absolute w-full h-1.5 bg-theme-tertiary rounded-full pointer-events-none" />
         <div
           className="absolute h-1.5 bg-amber-500/70 rounded-full pointer-events-none"

@@ -53,7 +53,7 @@ export function Burbuja({
         className={`${compact ? "max-w-[92%] px-3 py-2.5 text-xs" : "max-w-[85%] sm:max-w-[70%] px-4 py-3 text-sm"} rounded-2xl leading-relaxed ${
           esUsuario
             ? "bg-amber-500/15 border border-amber-500/30 text-theme-primary"
-            : "bg-theme-secondary border border-theme-card text-theme-primary"
+            : `bg-theme-secondary border border-theme-card text-theme-primary ${compact ? "" : "burbuja-asistente"}`
         }`}
       >
         {esUsuario ? (

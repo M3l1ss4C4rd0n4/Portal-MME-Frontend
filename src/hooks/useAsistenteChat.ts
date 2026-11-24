@@ -103,6 +103,7 @@ export function useAsistenteChat() {
   const [archivo, setArchivo] = useState<ArchivoAdjunto | null>(null);
   const [errorArchivo, setErrorArchivo] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const controladorRef = useRef<AbortController | null>(null);
 
   const seleccionarArchivo = useCallback(async (f: File | null) => {
     setErrorArchivo(null);
@@ -134,10 +135,13 @@ export function useAsistenteChat() {
     async (mensajeTexto: string, historial: { role: string; content: string }[], archivoAdjunto: ArchivoAdjunto | null) => {
       setEnviando(true);
       setHerramientaActiva("__pensando__");
+      const controlador = new AbortController();
+      controladorRef.current = controlador;
 
       try {
         const res = await fetch("/api/asistente", {
           method: "POST",
+          signal: controlador.signal,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             mensaje: mensajeTexto || "Analiza este archivo adjunto.",
@@ -227,6 +231,8 @@ export function useAsistenteChat() {
           }
         }
       } catch (err) {
+        // Conversación reiniciada por el usuario: no hay nada que mostrar.
+        if (controlador.signal.aborted) return;
         setMensajes((prev) => {
           const copia = [...prev];
           const actual = copia[copia.length - 1];
@@ -240,6 +246,7 @@ export function useAsistenteChat() {
         });
         console.error("[Asistente]", err);
       } finally {
+        if (controladorRef.current === controlador) controladorRef.current = null;
         setEnviando(false);
         setHerramientaActiva(null);
       }
@@ -302,6 +309,15 @@ export function useAsistenteChat() {
     [mensajes]
   );
 
+  /** Empieza una conversación nueva; si hay una respuesta en curso, la cancela. */
+  const reiniciar = useCallback(() => {
+    controladorRef.current?.abort();
+    setMensajes([]);
+    setArchivo(null);
+    setErrorArchivo(null);
+    setHerramientaActiva(null);
+  }, []);
+
   return {
     mensajes,
     enviando,
@@ -315,5 +331,6 @@ export function useAsistenteChat() {
     enviar,
     regenerar,
     enviarFeedback,
+    reiniciar,
   };
 }

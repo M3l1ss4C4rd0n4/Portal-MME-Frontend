@@ -3,99 +3,12 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
-import { EVENTO_ALTERNAR_MENU } from '@/lib/navegacionMovil';
 import { Bars3Icon, XMarkIcon, BellIcon, UserCircleIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ui/ThemeToggle';
 import { useTheme } from '@/providers/ThemeProvider';
-import { HIDROCARBUROS_VISIBLE } from '@/lib/featureFlags';
-
-interface NavGrandchild {
-  label: string;
-  href: string;
-}
-
-interface NavChild {
-  label: string;
-  href: string;
-  children?: NavGrandchild[];
-}
-
-interface NavItem {
-  label: string;
-  href: string;
-  children?: NavChild[];
-  highlight?: boolean;
-  /** Solo se muestra si HIDROCARBUROS_VISIBLE está activo. */
-  requiresHidrocarburos?: boolean;
-}
-
-const navItems: NavItem[] = [
-  { label: 'Inicio', href: '/' },
-  {
-    label: 'Sector energetico',
-    href: '/energia',
-    children: [
-      { label: 'Gestión del sector', href: '/energia' },
-      { label: 'Balance Oferta-Demanda', href: '/balance-oferta-demanda' },
-      { label: 'Predicciones SIN', href: '/energia/predicciones' },
-      { label: 'Informes energéticos', href: '/energia/informes' },
-      { label: 'IPEM', href: '/energia/ipem' },
-      { label: 'Portal Energético', href: 'https://portalenergetico.minenergia.gov.co/' },
-    ],
-  },
-  {
-    label: 'Dirección energía',
-    href: '/presupuesto',
-    children: [
-      { label: 'Informe semanal', href: '/informe-direccion-energia' },
-      { label: 'Presupuesto', href: '/presupuesto' },
-      { label: 'Supervisión', href: '/supervision' },
-      {
-        label: 'Subsidios',
-        href: '/subsidios',
-        children: [
-          { label: 'Déficit histórico', href: '/subsidios' },
-          { label: 'Detalle de pagos', href: '/pagos' },
-          { label: 'Tablero de validaciones', href: '/validaciones' },
-          { label: 'Detalle Empresas', href: '/detalle-empresas' },
-        ],
-      },
-    ],
-  },
-  {
-    label: 'Comunidades Energéticas',
-    href: '/colombia-solar',
-    children: [
-      { label: 'Resumen', href: '/colombia-solar' },
-      { label: 'CE_Implementadas', href: '/comunidades' },
-      { label: 'CE_Contratos OR', href: '/contratos-or' },
-      { label: 'CE_Fenoge 1.0, 1.1', href: '/fenoge' },
-    ],
-  },
-  {
-    label: 'Dirección de Hidrocarburos',
-    href: '/hidrocarburos/presupuesto',
-    // Oculto mientras HIDROCARBUROS_VISIBLE sea false (ver src/lib/featureFlags.ts).
-    requiresHidrocarburos: true,
-    children: [
-      { label: 'Presupuesto', href: '/hidrocarburos/presupuesto' },
-      { label: 'Exploración', href: '/hidrocarburos/exploracion' },
-      { label: 'Agentes SICOM', href: '/hidrocarburos/agentes' },
-      { label: 'Compras', href: '/hidrocarburos/compras' },
-      { label: 'Compras EDS', href: '/hidrocarburos/compras-eds' },
-      { label: 'Capacidad', href: '/hidrocarburos/capacidad' },
-    ],
-  },
-  { label: 'Asistente IA', href: '/asistente', highlight: true },
-];
-
-// Lo que realmente se pinta: igual a navItems salvo las secciones apagadas por
-// bandera. No se borra nada de navItems, solo se filtra.
-const visibleNavItems: NavItem[] = navItems.filter(
-  (item) => !item.requiresHidrocarburos || HIDROCARBUROS_VISIBLE
-);
+import { visibleNavItems, type NavItem, type NavChild } from '@/lib/navegacionPortal';
 
 export default function Header() {
   const headerRef = useRef<HTMLElement>(null);
@@ -144,13 +57,6 @@ export default function Header() {
     };
   }, []);
 
-  // El botón «Menú» de la barra inferior (BottomNav) abre/cierra este mismo menú.
-  useEffect(() => {
-    const alternar = () => setMobileMenuOpen((abierto) => !abierto);
-    window.addEventListener(EVENTO_ALTERNAR_MENU, alternar);
-    return () => window.removeEventListener(EVENTO_ALTERNAR_MENU, alternar);
-  }, []);
-
   // Publica la altura REAL del header (fixed) como variable CSS en vez de que
   // cada consumidor (HomeSlider, páginas de dashboard) asuma un valor fijo
   // (5rem). ResizeObserver capta cualquier causa de cambio de altura: el menú
@@ -161,6 +67,7 @@ export default function Header() {
     const el = headerRef.current;
     if (!el) return;
     const setVar = () => {
+      if (el.offsetHeight === 0) return; // oculto en móvil: la altura la publica BarraSuperiorMovil
       document.documentElement.style.setProperty('--header-height', `${el.offsetHeight}px`);
     };
     setVar();
@@ -175,7 +82,7 @@ export default function Header() {
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+      className={`max-md:hidden fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         scrolled 
           ? 'bg-theme-secondary border-b border-gold-20' 
           : 'bg-gradient-to-b from-[var(--bg-primary)] to-transparent'

@@ -23,8 +23,6 @@ import { SECTION_PROMPTS } from '@/lib/asistenteSecciones';
 // panel de IA está abierto, todo se corre hacia la izquierda para quedar
 // pegado al nuevo borde del contenido (ver `fabRight` más abajo).
 const FAB_MARGIN = 24;
-// En móvil la barra inferior ocupa --bottom-nav-h (globals.css); el botón se apoya encima.
-const FAB_BOTTOM = `calc(${FAB_MARGIN}px + var(--bottom-nav-h, 0px))`;
 export const AI_PANEL_WIDTH = 420;
 
 export default function ChatbotWidget() {
@@ -274,7 +272,7 @@ export default function ChatbotWidget() {
             animate={{ opacity: 1, scaleY: 1 }}
             exit={{ opacity: 0, scaleY: 0.4 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            style={{ position: 'fixed', bottom: FAB_BOTTOM, right: fabRight, zIndex: 9999, transformOrigin: 'bottom' }}
+            style={{ position: 'fixed', bottom: FAB_MARGIN, right: fabRight, zIndex: 9999, transformOrigin: 'bottom' }}
             className="flex flex-col items-center gap-1.5 p-2 rounded-full shadow-2xl bg-gradient-to-b from-[var(--color-gold)] to-[var(--color-gold-light)]"
           >
             <InformeEmpalmeFab />
@@ -307,7 +305,7 @@ export default function ChatbotWidget() {
         <button
           type="button"
           onClick={() => setToolsOpen(true)}
-          style={{ position: 'fixed', bottom: FAB_BOTTOM, right: fabRight, zIndex: 9999, transition: 'right 0.25s ease' }}
+          style={{ position: 'fixed', bottom: FAB_MARGIN, right: fabRight, zIndex: 9999, transition: 'right 0.25s ease' }}
           className={`group w-[70px] h-[70px] rounded-full shadow-xl items-center justify-center ${enAsistente ? 'hidden md:flex' : 'flex'} transition-transform hover:scale-105 active:scale-95 bg-gradient-to-br from-[var(--color-gold)] to-[var(--color-gold-light)]`}
           aria-label="Herramientas e informes"
           title="Herramientas e informes"
