@@ -306,11 +306,11 @@ export default function ChatbotWidget() {
           type="button"
           onClick={() => setToolsOpen(true)}
           style={{ position: 'fixed', bottom: FAB_MARGIN, right: fabRight, zIndex: 9999, transition: 'right 0.25s ease' }}
-          className={`group w-[70px] h-[70px] rounded-full shadow-xl items-center justify-center ${enAsistente ? 'hidden md:flex' : 'flex'} transition-transform hover:scale-105 active:scale-95 bg-gradient-to-br from-[var(--color-gold)] to-[var(--color-gold-light)]`}
+          className={`group h-12 w-12 md:w-[70px] md:h-[70px] rounded-full shadow-xl items-center justify-center ${enAsistente ? 'hidden md:flex' : 'flex'} transition-transform hover:scale-105 active:scale-95 bg-gradient-to-br from-[var(--color-gold)] to-[var(--color-gold-light)]`}
           aria-label="Herramientas e informes"
           title="Herramientas e informes"
         >
-          <Cog6ToothIcon className="w-7 h-7 text-[#2A2826] pointer-events-none" />
+          <Cog6ToothIcon className="w-6 h-6 md:w-7 md:h-7 text-[#2A2826] pointer-events-none" />
         </button>
       )}
     </>

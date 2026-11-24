@@ -259,8 +259,8 @@ function TabBoletines() {
       {error && <ErrorMsg msg={error} />}
 
       <div className="rounded-xl border border-theme-card overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
+        <table className="w-full text-sm max-sm:block">
+          <thead className="max-sm:hidden">
             <tr className="bg-dash-chip text-theme-muted text-xs uppercase tracking-wide">
               <th className="text-left py-2.5 px-4">Fecha</th>
               <th className="text-left py-2.5 px-4">Nombre</th>
@@ -268,7 +268,7 @@ function TabBoletines() {
               <th className="py-2.5 px-4" />
             </tr>
           </thead>
-          <tbody>
+          <tbody className="max-sm:block">
             {loading ? (
               <SkeletonRows cols={4} />
             ) : (data?.items ?? []).length === 0 && !error ? (
@@ -277,16 +277,16 @@ function TabBoletines() {
               </tr>
             ) : (
               (data?.items ?? []).map((item) => (
-                <tr key={item.itemId} className="border-b border-theme-card last:border-0 hover:bg-white/5 transition-colors">
-                  <td className="py-3 px-4 text-theme-secondary whitespace-nowrap">{fmtFecha(item.fecha)}</td>
-                  <td className="py-3 px-4 text-theme-primary max-w-xs">
+                <tr key={item.itemId} className="border-b border-theme-card last:border-0 hover:bg-white/5 transition-colors max-sm:flex max-sm:flex-wrap max-sm:items-center max-sm:gap-x-3 max-sm:gap-y-1 max-sm:px-4 max-sm:py-3">
+                  <td className="py-3 px-4 text-theme-secondary whitespace-nowrap max-sm:order-2 max-sm:p-0 max-sm:text-xs">{fmtFecha(item.fecha)}</td>
+                  <td className="py-3 px-4 text-theme-primary max-w-xs max-sm:order-1 max-sm:w-full max-sm:max-w-full max-sm:p-0">
                     <span className="flex items-center gap-2">
                       <FileText className="w-4 h-4 text-gold flex-shrink-0" />
                       <span className="truncate" title={item.nombre}>{item.nombre}</span>
                     </span>
                   </td>
                   <td className="py-3 px-4 text-theme-muted hidden sm:table-cell">{fmtTamano(item.tamano)}</td>
-                  <td className="py-3 px-4 text-right">
+                  <td className="py-3 px-4 text-right max-sm:order-3 max-sm:ml-auto max-sm:p-0">
                     <BtnDescargar nombre={item.nombre} href={buildDescargarUrl(item.driveId, item.itemId)} />
                   </td>
                 </tr>
@@ -357,8 +357,8 @@ function TabXM() {
       {error && <ErrorMsg msg={error} />}
 
       <div className="rounded-xl border border-theme-card overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
+        <table className="w-full text-sm max-sm:block">
+          <thead className="max-sm:hidden">
             <tr className="bg-dash-chip text-theme-muted text-xs uppercase tracking-wide">
               <th className="text-left py-2.5 px-4">Fecha</th>
               <th className="text-left py-2.5 px-4 hidden md:table-cell">Tipo</th>
@@ -367,7 +367,7 @@ function TabXM() {
               <th className="py-2.5 px-4" />
             </tr>
           </thead>
-          <tbody>
+          <tbody className="max-sm:block">
             {loading ? (
               <SkeletonRows cols={5} count={6} />
             ) : (data?.items ?? []).length === 0 && !error ? (
@@ -376,19 +376,19 @@ function TabXM() {
               </tr>
             ) : (
               (data?.items ?? []).map((item) => (
-                <tr key={item.itemId} className="border-b border-theme-card last:border-0 hover:bg-white/5 transition-colors">
-                  <td className="py-3 px-4 text-theme-secondary whitespace-nowrap">{fmtFecha(item.fecha)}</td>
+                <tr key={item.itemId} className="border-b border-theme-card last:border-0 hover:bg-white/5 transition-colors max-sm:flex max-sm:flex-wrap max-sm:items-center max-sm:gap-x-3 max-sm:gap-y-1 max-sm:px-4 max-sm:py-3">
+                  <td className="py-3 px-4 text-theme-secondary whitespace-nowrap max-sm:order-2 max-sm:p-0 max-sm:text-xs">{fmtFecha(item.fecha)}</td>
                   <td className="py-3 px-4 hidden md:table-cell">
                     <TipoBadge tipo={item.tipo} label={item.tipoLabel} />
                   </td>
-                  <td className="py-3 px-4 text-theme-primary max-w-xs">
+                  <td className="py-3 px-4 text-theme-primary max-w-xs max-sm:order-1 max-sm:w-full max-sm:max-w-full max-sm:p-0">
                     <span className="flex items-center gap-2">
                       <FileText className="w-4 h-4 text-gold flex-shrink-0" />
                       <span className="truncate" title={item.nombre}>{item.nombre}</span>
                     </span>
                   </td>
                   <td className="py-3 px-4 text-theme-muted hidden sm:table-cell">{fmtTamano(item.tamano)}</td>
-                  <td className="py-3 px-4 text-right">
+                  <td className="py-3 px-4 text-right max-sm:order-3 max-sm:ml-auto max-sm:p-0">
                     <BtnDescargar nombre={item.nombre} href={buildDescargarUrl(item.driveId, item.itemId)} />
                   </td>
                 </tr>

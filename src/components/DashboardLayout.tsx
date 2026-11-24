@@ -74,12 +74,12 @@ export default function DashboardLayout({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="mb-2 flex items-start justify-between gap-4">
-            <h1 className="text-2xl font-bold text-theme-primary sm:text-3xl">
+          <div className="mb-2 flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+            <h1 className="min-w-0 flex-1 basis-48 text-2xl font-bold text-theme-primary sm:text-3xl">
               {title}
             </h1>
             {headerActions && (
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex flex-wrap items-center gap-2">
                 {headerActions}
               </div>
             )}

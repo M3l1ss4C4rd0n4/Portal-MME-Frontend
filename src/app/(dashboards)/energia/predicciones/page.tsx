@@ -654,7 +654,7 @@ function DiagnosticoNarrativo({ data }: { data: DashboardData }) {
 
       {/* KPI cards — 5 indicadores. Solo el ONI (señal de riesgo) usa color de severidad;
           los demás son contexto y comparten un mismo acento neutro para no leer como arcoíris. */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
         {/* ONI actual */}
         <div
           className="bg-theme-primary/40 rounded-lg p-4 border-t-2 border-x border-b border-white/5 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200"
@@ -670,7 +670,7 @@ function DiagnosticoNarrativo({ data }: { data: DashboardData }) {
             >
               <Thermometer className="w-5 h-5" style={{ color: oniColor }} />
             </span>
-            <span className="text-2xl font-bold" style={{ color: oniColor }}>
+            <span className="text-lg sm:text-2xl font-bold" style={{ color: oniColor }}>
               {oniActual > 0 ? "+" : ""}
               {oniActual.toFixed(2)}°C
             </span>
@@ -702,12 +702,12 @@ function DiagnosticoNarrativo({ data }: { data: DashboardData }) {
               <History className="w-5 h-5" style={{ color: oniLagColor }} />
             </span>
             {oniLag ? (
-              <span className="text-2xl font-bold" style={{ color: oniLagColor }}>
+              <span className="text-lg sm:text-2xl font-bold" style={{ color: oniLagColor }}>
                 {oniLag.valor > 0 ? "+" : ""}
                 {oniLag.valor.toFixed(2)}°C
               </span>
             ) : (
-              <span className="text-2xl font-bold text-theme-muted">—</span>
+              <span className="text-lg sm:text-2xl font-bold text-theme-muted">—</span>
             )}
           </div>
           {oniLag && (
@@ -732,7 +732,7 @@ function DiagnosticoNarrativo({ data }: { data: DashboardData }) {
             <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-400/[0.12] shrink-0">
               <Waves className="w-5 h-5 text-blue-400" />
             </span>
-            <span className="text-2xl font-bold text-theme-primary">
+            <span className="text-lg sm:text-2xl font-bold text-theme-primary">
               {pdoActual !== null
                 ? `${pdoActual > 0 ? "+" : ""}${pdoActual.toFixed(2)}`
                 : "—"}
@@ -755,7 +755,7 @@ function DiagnosticoNarrativo({ data }: { data: DashboardData }) {
             <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-400/[0.12] shrink-0">
               <Wind className="w-5 h-5 text-blue-400" />
             </span>
-            <span className="text-2xl font-bold text-theme-primary">
+            <span className="text-lg sm:text-2xl font-bold text-theme-primary">
               {soiActual !== null
                 ? `${soiActual > 0 ? "+" : ""}${soiActual.toFixed(2)}`
                 : "—"}
@@ -778,7 +778,7 @@ function DiagnosticoNarrativo({ data }: { data: DashboardData }) {
             <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-400/[0.12] shrink-0">
               <Globe className="w-5 h-5 text-blue-400" />
             </span>
-            <span className="text-2xl font-bold text-theme-primary">
+            <span className="text-lg sm:text-2xl font-bold text-theme-primary">
               {gmstActual !== null ? `+${gmstActual.toFixed(2)}°C` : "—"}
             </span>
           </div>

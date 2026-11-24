@@ -619,3 +619,11 @@ html.light svg text[style*="fill:#94A3B8"] { fill: var(--text-primary) !importan
     line-height: 1.35;
   }
 }
+
+/* Cifras y encabezados: los tamaños de escritorio (24-30 px) no caben en tarjetas de
+   dos columnas en un teléfono de 360 px. */
+@media (max-width: 767px) {
+  .text-4xl { font-size: 1.75rem; line-height: 2rem; }
+  .text-3xl { font-size: 1.5rem; line-height: 2rem; }
+  .text-2xl { font-size: 1.25rem; line-height: 1.75rem; }
+}

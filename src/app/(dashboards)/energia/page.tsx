@@ -416,7 +416,7 @@ export default function GestionSectorPage() {
               <span className="text-[10px] font-bold tracking-widest text-theme-muted uppercase">Precio de Bolsa</span>
               <TrendingUp className="w-4 h-4 text-gold" />
             </div>
-            <div className="flex items-baseline gap-1">
+            <div className="flex flex-wrap items-baseline gap-x-1">
               <span
                 className="text-2xl font-bold text-gold"
                 style={sectorSnapshot.tendencias?.precio?.label !== "S/D" && sectorSnapshot.tendencias?.precio ? { color: getTrendColor(sectorSnapshot.tendencias.precio, "precio") } : undefined}

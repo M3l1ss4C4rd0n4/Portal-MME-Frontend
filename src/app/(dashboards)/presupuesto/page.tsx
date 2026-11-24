@@ -157,7 +157,7 @@ export default function PresupuestoPage() {
       downloadTablero="presupuesto" subtitle={`Apropiación, compromisos y obligaciones — ${fechaCorte}`}>
 
       {/* ── Row 1: KPI Cards ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-5">
         <Card delay={0.05} className="!p-4">
           <div className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Apropiación Total</div>
           <div className="text-xl font-bold text-gold truncate">{fmtCOP(data.totales.apropiacion)}</div>
@@ -194,7 +194,7 @@ export default function PresupuestoPage() {
           </div>
 
           {/* Gráficos de Torta Semi-circulares */}
-          <div className="grid grid-cols-3 gap-3 mt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
             {/* Comprometido - Semi Pie */}
             <div className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-3 text-center">
               <div className="text-[9px] text-gold/70 uppercase tracking-wider mb-1">Comprometido</div>

@@ -278,7 +278,7 @@ export default function PagosPage() {
       downloadQueryString={buildQuery()}>
 
       {/* ── KPIs ─────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-5">
         <Card delay={0.05}>
           <div className="text-[10px] text-gold/80 font-semibold uppercase tracking-wide">Valor Comprometido en Resoluciones</div>
           <div className="mt-1.5 text-lg font-extrabold text-theme-primary leading-none tabular-nums">
