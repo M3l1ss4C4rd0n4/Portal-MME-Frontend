@@ -45,7 +45,7 @@ export default function AsistentePage() {
   );
 
   return (
-    <div className="h-screen flex bg-theme-primary pt-24">
+    <div className="h-[calc(100dvh-var(--bottom-nav-h,0px))] flex bg-theme-primary pt-24">
       {/* ── Barra lateral permanente — mismos accesos a secciones que el drawer del
           portal, siempre visibles para aprovechar el ancho disponible en esta página ── */}
       <aside className="hidden lg:flex w-72 shrink-0 flex-col gap-2 border-r border-theme-card px-4 py-6 overflow-y-auto">

@@ -118,6 +118,17 @@ body {
 .app-content {
   transition: margin-right 0.25s ease;
 }
+
+/* Alto de la barra de navegación inferior (BottomNav.tsx). 0 en pantallas
+   anchas; en móvil incluye la zona segura inferior del iPhone. */
+:root {
+  --bottom-nav-h: 0px;
+}
+@media (max-width: 767px) {
+  :root {
+    --bottom-nav-h: calc(4rem + env(safe-area-inset-bottom));
+  }
+}
 body.ai-panel-open .app-content {
   margin-right: 420px;
 }

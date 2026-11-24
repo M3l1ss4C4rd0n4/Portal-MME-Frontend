@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
+import { EVENTO_ALTERNAR_MENU } from '@/lib/navegacionMovil';
 import { Bars3Icon, XMarkIcon, BellIcon, UserCircleIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -141,6 +142,13 @@ export default function Header() {
       window.removeEventListener('scroll', handleScroll);
       clearInterval(interval);
     };
+  }, []);
+
+  // El botón «Menú» de la barra inferior (BottomNav) abre/cierra este mismo menú.
+  useEffect(() => {
+    const alternar = () => setMobileMenuOpen((abierto) => !abierto);
+    window.addEventListener(EVENTO_ALTERNAR_MENU, alternar);
+    return () => window.removeEventListener(EVENTO_ALTERNAR_MENU, alternar);
   }, []);
 
   // Publica la altura REAL del header (fixed) como variable CSS en vez de que
@@ -358,7 +366,7 @@ export default function Header() {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="min-[1280px]:hidden p-2 min-[1760px]:p-2.5 text-theme-muted hover:text-theme-primary rounded-full hover:bg-theme-hover"
+              className="min-[1280px]:hidden flex h-11 w-11 items-center justify-center text-theme-muted hover:text-theme-primary rounded-full hover:bg-theme-hover"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               <AnimatePresence mode="wait">

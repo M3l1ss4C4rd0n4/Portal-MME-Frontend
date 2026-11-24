@@ -30,10 +30,11 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: 'Ministerio de Minas y Energía' }],
   robots: { index: false, follow: false },
+  appleWebApp: { capable: true, title: 'Energía MME', statusBarStyle: 'default' },
   icons: {
     // Favicon SVG único con media queries internas (cambia blanco/negro según tema)
     icon: '/favicon.svg',
-    apple: '/favicon.svg',
+    apple: '/icons/apple-touch-icon.png',
     shortcut: '/favicon.svg',
   },
   openGraph: {
@@ -48,6 +49,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  // 'cover' habilita env(safe-area-inset-*) en iPhone (barra inferior, muescas).
+  viewportFit: 'cover',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#EEF2F9' },
     { media: '(prefers-color-scheme: dark)', color: '#060B14' },

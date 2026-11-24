@@ -58,6 +58,15 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // El service worker no debe quedar en caché del navegador: así una
+        // versión nueva se detecta en la siguiente visita.
+        source: '/sw.js',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          { key: 'Service-Worker-Allowed', value: '/' },
+        ],
+      },
+      {
         source: '/energia',
         headers: [
           {
