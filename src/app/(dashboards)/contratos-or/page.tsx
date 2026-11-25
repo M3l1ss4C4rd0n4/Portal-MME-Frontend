@@ -770,7 +770,7 @@ export default function ContratosORPage() {
             <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3 mt-4">
               <KpiChip label="Usuarios Beneficiados" value={29911} accent />
               <KpiChip label="N° de CEs" value={2297} />
-              <KpiChip label="Inversión Total" value="$968.268.668.130" />
+              <KpiChip label="Inversión Total" value="$968.268.668.130" className="min-[420px]:col-span-2" />
               <KpiChip label="Potencia a Instalar" value="37 mWp" accent />
             </div>
           </div>

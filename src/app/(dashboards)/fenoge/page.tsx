@@ -525,7 +525,7 @@ export default function FenogePage() {
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <KpiChip label="CEs Fenoge" value={displayKpi.totalCes.toLocaleString("es-CO")} accent />
-          <KpiChip label="Inversión Estimada" value={fmtCOP(displayKpi.totalInversion)}
+          <KpiChip label="Inversión Estimada" value={fmtCOP(displayKpi.totalInversion)} className="max-sm:col-span-2"
             avg={activeAvgInv != null ? fmtCOP(activeAvgInv) : undefined} avgLabel="promedio / CE" />
           <KpiChip label="Capacidad Instalada" value={`${Math.round(displayKpi.totalKwp).toLocaleString("es-CO")} kWp`}
             avg={activeAvgKwp != null ? `${activeAvgKwp.toFixed(1)} kWp` : undefined} avgLabel="promedio / CE" />

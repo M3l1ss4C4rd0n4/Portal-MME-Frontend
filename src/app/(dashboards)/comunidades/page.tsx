@@ -662,7 +662,7 @@ export default function ComunidadesPage() {
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
           <KpiChip label="CEs Implementadas" value={displayKpi.implementadas.toLocaleString("es-CO")} accent />
-          <KpiChip label="Inversión Estimada" value={fmtCOP(displayKpi.inversionEstimada)} accent
+          <KpiChip label="Inversión Estimada" value={fmtCOP(displayKpi.inversionEstimada)} accent className="max-sm:col-span-2"
             avg={displayKpi.avgInversion != null ? fmtCOP(displayKpi.avgInversion) : undefined}
             avgLabel="promedio / CE" />
           <KpiChip label="Capacidad Instalada" value={`${Math.round(displayKpi.capacidadKwp).toLocaleString("es-CO")} kWp`}
