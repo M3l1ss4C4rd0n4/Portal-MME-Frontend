@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { ResponsiveLine } from "@nivo/line";
 import { useIsNarrow } from "@/hooks/useIsNarrow";
+import { getNivoTheme } from "@/lib/nivo-theme";
+import { useTheme } from "@/providers/ThemeProvider";
+import { TooltipSeguro } from "@/components/ui/TooltipSeguro";
 
 interface Filters {
   programa: string[];
@@ -18,24 +21,26 @@ interface MesRow {
   ejecutado: number;
 }
 
-const nivoTheme = {
-  background: "transparent" as const,
-  text: { fill: "#94A3B8", fontSize: 11, fontFamily: "Inter, sans-serif" },
-  axis: {
-    domain: { line: { stroke: "#1E2D44", strokeWidth: 1 } },
-    ticks: { line: { stroke: "#1E2D44", strokeWidth: 1 }, text: { fill: "#64748B", fontSize: 11 } },
-    legend: { text: { fill: "#94A3B8", fontSize: 11, fontWeight: 600 } },
-  },
-  grid: { line: { stroke: "#1A2740", strokeWidth: 1 } },
-  legends: { text: { fill: "#94A3B8", fontSize: 11 } },
-  tooltip: {
-    container: { background: "#1E293B", border: "1px solid #334155", borderRadius: "8px", color: "#E2E8F0", fontSize: "12px", padding: "8px 12px" },
-  },
-  crosshair: { line: { stroke: "rgba(232,168,56,0.3)", strokeWidth: 1 } },
-};
+/** Tema compartido según modo claro/oscuro, con las variantes propias de este gráfico. */
+function temaMensual(isDark: boolean) {
+  const base = getNivoTheme(isDark);
+  return {
+    ...base,
+    text: { ...base.text, fontSize: 11 },
+    axis: {
+      ...base.axis,
+      ticks: { ...base.axis.ticks, text: { ...base.axis.ticks.text, fontSize: 11 } },
+      legend: { text: { ...base.axis.legend.text, fontSize: 11, fontWeight: 600 } },
+    },
+    legends: { text: { fill: isDark ? "#94A3B8" : "#475569", fontSize: 11 } },
+    crosshair: { line: { stroke: "rgba(232,168,56,0.4)", strokeWidth: 1 } },
+  };
+}
 
 export default function ChartMensual({ filters }: { filters: Filters }) {
   const isNarrow = useIsNarrow();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const [data, setData] = useState<MesRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,14 +71,15 @@ export default function ChartMensual({ filters }: { filters: Filters }) {
     { id: "PLANEADO", color: "#E8A838", data: filteredData.map((d) => ({ x: d.mes, y: Number(d.planeado) })) },
     { id: "EJECUTADO", color: "#10B981", data: filteredData.map((d) => ({ x: d.mes, y: Number(d.ejecutado) })) },
   ];
-  // En 360 px caben 4 meses legibles; en escritorio se mantienen todas las etiquetas.
-  const tickValues = isNarrow ? filteredData.filter((_, i) => i % 3 === 0).map((d) => d.mes) : undefined;
+  // En 360 px caben ~4 meses legibles; con menos meses se muestran todos. En escritorio, todas las etiquetas.
+  const pasoEtiquetas = Math.max(1, Math.ceil(filteredData.length / 4));
+  const tickValues = isNarrow ? filteredData.filter((_, i) => i % pasoEtiquetas === 0).map((d) => d.mes) : undefined;
   const narrowAxis = isNarrow ? { tickRotation: -35, tickValues } : {};
 
   return (
     <ResponsiveLine
       data={nivoData}
-      theme={nivoTheme}
+      theme={temaMensual(isDark)}
       margin={isNarrow ? { top: 16, right: 12, bottom: 64, left: 56 } : { top: 20, right: 20, bottom: 70, left: 70 }}
       xScale={{ type: "point" }}
       yScale={{ type: "linear", min: 0, max: "auto", stacked: false }}
@@ -83,16 +89,36 @@ export default function ChartMensual({ filters }: { filters: Filters }) {
       enableArea
       areaOpacity={0.08}
       pointSize={7}
-      pointColor={{ from: "color" }}
+      pointColor={{ theme: "background" }}
       pointBorderWidth={2}
-      pointBorderColor={{ from: "color", modifiers: [["darker", 0.5]] }}
+      pointBorderColor={{ from: "seriesColor" }}
       axisBottom={{ tickSize: 4, tickPadding: 8, ...narrowAxis }}
       axisLeft={{ tickSize: 4, tickPadding: 8, format: (v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v), legend: "Usuarios", legendOffset: isNarrow ? -44 : -58, legendPosition: "middle" }}
       enableGridX={false}
       gridYValues={5}
-      legends={[{ anchor: "bottom", direction: "row", justify: false, translateX: 0, translateY: isNarrow ? 48 : 56, itemWidth: isNarrow ? 96 : 120, itemHeight: 14, itemsSpacing: isNarrow ? 8 : 24, symbolSize: 10, symbolShape: "circle", itemTextColor: "#94A3B8" }]}
+      legends={[{ anchor: "bottom", direction: "row", justify: false, translateX: 0, translateY: isNarrow ? 48 : 56, itemWidth: isNarrow ? 96 : 120, itemHeight: 14, itemsSpacing: isNarrow ? 8 : 24, symbolSize: 10, symbolShape: "circle", itemTextColor: isDark ? "#94A3B8" : "#475569" }]}
       useMesh
       crosshairType="x"
+      tooltip={({ point }) => (
+        <TooltipSeguro
+          style={{
+            padding: "8px 12px",
+            background: isDark ? "#1E293B" : "#FFFFFF",
+            border: isDark ? "1px solid #334155" : "1px solid #CBD5E1",
+            borderRadius: 8,
+            color: isDark ? "#E2E8F0" : "#0F172A",
+            fontSize: 12,
+          }}
+        >
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>{String(point.data.x)}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 999, background: point.seriesColor, display: "inline-block" }} />
+            <span>
+              {point.seriesId}: <strong>{Number(point.data.y).toLocaleString("es-CO")}</strong>
+            </span>
+          </div>
+        </TooltipSeguro>
+      )}
     />
   );
 }

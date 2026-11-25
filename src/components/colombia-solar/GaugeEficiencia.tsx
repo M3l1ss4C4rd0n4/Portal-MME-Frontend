@@ -1,6 +1,7 @@
 "use client";
 
 import { useIsNarrow } from "@/hooks/useIsNarrow";
+import { useTheme } from "@/providers/ThemeProvider";
 
 interface GaugeEficienciaProps {
   value: number;
@@ -21,6 +22,8 @@ function arcPath(cx: number, cy: number, r: number, startDeg: number, endDeg: nu
 
 export default function GaugeEficiencia({ value, loading }: GaugeEficienciaProps) {
   const isNarrow = useIsNarrow();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const cx = 110;
   const cy = 110;
   const r = 80;
@@ -52,7 +55,7 @@ export default function GaugeEficiencia({ value, loading }: GaugeEficienciaProps
           </filter>
         </defs>
 
-        <path d={trackPath} fill="none" stroke="#1E2D44" strokeWidth="16" strokeLinecap="round" />
+        <path d={trackPath} fill="none" stroke={isDark ? "#1E2D44" : "#E2E8F0"} strokeWidth="16" strokeLinecap="round" />
 
         {!loading && pct > 0 && (
           <path d={valuePath} fill="none" stroke={color} strokeWidth={strokeW} strokeLinecap="round" />
@@ -71,9 +74,9 @@ export default function GaugeEficiencia({ value, loading }: GaugeEficienciaProps
           </>
         )}
 
-        <text x="30" y="192" fontSize={isNarrow ? 11 : 8.5} fill="#475569" textAnchor="middle" fontFamily="Inter">0%</text>
-        <text x={cx} y="38" fontSize={isNarrow ? 11 : 8.5} fill="#475569" textAnchor="middle" fontFamily="Inter">50%</text>
-        <text x="190" y="192" fontSize={isNarrow ? 11 : 8.5} fill="#475569" textAnchor="middle" fontFamily="Inter">100%</text>
+        <text x="30" y="192" fontSize={isNarrow ? 11 : 8.5} fill={isDark ? "#94A3B8" : "#475569"} textAnchor="middle" fontFamily="Inter">0%</text>
+        <text x={cx} y="16" fontSize={isNarrow ? 11 : 8.5} fill={isDark ? "#94A3B8" : "#475569"} textAnchor="middle" fontFamily="Inter">50%</text>
+        <text x="190" y="192" fontSize={isNarrow ? 11 : 8.5} fill={isDark ? "#94A3B8" : "#475569"} textAnchor="middle" fontFamily="Inter">100%</text>
       </svg>
     </div>
   );

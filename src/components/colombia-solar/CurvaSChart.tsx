@@ -3,6 +3,7 @@
 import { ResponsiveLine } from "@nivo/line";
 import type { NivoTheme } from "@/lib/nivo-theme";
 import { useIsNarrow } from "@/hooks/useIsNarrow";
+import { TooltipSeguro } from "@/components/ui/TooltipSeguro";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 export interface CurvaSPoint {
@@ -188,7 +189,7 @@ export default function CurvaSChart({
         <ResponsiveLine
           data={data}
           theme={chartTheme}
-          margin={isNarrow ? { top: 8, right: 8, bottom: 40, left: 36 } : { top: 8, right: 16, bottom: 48, left: 44 }}
+          margin={isNarrow ? { top: 8, right: 22, bottom: 40, left: 46 } : { top: 8, right: 16, bottom: 48, left: 44 }}
           xScale={{ type: "point" }}
           yScale={{ type: "linear", min: 0, max: 100, stacked: false }}
           curve="monotoneX"
@@ -205,8 +206,9 @@ export default function CurvaSChart({
             tickSize: 4,
             tickPadding: 4,
             tickRotation: 0,
-            legend: "%",
-            legendOffset: isNarrow ? -30 : -36,
+            // En 360 px la leyenda «%» se encima con las marcas (que ya llevan el símbolo).
+            legend: isNarrow ? undefined : "%",
+            legendOffset: -36,
             legendPosition: "middle",
             format: (v) => `${v}%`,
           }}
@@ -221,7 +223,7 @@ export default function CurvaSChart({
           useMesh
           enableGridX={false}
           tooltip={({ point }) => (
-            <div className="px-3 py-2 rounded-lg border border-theme-primary bg-theme-secondary text-[11px] text-theme-primary">
+            <TooltipSeguro className="px-3 py-2 rounded-lg border border-theme-primary bg-theme-secondary text-[11px] text-theme-primary">
               <div className="font-semibold mb-1">{formatFechaTooltip(String(point.data.x))}</div>
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full inline-block" style={{ background: point.seriesColor }} />
@@ -229,7 +231,7 @@ export default function CurvaSChart({
                   {point.seriesId}: <strong>{Number(point.data.y).toFixed(2)}%</strong>
                 </span>
               </div>
-            </div>
+            </TooltipSeguro>
           )}
         />
       </div>

@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback, Fragment } from "react";
 import { motion } from "framer-motion";
-import { ResponsiveBar } from "@nivo/bar";
 import { ResponsiveLine } from "@nivo/line";
 import { useTheme } from "@/providers/ThemeProvider";
 import DashboardLayout from "@/components/DashboardLayout";
 import Card from "@/components/dashboard/Card";
 import KpiChip from "@/components/dashboard/KpiChip";
 import SemiGauge from "@/components/ui/SemiGauge";
+import { TooltipSeguro } from "@/components/ui/TooltipSeguro";
+import AvancePorProyectoChart from "@/components/charts/AvancePorProyectoChart";
 import DepartmentIcon from "@/components/ui/DepartmentIcon";
 
 import { getNivoTheme } from "@/lib/nivo-theme";
@@ -346,13 +347,13 @@ function CurvaSChart({
           pointSize={4}
           pointColor={{ theme: "background" }}
           pointBorderWidth={2}
-          pointBorderColor={{ from: "serieColor" }}
+          pointBorderColor={{ from: "seriesColor" }}
           enableArea
           areaOpacity={0.12}
           useMesh
           enableGridX={false}
           tooltip={({ point }) => (
-            <div className="px-3 py-2 rounded-lg border border-theme-card bg-theme-secondary text-[11px] text-theme-primary">
+            <TooltipSeguro className="px-3 py-2 rounded-lg border border-theme-card bg-theme-secondary text-[11px] text-theme-primary">
               <div className="font-semibold mb-1">{formatFechaTooltip(String(point.data.x))}</div>
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full inline-block" style={{ background: point.seriesColor }} />
@@ -360,7 +361,7 @@ function CurvaSChart({
                   {point.seriesId}: <strong>{Number(point.data.y).toFixed(2)}%</strong>
                 </span>
               </div>
-            </div>
+            </TooltipSeguro>
           )}
         />
       </div>
@@ -373,7 +374,6 @@ export default function ContratosORPage() {
   const { resolvedTheme } = useTheme();
   const T = getNivoTheme(resolvedTheme === "dark");
   const isDark = resolvedTheme === "dark";
-  const isNarrow = useIsNarrow();
   const [data, setData] = useState<ContratosData>(DEFAULT);
   const [ratios, setRatios] = useState<RatiosConsolidados | null>(null);
 
@@ -617,7 +617,7 @@ export default function ContratosORPage() {
         </svg>
       </button>
       {actasOpen && (
-        <div className="absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-xl
+        <div className="absolute max-sm:left-0 sm:right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] max-h-96 overflow-y-auto rounded-xl
           bg-theme-secondary border border-amber-500/30 shadow-2xl z-50 py-1">
           {actasLoading && actas.length === 0 ? (
             <div className="px-4 py-6 text-center text-xs text-theme-muted">
@@ -659,7 +659,7 @@ export default function ContratosORPage() {
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-theme-primary truncate">{acta.name}</span>
+                      <span className="min-w-0 text-xs text-theme-primary break-words">{acta.name}</span>
                       <span className={`shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded ${
                         acta.tipo === "docx"
                           ? "bg-sky-500/15 text-sky-400"
@@ -798,59 +798,8 @@ export default function ContratosORPage() {
       {avanceBarData.length > 0 && (
         <Card delay={0.2} className="mb-5">
           <span className="text-gold font-bold uppercase tracking-widest text-[11px]">AVANCE POR PROYECTO (%)</span>
-          <div className="h-[520px] mt-4">
-            <ResponsiveBar
-              data={avanceBarData}
-              keys={["Av. General", "Av. Financiero", "Av. Físico"]}
-              indexBy="nombre"
-              theme={T}
-              groupMode="grouped"
-              margin={{ top: 8, right: 20, bottom: 130, left: 55 }}
-              layout="vertical"
-              valueScale={{ type: "linear", max: 100 }}
-              indexScale={{ type: "band", round: true }}
-              colors={["#F59E0B", "#8B5CF6", "#10B981"]}
-              borderRadius={3}
-              padding={0.2}
-              innerPadding={2}
-              enableLabel
-              label={(d) => `${d.value}%`}
-              labelSkipHeight={22}
-              labelTextColor="#fff"
-              enableGridY
-              enableGridX={false}
-              axisTop={null}
-              axisRight={null}
-              axisLeft={{ tickSize: 0, tickPadding: 6, format: (v) => `${v}%` }}
-              axisBottom={{
-                tickSize: 0,
-                tickPadding: 8,
-                tickRotation: isNarrow ? -90 : -45,
-                format: (v) => {
-                  const s = String(v);
-                  return isNarrow && s.length > 14 ? `${s.slice(0, 13)}…` : s;
-                },
-              }}
-              legends={[{
-                dataFrom: "keys" as const, anchor: "bottom" as const, direction: "row" as const,
-                justify: false, translateX: 0, translateY: 120, itemsSpacing: 16,
-                itemWidth: 110, itemHeight: 16, itemTextColor: isDark ? "#94A3B8" : "#475569",
-                itemDirection: "left-to-right" as const, symbolSize: 8, symbolShape: "circle" as const,
-              }]}
-              tooltip={({ id, value, indexValue }) => (
-                <div style={{ padding: "8px 12px", background: isDark ? "#1E293B" : "#FFFFFF", border: isDark ? "1px solid #334155" : "1px solid #CBD5E1", borderRadius: 8, color: isDark ? "#E2E8F0" : "#0F172A", fontSize: 12 }}>
-                  <strong>{indexValue}</strong><br />{id}: <strong style={{ color: "#F59E0B" }}>{value}%</strong>
-                </div>
-              )}
-            />
-          </div>
-          <div className="flex gap-4 mt-2">
-            {[{ label: "Avance Documental", c: "#F59E0B" }, { label: "Avance Financiero", c: "#8B5CF6" }, { label: "Avance Físico", c: "#10B981" }].map(({ label, c }) => (
-              <div key={label} className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-sm" style={{ background: c }} />
-                <span className="text-[10px] text-theme-muted">{label}</span>
-              </div>
-            ))}
+          <div className="mt-4">
+            <AvancePorProyectoChart data={avanceBarData} />
           </div>
         </Card>
       )}

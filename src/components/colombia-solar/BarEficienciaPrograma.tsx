@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ResponsiveBar } from "@nivo/bar";
+import { ResponsiveBar, type BarCustomLayerProps } from "@nivo/bar";
 import { useIsNarrow } from "@/hooks/useIsNarrow";
+import { getNivoTheme } from "@/lib/nivo-theme";
+import { useTheme } from "@/providers/ThemeProvider";
+import { TooltipSeguro } from "@/components/ui/TooltipSeguro";
 
 interface Filters {
   programa: string[];
@@ -19,13 +22,8 @@ interface ProgramaRow {
   eficiencia_pct: number;
 }
 
-const nivoTheme = {
-  background: "transparent" as const,
-  text: { fill: "#94A3B8", fontSize: 11, fontFamily: "Inter, sans-serif" },
-  axis: { domain: { line: { stroke: "#1E2D44" } }, ticks: { line: { stroke: "transparent" }, text: { fill: "#64748B", fontSize: 10 } }, legend: { text: { fill: "#94A3B8", fontSize: 11, fontWeight: 600 } } },
-  grid: { line: { stroke: "#1A2740" } },
-  tooltip: { container: { background: "#1E293B", border: "1px solid #334155", borderRadius: "8px", color: "#E2E8F0", fontSize: "12px", padding: "8px 12px" } },
-};
+
+type FilaBarra = { programa: string; "Eficiencia %": number; color: string };
 
 const PROGRAM_COLORS: Record<string, string> = {
   "Colombia Solar": "#3B82F6",
@@ -41,6 +39,8 @@ function shortName(name: string, maxLen = 22): string {
 
 export default function BarEficienciaPrograma({ filters }: { filters: Filters }) {
   const isNarrow = useIsNarrow();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const [data, setData] = useState<ProgramaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,9 +69,14 @@ export default function BarEficienciaPrograma({ filters }: { filters: Filters })
     .reverse();
 
   // En 360 px el margen de escritorio (160 px) deja las barras sin espacio.
-  const theme = isNarrow
-    ? { ...nivoTheme, axis: { ...nivoTheme.axis, ticks: { ...nivoTheme.axis.ticks, text: { fill: "#64748B", fontSize: 11 } } } }
-    : nivoTheme;
+  const base = getNivoTheme(isDark);
+  const theme = {
+    ...base,
+    axis: {
+      ...base.axis,
+      ticks: { ...base.axis.ticks, line: { stroke: "transparent" }, text: { ...base.axis.ticks.text, fontSize: isNarrow ? 11 : 10 } },
+    },
+  };
 
   return (
     <ResponsiveBar
@@ -93,18 +98,27 @@ export default function BarEficienciaPrograma({ filters }: { filters: Filters })
       enableGridX={false}
       enableGridY={false}
       tooltip={({ indexValue, value }) => (
-        <div style={{ padding: "8px 12px", background: "#1E293B", border: "1px solid #334155", borderRadius: 8, fontSize: 12, color: "#F1F5F9" }}>
+        <TooltipSeguro
+          style={{
+            padding: "8px 12px",
+            background: isDark ? "#1E293B" : "#FFFFFF",
+            border: isDark ? "1px solid #334155" : "1px solid #CBD5E1",
+            borderRadius: 8,
+            fontSize: 12,
+            color: isDark ? "#F1F5F9" : "#0F172A",
+          }}
+        >
           <strong>{indexValue}</strong>: {Number(value).toFixed(2)}%
-        </div>
+        </TooltipSeguro>
       )}
       enableLabel={false}
-      layers={['grid', 'axes', 'bars', LabelsLayer]}
+      layers={['grid', 'axes', 'bars', (capa: BarCustomLayerProps<FilaBarra>) => <LabelsLayer {...capa} isDark={isDark} />]}
     />
   );
 }
 
 function LabelsLayer(props: any) {
-  const { bars } = props;
+  const { bars, isDark } = props;
   return (
     <g>
       {bars.map((bar: any) => {
@@ -115,7 +129,7 @@ function LabelsLayer(props: any) {
         const x = isSmall ? bar.x + bar.width + 6 : bar.x + bar.width / 2;
         const y = bar.y + bar.height / 2 + 4;
         const anchor = isSmall ? "start" : "middle";
-        const color = isSmall ? "#94A3B8" : "#F1F5F9";
+        const color = isSmall ? (isDark ? "#94A3B8" : "#475569") : "#FFFFFF";
         return (
           <text key={bar.data.indexValue} x={x} y={y} textAnchor={anchor} fill={color} fontSize={11} fontWeight={600} fontFamily="Inter, sans-serif">
             {label}
