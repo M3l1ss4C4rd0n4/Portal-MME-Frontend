@@ -11,6 +11,7 @@ import CapacidadEmbalseChart from "@/components/charts/CapacidadEmbalseChart";
 import { Zap, Droplets, TrendingUp, AlertTriangle, Waves, Database, ShieldAlert, GitBranch, ArrowLeftRight, Wrench, Clock } from "lucide-react";
 import PdfDownloadButton from "@/components/PdfDownloadButton";
 import { useTheme } from "@/providers/ThemeProvider";
+import { useIsNarrow } from "@/hooks/useIsNarrow";
 
 import { TrendBadge, TrendArrow, getTrendColor } from "@/components/ui/TrendBadge";
 import type { MetricaTendencia } from "@/components/ui/TrendBadge";
@@ -105,6 +106,7 @@ function riesgoLabel(pct: number): string {
 export default function GestionSectorPage() {
   const { resolvedTheme } = useTheme();
   const T = resolvedTheme === "light" ? NIVO_LIGHT : NIVO_DARK;
+  const isNarrow = useIsNarrow();
 
   // ── Estado: datos snapshot del sector ─────────────────────────────────
   const [sectorSnapshot, setSectorSnapshot] = useState({
@@ -566,7 +568,7 @@ export default function GestionSectorPage() {
                       </p>
                       <button
                         onClick={() => setEmbalseDepto(null)}
-                        className="text-[9px] text-theme-muted hover:text-gold transition-colors"
+                        className="inline-flex items-center text-[9px] text-theme-muted hover:text-gold transition-colors max-sm:min-h-[44px] max-sm:px-2"
                       >
                         Cerrar
                       </button>
@@ -749,8 +751,10 @@ export default function GestionSectorPage() {
                   axisBottom={{
                     tickSize: 0,
                     tickPadding: 10,
-                    tickRotation: -45,
-                    tickValues: "every 3 days",
+                    // En 360 px las etiquetas rotadas se cortan: se muestran
+                    // menos días y sin rotación; el escritorio conserva -45°.
+                    tickRotation: isNarrow ? 0 : -45,
+                    tickValues: isNarrow ? "every 6 days" : "every 3 days",
                     format: (value) => {
                       const dataPoint = sectorDetalle.precioBolsaSeries[0]?.data.find(
                         (d) => d.x === value
@@ -849,6 +853,10 @@ export default function GestionSectorPage() {
           </div>
 
           {sectorDetalle.embalsesDetalle.length > 0 ? (
+            <>
+            <p className="mb-2 text-[11px] text-theme-muted sm:hidden">
+              Desliza horizontalmente para ver todas las columnas
+            </p>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -926,6 +934,7 @@ export default function GestionSectorPage() {
                 </tbody>
               </table>
             </div>
+            </>
           ) : (
             <div className="py-12 text-center text-theme-muted text-sm">
               {loading ? "Cargando datos de embalses…" : "Sin datos de embalses disponibles"}
@@ -1195,7 +1204,7 @@ export default function GestionSectorPage() {
                   </div>
                 ))}
               </div>
-              <div className="relative flex-1 min-h-[140px]">
+              <div className="relative flex-1 min-h-[240px] lg:min-h-[140px]">
                 <div className="absolute inset-0">
                   <ResponsiveLine
                     data={[{

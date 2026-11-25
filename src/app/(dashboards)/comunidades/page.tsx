@@ -4,8 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import { ResponsiveBar } from "@nivo/bar";
-import * as XLSX from 'xlsx';
 import { useTheme } from "@/providers/ThemeProvider";
+import { useIsNarrow } from "@/hooks/useIsNarrow";
 import DashboardLayout from "@/components/DashboardLayout";
 import Card from "@/components/dashboard/Card";
 import BaseKpiChip, { type KpiChipProps } from "@/components/dashboard/KpiChip";
@@ -37,7 +37,7 @@ function AccordionSection({ title, count, children }: { title: string; count: nu
   return (
     <div className="mb-2.5 border-b border-white/[0.06] pb-2.5 last:border-0 last:pb-0 last:mb-0">
       <button onClick={() => setOpen(!open)}
-        className="flex items-center justify-between w-full text-left py-1.5 text-[11px] font-semibold text-theme-primary hover:text-gold transition-colors">
+        className="flex items-center justify-between w-full text-left py-1.5 max-sm:min-h-[44px] text-[11px] font-semibold text-theme-primary hover:text-gold transition-colors">
         <span>{title}</span>
         <span className="flex items-center gap-2">
           <span className="text-[10px] text-theme-muted font-normal">{count}</span>
@@ -54,7 +54,7 @@ function AccordionSection({ title, count, children }: { title: string; count: nu
 function FilterItem({ label, count, active, onClick }: { label: string; count: number; active: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick}
-      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] transition-all ${
+      className={`w-full flex items-center justify-between px-2.5 py-1.5 max-sm:min-h-[44px] rounded-lg text-[11px] transition-all ${
         active
           ? "bg-amber-500/15 text-gold border border-amber-500/30"
           : "text-theme-secondary hover:bg-dash-chip hover:text-theme-primary border border-transparent"
@@ -68,6 +68,13 @@ function FilterItem({ label, count, active, onClick }: { label: string; count: n
 // ─── Formatters ───────────────────────────────────────────────────────────
 const fmtCOP = (v: number) => `$ ${Math.round(v).toLocaleString("es-CO")}`;
 const fmtFull = fmtCOP;
+
+// En 360 px las categorías del eje izquierdo no caben completas: se recortan
+// con puntos suspensivos; el tooltip de cada barra conserva el nombre completo.
+const truncCategory = (v: string | number) => {
+  const s = String(v);
+  return s.length > 15 ? `${s.slice(0, 14)}…` : s;
+};
 
 // ─── GeoName → @react-map/colombia key ───────────────────────────────────
 const _GEO_TO_MAP: Record<string, string> = {
@@ -228,6 +235,11 @@ export default function ComunidadesPage() {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme !== "light";
   const T = getNivoTheme(isDark);
+  const isNarrow = useIsNarrow();
+  // Móvil: el texto de eje de 10 px sube a 11 px (criterio de legibilidad).
+  const chartTheme = isNarrow
+    ? { ...T, axis: { ...T.axis, ticks: { ...T.axis?.ticks, text: { ...(T.axis?.ticks?.text ?? {}), fontSize: 11 } } } }
+    : T;
 
   const [data, setData] = useState<ComunidadesData>(DEFAULT);
   const [geoData, setGeoData] = useState<object | null>(null);
@@ -642,7 +654,7 @@ export default function ComunidadesPage() {
             )}
             {hayFiltros && (
               <button onClick={() => { setSelectedEstado(null); setSelectedTipoCE(null); setSelectedFuente(null); setSelectedZona(null); setSelectedEtnia(null); setSelectedEjecutor(null); handleSelectDept(null); }}
-                className="text-[10px] text-theme-muted hover:text-red-400 transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10">
+                className="inline-flex items-center text-[10px] text-theme-muted hover:text-red-400 transition-colors px-2 py-1 max-sm:min-h-[44px] max-sm:px-3 rounded-lg hover:bg-red-500/10">
                 ✕ Limpiar filtros
               </button>
             )}
@@ -684,12 +696,12 @@ export default function ComunidadesPage() {
             <span className="text-gold font-bold uppercase tracking-widest text-[11px]">CES — MAPA DE UBICACIÓN</span>
             {selectedDept && (
               <button onClick={() => handleSelectDept(null)}
-                className="text-[10px] text-theme-muted hover:text-gold transition-colors">
+                className="inline-flex items-center text-[10px] text-theme-muted hover:text-gold transition-colors max-sm:min-h-[44px] max-sm:px-2">
                 ← Ver todos
               </button>
             )}
           </div>
-          <div className="h-[380px]">
+          <div className="h-[380px] overflow-hidden rounded-lg">
             <ComunidadesMap
               geoData={geoData}
               puntos={filteredPuntos}
@@ -840,8 +852,8 @@ export default function ComunidadesPage() {
                 data={chartEstadoTop}
                 keys={["count"]}
                 indexBy="estado"
-                theme={T}
-                margin={{ top: 8, right: 50, bottom: 20, left: 100 }}
+                theme={chartTheme}
+                margin={isNarrow ? { top: 8, right: 46, bottom: 26, left: 124 } : { top: 8, right: 50, bottom: 20, left: 100 }}
                 layout="horizontal"
                 valueScale={{ type: "linear" }}
                 indexScale={{ type: "band", round: true }}
@@ -853,13 +865,13 @@ export default function ComunidadesPage() {
                 enableGridY={false}
                 axisTop={null}
                 axisRight={null}
-                axisLeft={{ tickSize: 0, tickPadding: 6 }}
-                axisBottom={{ tickSize: 0, tickPadding: 5 }}
+                axisLeft={{ tickSize: 0, tickPadding: 6, ...(isNarrow ? { format: truncCategory } : {}) }}
+                axisBottom={{ tickSize: 0, tickPadding: 5, ...(isNarrow ? { tickValues: 4 } : {}) }}
                 layers={["grid", "axes", "bars", "markers", "legends", "annotations", (props: any) => (
                   <g>{props.bars.map((bar: any) => (
                     <text key={bar.key} x={bar.x + bar.width + 5} y={bar.y + bar.height / 2}
                       textAnchor="start" dominantBaseline="central"
-                      style={{ fill: isDark ? "#CBD5E1" : "#334155", fontSize: 10 }}>
+                      style={{ fill: isDark ? "#CBD5E1" : "#334155", fontSize: isNarrow ? 11 : 10 }}>
                       {bar.data.value}
                     </text>
                   ))}</g>
@@ -885,8 +897,8 @@ export default function ComunidadesPage() {
                 data={chartTipoTop}
                 keys={["count"]}
                 indexBy="tipo"
-                theme={T}
-                margin={{ top: 8, right: 50, bottom: 20, left: 100 }}
+                theme={chartTheme}
+                margin={isNarrow ? { top: 8, right: 46, bottom: 26, left: 124 } : { top: 8, right: 50, bottom: 20, left: 100 }}
                 layout="horizontal"
                 valueScale={{ type: "linear" }}
                 indexScale={{ type: "band", round: true }}
@@ -898,13 +910,13 @@ export default function ComunidadesPage() {
                 enableGridY={false}
                 axisTop={null}
                 axisRight={null}
-                axisLeft={{ tickSize: 0, tickPadding: 6 }}
-                axisBottom={{ tickSize: 0, tickPadding: 5 }}
+                axisLeft={{ tickSize: 0, tickPadding: 6, ...(isNarrow ? { format: truncCategory } : {}) }}
+                axisBottom={{ tickSize: 0, tickPadding: 5, ...(isNarrow ? { tickValues: 4 } : {}) }}
                 layers={["grid", "axes", "bars", "markers", "legends", "annotations", (props: any) => (
                   <g>{props.bars.map((bar: any) => (
                     <text key={bar.key} x={bar.x + bar.width + 5} y={bar.y + bar.height / 2}
                       textAnchor="start" dominantBaseline="central"
-                      style={{ fill: isDark ? "#CBD5E1" : "#334155", fontSize: 10 }}>
+                      style={{ fill: isDark ? "#CBD5E1" : "#334155", fontSize: isNarrow ? 11 : 10 }}>
                       {bar.data.value}
                     </text>
                   ))}</g>
@@ -930,8 +942,8 @@ export default function ComunidadesPage() {
                 data={chartFuenteTop}
                 keys={["count"]}
                 indexBy="fuente"
-                theme={T}
-                margin={{ top: 8, right: 50, bottom: 20, left: 100 }}
+                theme={chartTheme}
+                margin={isNarrow ? { top: 8, right: 46, bottom: 26, left: 124 } : { top: 8, right: 50, bottom: 20, left: 100 }}
                 layout="horizontal"
                 valueScale={{ type: "linear" }}
                 indexScale={{ type: "band", round: true }}
@@ -943,13 +955,13 @@ export default function ComunidadesPage() {
                 enableGridY={false}
                 axisTop={null}
                 axisRight={null}
-                axisLeft={{ tickSize: 0, tickPadding: 6 }}
-                axisBottom={{ tickSize: 0, tickPadding: 5 }}
+                axisLeft={{ tickSize: 0, tickPadding: 6, ...(isNarrow ? { format: truncCategory } : {}) }}
+                axisBottom={{ tickSize: 0, tickPadding: 5, ...(isNarrow ? { tickValues: 4 } : {}) }}
                 layers={["grid", "axes", "bars", "markers", "legends", "annotations", (props: any) => (
                   <g>{props.bars.map((bar: any) => (
                     <text key={bar.key} x={bar.x + bar.width + 5} y={bar.y + bar.height / 2}
                       textAnchor="start" dominantBaseline="central"
-                      style={{ fill: isDark ? "#CBD5E1" : "#334155", fontSize: 10 }}>
+                      style={{ fill: isDark ? "#CBD5E1" : "#334155", fontSize: isNarrow ? 11 : 10 }}>
                       {bar.data.value}
                     </text>
                   ))}</g>
@@ -983,12 +995,14 @@ export default function ComunidadesPage() {
           <div className="flex items-center gap-2">
             {selectedDept && (
               <button onClick={() => handleSelectDept(null)}
-                className="text-[10px] text-theme-muted hover:text-gold transition-colors">
+                className="inline-flex items-center text-[10px] text-theme-muted hover:text-gold transition-colors max-sm:min-h-[44px] max-sm:px-2">
                 ← Ver todos
               </button>
             )}
           <button
-            onClick={() => {
+            onClick={async () => {
+              // xlsx pesa ~400 KB: se carga solo al exportar, no al abrir el tablero.
+              const XLSX = await import("xlsx");
               if (selectedDept && muniTableData) {
                 const exportData = [...muniTableData]
                   .sort((a, b) => b.count - a.count)
@@ -1026,7 +1040,7 @@ export default function ComunidadesPage() {
                 XLSX.writeFile(wb, `comunidades_energeticas_${new Date().toISOString().split('T')[0]}.xlsx`);
               }
             }}
-            className="flex items-center gap-1.5 text-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-lg transition-colors">
+            className="flex items-center gap-1.5 text-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-3 py-1.5 max-sm:min-h-[44px] rounded-lg transition-colors">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
@@ -1034,16 +1048,19 @@ export default function ComunidadesPage() {
           </button>
           </div>
         </div>
+        <p className="mb-2 text-[11px] text-theme-muted sm:hidden">
+          Desliza horizontalmente para ver todas las columnas
+        </p>
         <div className="overflow-x-auto">
           {selectedDept && muniTableData ? (
             /* ── Vista municipios ── */
             <table className="w-full text-[11px]">
               <thead>
                 <tr className="text-theme-muted text-left">
-                  <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Municipio</th>
-                  <th className="pb-3 pr-4 font-semibold uppercase tracking-wider text-right">N° CEs</th>
-                  <th className="pb-3 pr-4 font-semibold uppercase tracking-wider text-right">Capacidad (kWp)</th>
-                  <th className="pb-3 font-semibold uppercase tracking-wider text-right">Inv. Estimada</th>
+                  <th className="pb-3 pr-4 font-semibold uppercase tracking-wider max-sm:tracking-normal">Municipio</th>
+                  <th className="pb-3 pr-4 font-semibold uppercase tracking-wider max-sm:tracking-normal text-right">N° CEs</th>
+                  <th className="pb-3 pr-4 font-semibold uppercase tracking-wider max-sm:tracking-normal text-right">Capacidad (kWp)</th>
+                  <th className="pb-3 font-semibold uppercase tracking-wider max-sm:tracking-normal text-right">Inv. Estimada</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-theme-card">
@@ -1070,10 +1087,10 @@ export default function ComunidadesPage() {
             <table className="w-full text-[11px]">
               <thead>
                 <tr className="text-theme-muted text-left">
-                  <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Departamento</th>
-                  <th className="pb-3 pr-4 font-semibold uppercase tracking-wider text-right">N° CEs</th>
-                  <th className="pb-3 pr-4 font-semibold uppercase tracking-wider text-right">Capacidad (kWp)</th>
-                  <th className="pb-3 font-semibold uppercase tracking-wider text-right">Inversión estimada</th>
+                  <th className="pb-3 pr-4 font-semibold uppercase tracking-wider max-sm:tracking-normal">Departamento</th>
+                  <th className="pb-3 pr-4 font-semibold uppercase tracking-wider max-sm:tracking-normal text-right">N° CEs</th>
+                  <th className="pb-3 pr-4 font-semibold uppercase tracking-wider max-sm:tracking-normal text-right">Capacidad (kWp)</th>
+                  <th className="pb-3 font-semibold uppercase tracking-wider max-sm:tracking-normal text-right">Inversión estimada</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-theme-card">

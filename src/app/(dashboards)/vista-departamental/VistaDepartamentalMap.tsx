@@ -57,8 +57,11 @@ export default function VistaDepartamentalMap({
   ];
 
   return (
-    <div style={{ position: "relative", height: "100%", width: "100%" }}>
+    <div className="vista-map-mobile" style={{ position: "relative", height: "100%", width: "100%" }}>
       <style>{MAP_TOOLTIP_STYLES}</style>
+      <style>{`@media (max-width: 639px) {
+        .vista-map-mobile .leaflet-control-zoom a { width: 44px; height: 44px; line-height: 44px; font-size: 18px; }
+      }`}</style>
       <MapContainer
         bounds={COL_BOUNDS}
         boundsOptions={{ padding: [8, 8] }}

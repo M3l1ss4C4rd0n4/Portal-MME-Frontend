@@ -104,7 +104,7 @@ function FilterDropdown({
         <button
           type="button"
           onClick={() => setOpen(!open)}
-          className={`w-full text-left text-xs border rounded-lg px-4 py-2.5 pr-8 outline-none transition-colors cursor-pointer ${
+          className={`w-full text-left text-xs border rounded-lg px-4 py-2.5 max-sm:min-h-[44px] pr-8 outline-none transition-colors cursor-pointer ${
             selected.length > 0 && selected.length < safeOptions.length
               ? "border-amber-500/50 text-theme-primary"
               : "border-theme-primary text-theme-muted hover:border-theme-secondary"
@@ -125,7 +125,7 @@ function FilterDropdown({
             <button
               type="button"
               onClick={toggleAll}
-              className="flex items-center gap-2.5 px-3 rounded-md text-xs cursor-pointer transition-colors hover:bg-theme-hover w-full text-left" style={{paddingTop: 10, paddingBottom: 10}}
+              className="flex items-center gap-2.5 px-3 max-sm:min-h-[44px] rounded-md text-xs cursor-pointer transition-colors hover:bg-theme-hover w-full text-left" style={{paddingTop: 10, paddingBottom: 10}}
             >
               <span
                 className={`w-4 h-4 rounded border shrink-0 flex items-center justify-center ${
@@ -148,7 +148,7 @@ function FilterDropdown({
                   key={o}
                   type="button"
                   onClick={() => toggleOne(o)}
-                  className="flex items-center gap-2.5 px-3 rounded-md text-xs cursor-pointer transition-colors hover:bg-theme-hover w-full text-left" style={{paddingTop: 10, paddingBottom: 10}}
+                  className="flex items-center gap-2.5 px-3 max-sm:min-h-[44px] rounded-md text-xs cursor-pointer transition-colors hover:bg-theme-hover w-full text-left" style={{paddingTop: 10, paddingBottom: 10}}
                 >
                   <span
                     className={`w-4 h-4 rounded border shrink-0 flex items-center justify-center ${

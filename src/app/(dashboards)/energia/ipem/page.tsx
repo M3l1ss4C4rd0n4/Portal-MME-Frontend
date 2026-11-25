@@ -330,7 +330,7 @@ export default function IpemPage() {
       {/* ── Mapa + distribución ──────────────────────────────────────────── */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <Card delay={0.1} className="flex flex-col">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <h3 className="text-sm font-semibold text-theme-primary">
               IPEM por departamento
             </h3>
@@ -340,7 +340,7 @@ export default function IpemPage() {
                   key={a}
                   type="button"
                   onClick={() => setAnio(a)}
-                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+                  className={`px-3 py-1 max-sm:min-h-[44px] text-xs font-semibold rounded-md transition-colors ${
                     anio === a
                       ? "bg-amber-500 text-slate-900"
                       : "text-theme-secondary hover:text-theme-primary"
@@ -351,7 +351,7 @@ export default function IpemPage() {
               ))}
             </div>
           </div>
-          <div id="mapa-ipem-departamental" className="h-[420px]">
+          <div id="mapa-ipem-departamental" className="h-[420px] overflow-hidden rounded-lg">
             {geoError ? (
               <div className="h-full flex items-center justify-center text-center px-4">
                 <p className="text-xs text-red-400">
@@ -397,7 +397,7 @@ export default function IpemPage() {
         </Card>
 
         <Card delay={0.15} className="flex flex-col">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <h3 className="text-sm font-semibold text-theme-primary">
               IPEM por municipio
             </h3>
@@ -405,7 +405,7 @@ export default function IpemPage() {
               {cuenta(kpis.municipios)} territorios · año {anio}
             </span>
           </div>
-          <div id="mapa-ipem-municipal" className="h-[420px]">
+          <div id="mapa-ipem-municipal" className="h-[420px] overflow-hidden rounded-lg">
             {geoMpioError ? (
               <div className="h-full flex items-center justify-center text-center px-4">
                 <p className="text-xs text-red-400">

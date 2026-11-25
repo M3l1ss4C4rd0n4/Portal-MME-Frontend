@@ -87,19 +87,22 @@ export default function TablaORInicial({ filters }: { filters: Filters }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-theme-muted font-medium">{loading ? "Cargando…" : `${formatNumber(total)} registros`}</p>
         {totalPages > 1 && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${page === 1 ? "bg-white/5 text-theme-muted cursor-default" : "bg-amber-500/10 text-gold hover:bg-amber-500/20 border border-amber-500/20"}`}>← Anterior</button>
+              className={`px-3 py-1.5 max-sm:min-h-[44px] rounded-lg text-xs font-bold transition-all ${page === 1 ? "bg-white/5 text-theme-muted cursor-default" : "bg-amber-500/10 text-gold hover:bg-amber-500/20 border border-amber-500/20"}`}>← Anterior</button>
             <span className="text-xs text-theme-muted font-mono">{page} / {totalPages}</span>
             <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${page === totalPages ? "bg-white/5 text-theme-muted cursor-default" : "bg-amber-500/10 text-gold hover:bg-amber-500/20 border border-amber-500/20"}`}>Siguiente →</button>
+              className={`px-3 py-1.5 max-sm:min-h-[44px] rounded-lg text-xs font-bold transition-all ${page === totalPages ? "bg-white/5 text-theme-muted cursor-default" : "bg-amber-500/10 text-gold hover:bg-amber-500/20 border border-amber-500/20"}`}>Siguiente →</button>
           </div>
         )}
       </div>
 
+      <p className="mb-2 text-[11px] text-theme-muted sm:hidden">
+        Desliza horizontalmente para ver todas las columnas
+      </p>
       <div className="overflow-x-auto rounded-xl border border-theme-primary">
         <table className="w-full text-xs" style={{ tableLayout: "fixed", minWidth: 1180 }}>
           <colgroup>

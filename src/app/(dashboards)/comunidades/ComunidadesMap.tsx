@@ -1,6 +1,7 @@
 "use client";
 import "leaflet/dist/leaflet.css";
 import { useMemo } from "react";
+import { useIsNarrow } from "@/hooks/useIsNarrow";
 import { MapContainer, CircleMarker, Popup, ZoomControl, Marker } from "react-leaflet";
 import L from "leaflet";
 import { COL_BOUNDS, MAP_TOOLTIP_STYLES } from "@/components/maps/mapUtils";
@@ -70,6 +71,7 @@ interface Props {
 }
 
 export default function ComunidadesMap({ geoData, puntos, selectedDept, isDark, deptColors, onSelectDept, porDepartamento, deptAvgs }: Props) {
+  const isNarrow = useIsNarrow();
   const { transformedGeoData, jittered, deptLabels } = useDepartmentMapGeo(geoData, puntos);
 
   // Leyenda de estado: solo muestra los colores que realmente aparecen entre
@@ -121,8 +123,13 @@ export default function ComunidadesMap({ geoData, puntos, selectedDept, isDark, 
       boundsOptions={{ padding: [8, 8] }}
       zoomControl={false}
       attributionControl={false}
-      scrollWheelZoom={true}
-      dragging={true}
+      // En móvil el mapa no captura el arrastre ni la rueda: la página se
+      // desplaza con el dedo y el mapa se acerca con los botones +/−.
+      // Canvas en móvil: el SVG de Leaflet agrega 10 % de margen por lado y
+      // sobresale de la tarjeta.
+      scrollWheelZoom={!isNarrow}
+      dragging={!isNarrow}
+      preferCanvas={isNarrow}
       style={{ height: "100%", width: "100%", background: bgColor, borderRadius: "0.5rem" }}
     >
       <ZoomControl position="bottomright" />
@@ -216,12 +223,12 @@ export default function ComunidadesMap({ geoData, puntos, selectedDept, isDark, 
         flexDirection: "column",
         gap: 3,
         border: `1px solid ${isDark ? "rgba(71, 85, 105, 0.4)" : "rgba(203, 213, 225, 0.6)"}`,
-        fontSize: 10,
+        fontSize: isNarrow ? 11 : 10,
         lineHeight: 1.4,
       }}>
         <span style={{
           fontWeight: 600,
-          fontSize: 9,
+          fontSize: isNarrow ? 11 : 9,
           textTransform: "uppercase",
           letterSpacing: "0.5px",
           color: isDark ? "#94A3B8" : "#64748B",

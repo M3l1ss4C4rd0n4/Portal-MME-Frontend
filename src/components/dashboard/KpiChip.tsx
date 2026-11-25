@@ -76,7 +76,7 @@ export default function KpiChip({
       <div className={`${labelSizeClass} text-theme-muted ${labelMarginClass} leading-tight`}>{label}</div>
       {note && <div className="text-5xs text-gold/50 mt-0.5 leading-tight">{note}</div>}
       {avg && (
-        <div className="mt-2 pt-2 border-t border-white/[0.07] flex items-baseline gap-1">
+        <div className="mt-2 pt-2 border-t border-white/[0.07] flex items-baseline gap-1 max-sm:flex-wrap">
           <span className="text-3xs font-bold text-gold/90 leading-none">{avg}</span>
           <span className="text-4xs text-theme-muted leading-none">{avgLabel ?? "/ CE"}</span>
         </div>

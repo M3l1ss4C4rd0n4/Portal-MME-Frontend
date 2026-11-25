@@ -8,6 +8,7 @@ import Card from "@/components/dashboard/Card";
 import { getNivoTheme } from "@/lib/nivo-theme";
 import SemiGauge from "@/components/ui/SemiGauge";
 import MultiSelect from "@/components/dashboard/MultiSelect";
+import { useIsNarrow } from "@/hooks/useIsNarrow";
 
 const fmtCOP = (v: number) => `$ ${Math.round(v).toLocaleString("es-CO")}`;
 const fmtFull = (v: number) => v.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -99,6 +100,7 @@ export default function PagosPage() {
   const { resolvedTheme } = useTheme();
   const T = getNivoTheme(resolvedTheme === "dark");
   const isDark = resolvedTheme === "dark";
+  const isNarrow = useIsNarrow();
 
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -254,9 +256,16 @@ export default function PagosPage() {
   const prestadoresBarData = [...prestadoresPendientes]
     .reverse()
     .map((p) => ({
-      prestador: p.nombre.length > 35 ? p.nombre.slice(0, 35) + "…" : p.nombre,
+      prestador: p.nombre.length > (isNarrow ? 14 : 35)
+        ? p.nombre.slice(0, isNarrow ? 14 : 35) + "…"
+        : p.nombre,
       Pendiente: +(toNum(p.saldoPendiente) / 1e6).toFixed(1),
     }));
+
+  // En 360 px solo caben ~4 periodos sin que se encimen.
+  const trimestreTicks = isNarrow && trimestreBarData.length > 4
+    ? trimestreBarData.filter((_, i) => i % Math.ceil(trimestreBarData.length / 4) === 0).map((d) => d.periodo)
+    : undefined;
 
   const tooltipStyle = {
     padding: "8px 12px",
@@ -389,7 +398,7 @@ export default function PagosPage() {
               <span className="text-[10px] opacity-0">x</span>
               <button
                 onClick={() => setFiltros(FILTROS_VACIOS)}
-                className="text-[11px] text-gold border border-amber-700/40 rounded px-3 py-1.5 hover:bg-amber-500/10 transition-colors"
+                className="text-[11px] text-gold border border-amber-700/40 rounded px-3 py-1.5 max-sm:min-h-[44px] hover:bg-amber-500/10 transition-colors"
               >
                 × Limpiar filtros
               </button>
@@ -422,7 +431,12 @@ export default function PagosPage() {
               axisTop={null}
               axisRight={null}
               axisLeft={{ tickSize: 0, tickPadding: 6, format: (v) => `${v}M` }}
-              axisBottom={{ tickSize: 0, tickPadding: 8, tickRotation: -30 }}
+              axisBottom={{
+                tickSize: 0,
+                tickPadding: 8,
+                tickRotation: isNarrow ? 0 : -30,
+                ...(trimestreTicks ? { tickValues: trimestreTicks } : {}),
+              }}
               tooltip={({ id, value, indexValue }) => (
                 <div style={tooltipStyle}>
                   {indexValue} — {id}: <strong>{fmtCOP(value * 1e6)}</strong>
@@ -454,6 +468,9 @@ export default function PagosPage() {
           <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
             Resoluciones
           </span>
+          <p className="mb-2 text-[11px] text-theme-muted sm:hidden">
+            Desliza horizontalmente para ver todas las columnas
+          </p>
           <div className="mt-3 overflow-auto max-h-[320px]">
             <table className="w-full text-xs">
               <thead className="sticky top-0 bg-theme-secondary z-10">
@@ -503,7 +520,7 @@ export default function PagosPage() {
               indexBy="prestador"
               theme={T}
               layout="horizontal"
-              margin={{ top: 8, right: 30, bottom: 30, left: 180 }}
+              margin={{ top: 8, right: 30, bottom: 30, left: isNarrow ? 124 : 180 }}
               valueScale={{ type: "linear" }}
               indexScale={{ type: "band", round: true }}
               colors={["#F59E0B"]}
@@ -515,7 +532,7 @@ export default function PagosPage() {
               enableGridY={false}
               axisTop={null}
               axisRight={null}
-              axisBottom={{ tickSize: 0, tickPadding: 6, format: (v) => `${v}M` }}
+              axisBottom={{ tickSize: 0, tickPadding: 6, format: (v) => `${v}M`, ...(isNarrow ? { tickValues: 4 } : {}) }}
               axisLeft={{ tickSize: 0, tickPadding: 8 }}
               tooltip={({ value, indexValue }) => (
                 <div style={tooltipStyle}>

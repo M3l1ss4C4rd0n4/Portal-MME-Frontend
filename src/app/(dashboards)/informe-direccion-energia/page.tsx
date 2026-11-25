@@ -90,7 +90,7 @@ export default function InformeDireccionEnergiaPage() {
       href="/api/informe-direccion-energia?formato=pdf"
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 rounded-lg border border-theme-primary bg-theme-secondary px-3 py-2 text-sm font-semibold text-theme-secondary transition-colors hover:border-gold hover:text-gold"
+      className="inline-flex items-center gap-2 rounded-lg border border-theme-primary bg-theme-secondary px-3 py-2 max-sm:min-h-[44px] text-sm font-semibold text-theme-secondary transition-colors hover:border-gold hover:text-gold"
     >
       Descargar PDF
     </a>

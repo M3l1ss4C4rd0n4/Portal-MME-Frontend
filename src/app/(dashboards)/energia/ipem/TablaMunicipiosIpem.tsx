@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import * as XLSX from "xlsx";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import MultiSelect from "@/components/dashboard/MultiSelect";
 import {
@@ -137,7 +136,9 @@ export default function TablaMunicipiosIpem({
    * promediar y graficar. Las celdas sin dato quedan vacías en vez de en cero, que
    * se confundiría con una privación nula.
    */
-  const exportarExcel = () => {
+  const exportarExcel = async () => {
+    // xlsx pesa ~400 KB: se carga solo al exportar, no al abrir el tablero.
+    const XLSX = await import("xlsx");
     const pct = (v: number | null) => (v === null ? "" : Number((v * 100).toFixed(4)));
     const libro = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(
@@ -189,7 +190,7 @@ export default function TablaMunicipiosIpem({
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Nombre o código DIVIPOLA"
-            className="w-full rounded-lg bg-theme-primary border border-theme-card px-3 py-2 text-sm text-theme-primary placeholder:text-theme-muted focus:outline-none focus:border-amber-500/60"
+            className="w-full rounded-lg bg-theme-primary border border-theme-card px-3 py-2 max-sm:min-h-[44px] text-sm text-theme-primary placeholder:text-theme-muted focus:outline-none focus:border-amber-500/60"
           />
         </div>
         <MultiSelect
@@ -215,7 +216,7 @@ export default function TablaMunicipiosIpem({
           type="button"
           onClick={exportarExcel}
           disabled={filtradas.length === 0}
-          className="flex items-center gap-1.5 rounded-lg border border-theme-card bg-theme-primary px-3 py-2 text-xs font-semibold text-theme-secondary transition-colors hover:border-amber-500/60 hover:text-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex items-center gap-1.5 rounded-lg border border-theme-card bg-theme-primary px-3 py-2 max-sm:min-h-[44px] text-xs font-semibold text-theme-secondary transition-colors hover:border-amber-500/60 hover:text-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
           title={`Descargar ${filtradas.length} municipios en Excel`}
         >
           <ArrowDownTrayIcon className="h-4 w-4" />
@@ -223,6 +224,9 @@ export default function TablaMunicipiosIpem({
         </button>
       </div>
 
+      <p className="mb-2 text-[11px] text-theme-muted sm:hidden">
+        Desliza horizontalmente para ver todas las columnas
+      </p>
       <div className="overflow-auto max-h-[520px] rounded-xl border border-theme-card">
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-theme-secondary z-10">
@@ -240,7 +244,7 @@ export default function TablaMunicipiosIpem({
                   <button
                     type="button"
                     onClick={() => ordenarPor(col)}
-                    className="hover:text-amber-500 transition-colors"
+                    className="hover:text-amber-500 transition-colors max-sm:min-h-[44px]"
                   >
                     {titulo}
                     {flecha(col)}

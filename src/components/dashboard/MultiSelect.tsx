@@ -104,7 +104,7 @@ export default function MultiSelect({
         type="button"
         onClick={() => setOpen((o) => !o)}
         style={{ minWidth }}
-        className="bg-theme-primary text-theme-primary text-xs border border-theme-card rounded px-2 py-1.5 flex items-center gap-1 hover:border-amber-500/50 focus:outline-none focus:border-amber-500 transition-colors"
+        className="bg-theme-primary text-theme-primary text-xs border border-theme-card rounded px-2 py-1.5 max-sm:min-h-[44px] flex items-center gap-1 hover:border-amber-500/50 focus:outline-none focus:border-amber-500 transition-colors"
       >
         <span className="flex-1 text-left truncate">{btnLabel}</span>
         <span className="text-theme-muted text-[10px] shrink-0">▾</span>
@@ -139,7 +139,7 @@ export default function MultiSelect({
             </div>
           )}
           {/* Todos */}
-          <label className="flex items-center gap-2 px-3 py-2 hover:bg-theme-hover cursor-pointer border-b border-theme-secondary text-xs select-none">
+          <label className="flex items-center gap-2 px-3 py-2 max-sm:min-h-[44px] hover:bg-theme-hover cursor-pointer border-b border-theme-secondary text-xs select-none">
             <input
               type="checkbox"
               checked={isTodos}
@@ -151,7 +151,7 @@ export default function MultiSelect({
           {visibles.map((opt) => (
             <label
               key={opt}
-              className={`flex gap-2 px-3 py-1.5 hover:bg-theme-hover cursor-pointer text-xs select-none ${
+              className={`flex gap-2 px-3 py-1.5 max-sm:min-h-[44px] hover:bg-theme-hover cursor-pointer text-xs select-none ${
                 buscable ? "items-start" : "items-center"
               }`}
             >

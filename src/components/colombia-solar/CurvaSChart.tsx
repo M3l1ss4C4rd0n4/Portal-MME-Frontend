@@ -2,6 +2,7 @@
 
 import { ResponsiveLine } from "@nivo/line";
 import type { NivoTheme } from "@/lib/nivo-theme";
+import { useIsNarrow } from "@/hooks/useIsNarrow";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 export interface CurvaSPoint {
@@ -108,6 +109,8 @@ export default function CurvaSChart({
   proyectos: CurvaSProyecto[];
   theme: NivoTheme;
 }) {
+  const isNarrow = useIsNarrow();
+
   if (!proyectos.length) {
     return (
       <div className="flex flex-col h-full min-h-[220px]">
@@ -151,7 +154,8 @@ export default function CurvaSChart({
   }
 
   const fechas = data[0].data.map((d) => d.x);
-  const tickValues = pickTickValues(fechas, 14);
+  // En 360 px, 14 fechas se solapan; 5 etiquetas horizontales caben sin rotar.
+  const tickValues = pickTickValues(fechas, isNarrow ? 5 : 14);
 
   const chartTheme = {
     ...theme,
@@ -161,7 +165,7 @@ export default function CurvaSChart({
         ...(theme.axis?.ticks ?? {}),
         text: {
           ...((theme.axis?.ticks as any)?.text ?? {}),
-          fontSize: 8,
+          fontSize: isNarrow ? 11 : 8,
         },
       },
     },
@@ -180,11 +184,11 @@ export default function CurvaSChart({
           </p>
         )}
       </div>
-      <div className="flex-1 min-h-[200px]">
+      <div className="flex-1 min-h-[240px] lg:min-h-[200px]">
         <ResponsiveLine
           data={data}
           theme={chartTheme}
-          margin={{ top: 8, right: 16, bottom: 48, left: 44 }}
+          margin={isNarrow ? { top: 8, right: 8, bottom: 40, left: 36 } : { top: 8, right: 16, bottom: 48, left: 44 }}
           xScale={{ type: "point" }}
           yScale={{ type: "linear", min: 0, max: 100, stacked: false }}
           curve="monotoneX"
@@ -193,7 +197,7 @@ export default function CurvaSChart({
           axisBottom={{
             tickSize: 0,
             tickPadding: 6,
-            tickRotation: -40,
+            tickRotation: isNarrow ? 0 : -40,
             tickValues,
             format: (v) => formatFechaEje(String(v)),
           }}
@@ -202,7 +206,7 @@ export default function CurvaSChart({
             tickPadding: 4,
             tickRotation: 0,
             legend: "%",
-            legendOffset: -36,
+            legendOffset: isNarrow ? -30 : -36,
             legendPosition: "middle",
             format: (v) => `${v}%`,
           }}

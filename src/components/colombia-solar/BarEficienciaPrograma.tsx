@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ResponsiveBar } from "@nivo/bar";
+import { useIsNarrow } from "@/hooks/useIsNarrow";
 
 interface Filters {
   programa: string[];
@@ -33,12 +34,13 @@ const PROGRAM_COLORS: Record<string, string> = {
   "IPSE": "#EC4899",
 };
 
-function shortName(name: string): string {
-  if (name.length <= 22) return name;
-  return name.substring(0, 20) + "…";
+function shortName(name: string, maxLen = 22): string {
+  if (name.length <= maxLen) return name;
+  return name.substring(0, maxLen - 2) + "…";
 }
 
 export default function BarEficienciaPrograma({ filters }: { filters: Filters }) {
+  const isNarrow = useIsNarrow();
   const [data, setData] = useState<ProgramaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,8 +65,13 @@ export default function BarEficienciaPrograma({ filters }: { filters: Filters })
   if (data.length === 0) return <div className="flex items-center justify-center h-full"><p className="text-sm text-[#64748B]">Sin datos para los filtros seleccionados</p></div>;
 
   const barData = (data ?? [])
-    .map((d) => ({ programa: shortName(d.programa), "Eficiencia %": Number(d.eficiencia_pct), color: PROGRAM_COLORS[d.programa] ?? "#60A5FA" }))
+    .map((d) => ({ programa: shortName(d.programa, isNarrow ? 15 : 22), "Eficiencia %": Number(d.eficiencia_pct), color: PROGRAM_COLORS[d.programa] ?? "#60A5FA" }))
     .reverse();
+
+  // En 360 px el margen de escritorio (160 px) deja las barras sin espacio.
+  const theme = isNarrow
+    ? { ...nivoTheme, axis: { ...nivoTheme.axis, ticks: { ...nivoTheme.axis.ticks, text: { fill: "#64748B", fontSize: 11 } } } }
+    : nivoTheme;
 
   return (
     <ResponsiveBar
@@ -72,8 +79,8 @@ export default function BarEficienciaPrograma({ filters }: { filters: Filters })
       keys={["Eficiencia %"]}
       indexBy="programa"
       layout="horizontal"
-      theme={nivoTheme}
-      margin={{ top: 10, right: 70, bottom: 20, left: 160 }}
+      theme={theme}
+      margin={isNarrow ? { top: 10, right: 52, bottom: 16, left: 108 } : { top: 10, right: 70, bottom: 20, left: 160 }}
       padding={0.35}
       valueScale={{ type: "linear", max: Math.max(...(barData ?? []).map((d) => d["Eficiencia %"]), 5) }}
       indexScale={{ type: "band", round: true }}
@@ -82,7 +89,7 @@ export default function BarEficienciaPrograma({ filters }: { filters: Filters })
       axisTop={null}
       axisRight={null}
       axisBottom={null}
-      axisLeft={{ tickSize: 0, tickPadding: 10, tickValues: (barData ?? []).map((d) => d.programa) }}
+      axisLeft={{ tickSize: 0, tickPadding: isNarrow ? 6 : 10, tickValues: (barData ?? []).map((d) => d.programa) }}
       enableGridX={false}
       enableGridY={false}
       tooltip={({ indexValue, value }) => (

@@ -160,7 +160,7 @@ export default function VistaDepartamentalPage() {
     >
       <div className="space-y-6">
         <Card delay={0}>
-          <div style={{ height: 420 }}>
+          <div className="overflow-hidden rounded-lg" style={{ height: 420 }}>
             <VistaDepartamentalMap
               geoData={geoData}
               selectedDept={selectedDept}
@@ -181,7 +181,7 @@ export default function VistaDepartamentalPage() {
             value={codigoSeleccionado}
             onChange={(e) => setCodigoSeleccionado(e.target.value)}
             disabled={loadingDeptos}
-            className="w-full sm:w-80 bg-dash-chip border border-theme-card rounded-lg px-3 py-2 text-sm text-theme-primary focus:outline-none focus:border-amber-500/50"
+            className="w-full sm:w-80 bg-dash-chip border border-theme-card rounded-lg px-3 py-2 max-sm:min-h-[44px] text-sm text-theme-primary focus:outline-none focus:border-amber-500/50"
           >
             {loadingDeptos && <option>Cargando…</option>}
             {departamentos.map((d) => (

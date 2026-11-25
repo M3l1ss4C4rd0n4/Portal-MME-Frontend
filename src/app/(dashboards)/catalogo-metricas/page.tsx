@@ -101,9 +101,9 @@ export default function CatalogoMetricasPage() {
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                   placeholder="Buscar por nombre, código o descripción…"
-                  className="flex-1 bg-theme-primary border border-theme-card rounded-lg px-3 py-2 text-sm text-theme-primary placeholder:text-theme-muted focus:outline-none focus:border-gold/50"
+                  className="flex-1 bg-theme-primary border border-theme-card rounded-lg px-3 py-2 max-sm:min-h-[44px] text-sm text-theme-primary placeholder:text-theme-muted focus:outline-none focus:border-gold/50"
                 />
-                <label className="flex items-center gap-2 text-xs text-theme-muted whitespace-nowrap px-1">
+                <label className="flex items-center gap-2 text-xs text-theme-muted whitespace-nowrap px-1 max-sm:min-h-[44px]">
                   <input
                     type="checkbox"
                     checked={soloIndices}
@@ -125,11 +125,11 @@ export default function CatalogoMetricasPage() {
                     <div key={m.metrica_id} className="border-b border-theme-card/50 last:border-0 pb-2 last:pb-0">
                       <button
                         onClick={() => setExpandido(expandido === m.metrica_id ? null : m.metrica_id)}
-                        className="w-full text-left flex items-start justify-between gap-3 py-1"
+                        className="w-full text-left flex items-start justify-between gap-3 py-1 max-sm:min-h-[44px]"
                       >
-                        <div>
+                        <div className="min-w-0">
                           <span className="text-sm font-medium text-theme-primary">{m.nombre_display}</span>
-                          <span className="ml-2 text-[10px] text-theme-muted font-mono">{m.codigo_tecnico}</span>
+                          <span className="ml-2 text-[10px] text-theme-muted font-mono break-all">{m.codigo_tecnico}</span>
                           {m.es_indice_regulatorio && (
                             <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-gold/15 text-gold border border-gold/30">
                               índice regulatorio

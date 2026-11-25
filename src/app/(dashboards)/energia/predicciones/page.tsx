@@ -23,7 +23,7 @@ import MetricPredictionCard from "@/components/predictions/MetricPredictionCard"
 import type { MetricSummary, PredictionPoint } from "@/types/predictions";
 import { fmtDate, fmtShortDate, clampPct } from "@/types/predictions";
 import { classifyOni } from "@/lib/oni";
-import * as XLSX from "xlsx";
+import { useIsNarrow } from "@/hooks/useIsNarrow";
 
 interface DashboardData {
   embalses: {
@@ -62,6 +62,7 @@ interface DashboardData {
 }
 
 export default function PrediccionesSinPage() {
+  const isNarrow = useIsNarrow();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -227,7 +228,7 @@ export default function PrediccionesSinPage() {
 
             <PredictionLineChart
               data={data.embalses.prediccion}
-              height={380}
+              height={isNarrow ? 300 : 380}
               peakDate={data.embalses.pico?.fecha}
               threshold80Date={
                 data.embalses.prediccion.find((p) => p.valor >= 80)?.fecha
@@ -313,7 +314,7 @@ export default function PrediccionesSinPage() {
             transition={{ delay: 0.3 }}
             className="bg-dash-chip rounded-xl p-5 border border-white/5"
           >
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <span className="text-gold font-bold uppercase tracking-widest text-[11px]">
                   Detalle Diario de Proyección
@@ -324,7 +325,9 @@ export default function PrediccionesSinPage() {
                 </p>
               </div>
               <button
-                onClick={() => {
+                onClick={async () => {
+                  // xlsx pesa ~400 KB: se carga solo al exportar, no al abrir el tablero.
+                  const XLSX = await import("xlsx");
                   const exportData = data.embalses.prediccion.map((p) => ({
                     Fecha: p.fecha,
                     "% Embalse (predicho)": p.valor,
@@ -343,7 +346,7 @@ export default function PrediccionesSinPage() {
                     `proyeccion_embalses_${new Date().toISOString().split("T")[0]}.xlsx`,
                   );
                 }}
-                className="flex items-center gap-1.5 text-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-lg transition-colors"
+                className="flex items-center gap-1.5 text-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-3 py-1.5 max-sm:min-h-[44px] rounded-lg transition-colors"
               >
                 <svg
                   className="w-3.5 h-3.5"
@@ -361,33 +364,36 @@ export default function PrediccionesSinPage() {
                 Exportar Excel
               </button>
             </div>
+            <p className="mb-2 text-[11px] text-theme-muted sm:hidden">
+              Desliza horizontalmente para ver todas las columnas
+            </p>
             <div className="overflow-x-auto">
               <div className="max-h-[480px] overflow-y-auto">
                 <table className="w-full text-[11px]">
                   <thead className="sticky top-0 bg-dash-chip z-10">
                     <tr className="text-theme-muted text-left border-b border-theme-card">
-                      <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">
+                      <th className="pb-3 pr-4 font-semibold uppercase tracking-wider max-sm:tracking-normal">
                         Fecha
                       </th>
-                      <th className="pb-3 pr-4 font-semibold uppercase tracking-wider text-right">
+                      <th className="pb-3 pr-4 font-semibold uppercase tracking-wider max-sm:tracking-normal text-right">
                         % Embalse
                       </th>
-                      <th className="pb-3 pr-4 font-semibold uppercase tracking-wider text-right">
+                      <th className="pb-3 pr-4 font-semibold uppercase tracking-wider max-sm:tracking-normal text-right">
                         IC Inferior
                       </th>
-                      <th className="pb-3 pr-4 font-semibold uppercase tracking-wider text-right">
+                      <th className="pb-3 pr-4 font-semibold uppercase tracking-wider max-sm:tracking-normal text-right">
                         IC Superior
                       </th>
-                      <th className="pb-3 pr-4 font-semibold uppercase tracking-wider text-right">
+                      <th className="pb-3 pr-4 font-semibold uppercase tracking-wider max-sm:tracking-normal text-right">
                         ONI (°C)
                       </th>
-                      <th className="pb-3 pr-4 font-semibold uppercase tracking-wider text-right">
+                      <th className="pb-3 pr-4 font-semibold uppercase tracking-wider max-sm:tracking-normal text-right">
                         PDO
                       </th>
-                      <th className="pb-3 pr-4 font-semibold uppercase tracking-wider text-right">
+                      <th className="pb-3 pr-4 font-semibold uppercase tracking-wider max-sm:tracking-normal text-right">
                         SOI
                       </th>
-                      <th className="pb-3 font-semibold uppercase tracking-wider text-right">
+                      <th className="pb-3 font-semibold uppercase tracking-wider max-sm:tracking-normal text-right">
                         GMST (°C)
                       </th>
                     </tr>
@@ -858,7 +864,7 @@ function DiagnosticoNarrativo({ data }: { data: DashboardData }) {
 
         <button
           onClick={() => setExpanded((v) => !v)}
-          className="flex items-center gap-1.5 text-[10px] font-semibold text-gold hover:text-gold transition-colors"
+          className="flex items-center gap-1.5 text-[10px] font-semibold text-gold hover:text-gold transition-colors max-sm:min-h-[44px]"
         >
           <span>{expanded ? "Ocultar detalles" : "Ver análisis completo"}</span>
           <ChevronDown
@@ -1166,7 +1172,7 @@ function ModalMetricDetail({ metric }: { metric: MetricSummary }) {
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="bg-theme-primary/40 rounded-lg p-4 border border-white/5">
           <div className="text-[9px] text-theme-muted uppercase mb-1">Hoy</div>
           <div className="text-2xl font-bold text-theme-primary">
@@ -1183,7 +1189,7 @@ function ModalMetricDetail({ metric }: { metric: MetricSummary }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="bg-theme-primary/40 rounded-lg p-4 border border-white/5 flex items-center gap-3">
           <TendenciaIcon
             className="w-6 h-6 flex-shrink-0"

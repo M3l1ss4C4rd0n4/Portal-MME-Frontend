@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo, useRef, useCallback, Fragment } from "rea
 import { motion } from "framer-motion";
 import { ResponsiveBar } from "@nivo/bar";
 import { ResponsiveLine } from "@nivo/line";
-import * as XLSX from 'xlsx';
 import { useTheme } from "@/providers/ThemeProvider";
 import DashboardLayout from "@/components/DashboardLayout";
 import Card from "@/components/dashboard/Card";
@@ -13,6 +12,7 @@ import SemiGauge from "@/components/ui/SemiGauge";
 import DepartmentIcon from "@/components/ui/DepartmentIcon";
 
 import { getNivoTheme } from "@/lib/nivo-theme";
+import { useIsNarrow } from "@/hooks/useIsNarrow";
 import { MapPin, Landmark, ClipboardList, HardHat, Home, Users } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -245,6 +245,8 @@ function CurvaSChart({
   proyectos: CurvaSProyecto[];
   theme: NivoTheme;
 }) {
+  const isNarrow = useIsNarrow();
+
   if (!proyectos.length) {
     return (
       <div className="flex flex-col h-full min-h-[220px]">
@@ -285,7 +287,7 @@ function CurvaSChart({
   }
 
   const fechas = data[0].data.map((d) => d.x);
-  const tickValues = pickTickValues(fechas, 14);
+  const tickValues = pickTickValues(fechas, isNarrow ? 4 : 14);
   const chartTheme: NivoTheme = {
     ...theme,
     axis: {
@@ -326,7 +328,7 @@ function CurvaSChart({
           axisBottom={{
             tickSize: 0,
             tickPadding: 6,
-            tickRotation: -40,
+            tickRotation: isNarrow ? 0 : -40,
             tickValues,
             format: (v) => formatFechaEje(String(v)),
           }}
@@ -371,6 +373,7 @@ export default function ContratosORPage() {
   const { resolvedTheme } = useTheme();
   const T = getNivoTheme(resolvedTheme === "dark");
   const isDark = resolvedTheme === "dark";
+  const isNarrow = useIsNarrow();
   const [data, setData] = useState<ContratosData>(DEFAULT);
   const [ratios, setRatios] = useState<RatiosConsolidados | null>(null);
 
@@ -597,7 +600,7 @@ export default function ContratosORPage() {
       <button
         onClick={() => { setActasOpen(!actasOpen); if (!actasOpen && actas.length === 0) fetchActas(); }}
         disabled={actasLoading && actas.length === 0}
-        className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl
+        className="flex items-center gap-2 px-4 py-2 max-sm:min-h-[44px] text-xs font-semibold rounded-xl
           bg-amber-500/15 border border-amber-500/40 text-gold
           hover:bg-amber-500/25 transition-colors disabled:opacity-40 disabled:cursor-wait
           shrink-0"
@@ -819,7 +822,15 @@ export default function ContratosORPage() {
               axisTop={null}
               axisRight={null}
               axisLeft={{ tickSize: 0, tickPadding: 6, format: (v) => `${v}%` }}
-              axisBottom={{ tickSize: 0, tickPadding: 8, tickRotation: -45 }}
+              axisBottom={{
+                tickSize: 0,
+                tickPadding: 8,
+                tickRotation: isNarrow ? -90 : -45,
+                format: (v) => {
+                  const s = String(v);
+                  return isNarrow && s.length > 14 ? `${s.slice(0, 13)}…` : s;
+                },
+              }}
               legends={[{
                 dataFrom: "keys" as const, anchor: "bottom" as const, direction: "row" as const,
                 justify: false, translateX: 0, translateY: 120, itemsSpacing: 16,
@@ -853,7 +864,9 @@ export default function ContratosORPage() {
           </div>
           {/* Botón Exportar a Excel */}
           <button
-            onClick={() => {
+            onClick={async () => {
+              // xlsx pesa ~400 KB: se carga solo al exportar, no al abrir el tablero.
+              const XLSX = await import("xlsx");
               // Preparar datos para Excel
               const exportData = data.proyectos.map(p => ({
                 'Proyecto': p.nombre,
@@ -909,7 +922,7 @@ export default function ContratosORPage() {
               // Descargar archivo
               XLSX.writeFile(wb, `contratos_or_2025_${new Date().toISOString().split('T')[0]}.xlsx`);
             }}
-            className="flex items-center gap-1.5 text-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 text-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-3 py-1.5 max-sm:min-h-[44px] rounded-lg transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -917,6 +930,9 @@ export default function ContratosORPage() {
             Exportar Excel
           </button>
         </div>
+        <p className="mb-2 text-[11px] text-theme-muted sm:hidden">
+          Desliza horizontalmente para ver todas las columnas
+        </p>
         <div className="overflow-x-auto">
           <table className="w-full text-[11px]">
             <thead>
@@ -1040,7 +1056,7 @@ export default function ContratosORPage() {
                 <select
                   value={operadorSeleccionado}
                   onChange={(e) => setOperadorSeleccionado(e.target.value)}
-                  className="appearance-none border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-[11px] focus:outline-none focus:border-amber-500/40 cursor-pointer min-w-[160px]"
+                  className="appearance-none border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 max-sm:min-h-[44px] text-[11px] focus:outline-none focus:border-amber-500/40 cursor-pointer min-w-[160px]"
                   style={{
                     colorScheme: isDark ? "dark" : "light",
                     backgroundColor: isDark ? "#0B1120" : "#FFFFFF",
@@ -1067,7 +1083,7 @@ export default function ContratosORPage() {
                 <select
                   value={proyectoSeleccionado}
                   onChange={(e) => setProyectoSeleccionado(e.target.value)}
-                  className="appearance-none border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-[11px] focus:outline-none focus:border-amber-500/40 cursor-pointer min-w-[160px]"
+                  className="appearance-none border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 max-sm:min-h-[44px] text-[11px] focus:outline-none focus:border-amber-500/40 cursor-pointer min-w-[160px]"
                   style={{
                     colorScheme: isDark ? "dark" : "light",
                     backgroundColor: isDark ? "#0B1120" : "#FFFFFF",
@@ -1125,7 +1141,9 @@ export default function ContratosORPage() {
               <span className="text-[10px] text-theme-muted">{ratios.filas.length} municipios</span>
             </div>
             <button
-              onClick={() => {
+              onClick={async () => {
+                // xlsx pesa ~400 KB: se carga solo al exportar, no al abrir el tablero.
+                const XLSX = await import("xlsx");
                 const exportData = ratios.filas.map((f) => ({
                   'Departamento': f.departamento,
                   'Municipio': f.municipio,
@@ -1151,7 +1169,7 @@ export default function ContratosORPage() {
                 XLSX.utils.book_append_sheet(wb, ws, 'Ratios Consolidados');
                 XLSX.writeFile(wb, `ratios_consolidados_${new Date().toISOString().split('T')[0]}.xlsx`);
               }}
-              className="flex items-center gap-1.5 text-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 text-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-3 py-1.5 max-sm:min-h-[44px] rounded-lg transition-colors"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -1211,6 +1229,9 @@ export default function ContratosORPage() {
             />
           </div>
 
+          <p className="mb-2 text-[11px] text-theme-muted sm:hidden">
+            Desliza horizontalmente para ver todas las columnas
+          </p>
           <div className="overflow-x-auto">
             <table className="w-full text-[11px]">
               <thead>

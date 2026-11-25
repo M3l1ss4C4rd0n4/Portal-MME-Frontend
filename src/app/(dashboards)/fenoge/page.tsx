@@ -5,12 +5,12 @@ import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { ResponsiveBar } from "@nivo/bar";
 import { ResponsiveLine } from "@nivo/line";
-import * as XLSX from "xlsx";
 import { useTheme } from "@/providers/ThemeProvider";
 import DashboardLayout from "@/components/DashboardLayout";
 import Card from "@/components/dashboard/Card";
 import BaseKpiChip, { type KpiChipProps } from "@/components/dashboard/KpiChip";
 import { getNivoTheme } from "@/lib/nivo-theme";
+import { useIsNarrow } from "@/hooks/useIsNarrow";
 import { useGeoFilter } from "@/context/GeoFilterContext";
 import { fetchDepartamentos } from "@/services/apiService";
 import { normDeptKey } from "@/lib/departamentos";
@@ -128,6 +128,7 @@ export default function FenogePage() {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme !== "light";
   const T = getNivoTheme(isDark);
+  const isNarrow = useIsNarrow();
 
   const [mapa, setMapa]       = useState<FenogeMapa>(DEFAULT_MAPA);
   const [seg, setSeg]         = useState<SegData>(DEFAULT_SEG);
@@ -335,9 +336,10 @@ export default function FenogePage() {
     ? filteredByDept.filter(d => d.departamentoGeo === selectedDept)
     : filteredByDept.slice(0, 12);
 
+  const labelMax = isNarrow ? 14 : 18;
   const barDataCE = top12.slice().sort((a, b) => b.count - a.count)
     .map(d => ({
-      dept: d.departamentoGeo.length > 18 ? d.departamentoGeo.slice(0, 18) + "…" : d.departamentoGeo,
+      dept: d.departamentoGeo.length > labelMax ? d.departamentoGeo.slice(0, labelMax) + "…" : d.departamentoGeo,
       "CEs": d.count,
       "kWp (÷10)": +(d.capacidad / 10).toFixed(0),
     })).reverse();
@@ -348,7 +350,7 @@ export default function FenogePage() {
 
   const barDataInv = top12inv.slice().sort((a, b) => b.inversion - a.inversion)
     .map(d => ({
-      dept: d.departamentoGeo.length > 18 ? d.departamentoGeo.slice(0, 18) + "…" : d.departamentoGeo,
+      dept: d.departamentoGeo.length > labelMax ? d.departamentoGeo.slice(0, labelMax) + "…" : d.departamentoGeo,
       "Inversión B$": d.inversion,
     })).reverse();
 
@@ -485,6 +487,12 @@ export default function FenogePage() {
     return { totalUsuarios, totalPotencia };
   }, [seg, segRegion, segContrato, segComunidad]);
 
+  // Fechas del eje de seguimiento: en móvil se muestran ~4, sin rotación.
+  const seguimientoFechas = seguimientoSeries[0].data.map(d => d.x as string);
+  const seguimientoTicks = isNarrow
+    ? seguimientoFechas.filter((_, i) => i % Math.max(1, Math.ceil(seguimientoFechas.length / 4)) === 0)
+    : seguimientoFechas;
+
   // ─── Render ───────────────────────────────────────────────────────────────────
   return (
     <DashboardLayout title="Fenoge 1.0, 1.1"
@@ -509,7 +517,7 @@ export default function FenogePage() {
             )}
             {(selectedDept || selectedFase !== "TODOS") && (
               <button onClick={() => { handleSelectDept(null); setSelectedFase("TODOS"); }}
-                className="text-[10px] text-theme-muted hover:text-red-400 transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10">
+                className="text-[10px] text-theme-muted hover:text-red-400 transition-colors px-2 py-1 max-sm:min-h-[44px] rounded-lg hover:bg-red-500/10">
                 ✕ Limpiar filtros
               </button>
             )}
@@ -534,10 +542,10 @@ export default function FenogePage() {
           <div className="flex items-center justify-between mb-2">
             <span className="text-gold font-bold uppercase tracking-widest text-[11px]">CES — MAPA DE UBICACIÓN</span>
             {selectedDept && (
-              <button onClick={() => handleSelectDept(null)} className="text-[10px] text-theme-muted hover:text-gold transition-colors">← Ver todos</button>
+              <button onClick={() => handleSelectDept(null)} className="text-[10px] text-theme-muted hover:text-gold transition-colors max-sm:min-h-[44px]">← Ver todos</button>
             )}
           </div>
-          <div className="h-[380px]">
+          <div className="h-[380px] overflow-hidden rounded-lg">
             <FenogeCEMap
               geoData={geoData}
               puntos={puntosFiltered}
@@ -577,7 +585,7 @@ export default function FenogePage() {
               { key: "CE",    label: "CE" },
             ] as { key: FaseFilter; label: string }[]).map(({ key, label }) => (
               <button key={key} onClick={() => setSelectedFase(key)}
-                className={`rounded-xl px-3 py-2.5 text-left transition-all border ${
+                className={`rounded-xl px-3 py-2.5 max-sm:min-h-[44px] text-left transition-all border ${
                   selectedFase === key
                     ? "border-amber-500/60 bg-amber-500/15"
                     : "border-theme-card bg-dash-chip hover:border-amber-500/30"
@@ -640,7 +648,7 @@ export default function FenogePage() {
                 indexBy="dept"
                 theme={T}
                 groupMode="grouped"
-                margin={{ top: 8, right: 20, bottom: 20, left: 130 }}
+                margin={{ top: 8, right: 20, bottom: 20, left: isNarrow ? 124 : 130 }}
                 layout="horizontal"
                 valueScale={{ type: "linear" }}
                 indexScale={{ type: "band", round: true }}
@@ -651,7 +659,7 @@ export default function FenogePage() {
                 enableGridX enableGridY={false}
                 axisTop={null} axisRight={null}
                 axisLeft={{ tickSize: 0, tickPadding: 6 }}
-                axisBottom={{ tickSize: 0, tickPadding: 5 }}
+                axisBottom={{ tickSize: 0, tickPadding: 5, ...(isNarrow ? { tickValues: 4 } : {}) }}
                 tooltip={({ id, value, indexValue }) => (
                   <div style={{ padding: "8px 12px", background: isDark ? "#1E293B" : "#FFFFFF", border: isDark ? "1px solid #334155" : "1px solid #CBD5E1", borderRadius: 8, color: isDark ? "#E2E8F0" : "#0F172A", fontSize: 12 }}>
                     <strong>{indexValue}</strong> — {id}: <strong style={{ color: "#F59E0B" }}>{value}</strong>
@@ -683,7 +691,7 @@ export default function FenogePage() {
                 keys={["Inversión B$"]}
                 indexBy="dept"
                 theme={T}
-                margin={{ top: 8, right: 20, bottom: 20, left: 130 }}
+                margin={{ top: 8, right: 20, bottom: 20, left: isNarrow ? 124 : 130 }}
                 layout="horizontal"
                 valueScale={{ type: "linear" }}
                 indexScale={{ type: "band", round: true }}
@@ -697,7 +705,7 @@ export default function FenogePage() {
                 enableGridX enableGridY={false}
                 axisTop={null} axisRight={null}
                 axisLeft={{ tickSize: 0, tickPadding: 6 }}
-                axisBottom={{ tickSize: 0, tickPadding: 5, format: (v) => `$${(Number(v) / 1e9).toFixed(0)}B` }}
+                axisBottom={{ tickSize: 0, tickPadding: 5, format: (v) => `$${(Number(v) / 1e9).toFixed(0)}B`, ...(isNarrow ? { tickValues: 4 } : {}) }}
                 tooltip={({ value, indexValue }) => (
                   <div style={{ padding: "8px 12px", background: isDark ? "#1E293B" : "#FFFFFF", border: isDark ? "1px solid #334155" : "1px solid #CBD5E1", borderRadius: 8, color: isDark ? "#E2E8F0" : "#0F172A", fontSize: 12 }}>
                     <strong>{indexValue}</strong>: <strong style={{ color: "#8B5CF6" }}>${Number(value).toLocaleString("es-CO")}</strong>
@@ -724,10 +732,12 @@ export default function FenogePage() {
           </div>
           <div className="flex items-center gap-2">
             {selectedDept && (
-              <button onClick={() => handleSelectDept(null)} className="text-[10px] text-theme-muted hover:text-gold transition-colors">← Ver todos</button>
+              <button onClick={() => handleSelectDept(null)} className="text-[10px] text-theme-muted hover:text-gold transition-colors max-sm:min-h-[44px]">← Ver todos</button>
             )}
             <button
-              onClick={() => {
+              onClick={async () => {
+                // xlsx pesa ~400 KB: se carga solo al exportar, no al abrir el tablero.
+                const XLSX = await import("xlsx");
                 if (selectedDept && muniTableData) {
                   const exportData = [...muniTableData].sort((a,b) => b.count-a.count).map(m => ({
                     "Departamento": selectedDept, "Municipio": m.municipio,
@@ -748,7 +758,7 @@ export default function FenogePage() {
                   XLSX.writeFile(wb, `fenoge_comunidades_${new Date().toISOString().split("T")[0]}.xlsx`);
                 }
               }}
-              className="flex items-center gap-1.5 text-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-lg transition-colors">
+              className="flex items-center gap-1.5 text-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-3 py-1.5 max-sm:min-h-[44px] rounded-lg transition-colors">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
@@ -866,7 +876,7 @@ export default function FenogePage() {
               <select
                 value={segRegion}
                 onChange={e => { setSegRegion(e.target.value); setSegContrato("TODOS"); setSegComunidad("TODOS"); }}
-                className="text-[10px] bg-dash-chip border border-theme-card text-theme-primary rounded-lg px-2 py-1 cursor-pointer hover:border-amber-500/40 transition-colors"
+                className="text-[10px] bg-dash-chip border border-theme-card text-theme-primary rounded-lg px-2 py-1 max-sm:min-h-[44px] cursor-pointer hover:border-amber-500/40 transition-colors"
               >
                 <option value="TODOS">Todas</option>
                 {seg.regiones.map(r => <option key={r} value={r}>{r}</option>)}
@@ -878,7 +888,7 @@ export default function FenogePage() {
               <select
                 value={segContrato}
                 onChange={e => { setSegContrato(e.target.value); setSegComunidad("TODOS"); }}
-                className="text-[10px] bg-dash-chip border border-theme-card text-theme-primary rounded-lg px-2 py-1 cursor-pointer hover:border-amber-500/40 transition-colors max-w-[200px]"
+                className="text-[10px] bg-dash-chip border border-theme-card text-theme-primary rounded-lg px-2 py-1 max-sm:min-h-[44px] cursor-pointer hover:border-amber-500/40 transition-colors max-w-[200px]"
               >
                 <option value="TODOS">Todos</option>
                 {contratosEnRegion.map(c => <option key={c} value={c}>{c}</option>)}
@@ -890,7 +900,7 @@ export default function FenogePage() {
               <select
                 value={segComunidad}
                 onChange={e => setSegComunidad(e.target.value)}
-                className="text-[10px] bg-dash-chip border border-theme-card text-theme-primary rounded-lg px-2 py-1 cursor-pointer hover:border-amber-500/40 transition-colors max-w-[220px]"
+                className="text-[10px] bg-dash-chip border border-theme-card text-theme-primary rounded-lg px-2 py-1 max-sm:min-h-[44px] cursor-pointer hover:border-amber-500/40 transition-colors max-w-[220px]"
                 disabled={comunidadesEnContrato.length === 0}
               >
                 <option value="TODOS">Todas</option>
@@ -899,7 +909,7 @@ export default function FenogePage() {
             </div>
             {(segRegion !== "TODOS" || segContrato !== "TODOS" || segComunidad !== "TODOS") && (
               <button onClick={() => { setSegRegion("TODOS"); setSegContrato("TODOS"); setSegComunidad("TODOS"); }}
-                className="text-[10px] text-theme-muted hover:text-red-400 transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10">
+                className="text-[10px] text-theme-muted hover:text-red-400 transition-colors px-2 py-1 max-sm:min-h-[44px] rounded-lg hover:bg-red-500/10">
                 ✕ Limpiar
               </button>
             )}
@@ -932,8 +942,8 @@ export default function FenogePage() {
               axisBottom={{
                 tickSize: 0,
                 tickPadding: 8,
-                tickRotation: -35,
-                tickValues: seguimientoSeries[0].data.map(d => d.x as string),
+                tickRotation: isNarrow ? 0 : -35,
+                tickValues: seguimientoTicks,
                 format: (v) => {
                   const [y, m, day] = String(v).split("-").map(Number);
                   const d = new Date(y, m - 1, day);
@@ -974,7 +984,7 @@ export default function FenogePage() {
           {["TODOS", ...seg.regiones].map(r => (
             <button key={r}
               onClick={() => { setSegRegion(r); setSegContrato("TODOS"); setSegComunidad("TODOS"); }}
-              className={`text-[10px] px-2.5 py-1 rounded-lg border transition-all ${
+              className={`text-[10px] px-2.5 py-1 max-sm:min-h-[44px] rounded-lg border transition-all ${
                 segRegion === r
                   ? "bg-amber-500/15 border-amber-500/40 text-gold"
                   : "bg-dash-chip border-theme-card text-theme-muted hover:border-amber-500/30"

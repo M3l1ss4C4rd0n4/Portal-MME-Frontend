@@ -83,12 +83,12 @@ export default function ExploradorRedPage() {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && buscar()}
               placeholder="Ej. GENSA, CEDENAR, Electrificadora..."
-              className="flex-1 bg-dash-chip border border-theme-card rounded-lg px-3 py-2 text-sm text-theme-primary focus:outline-none focus:border-amber-500/50"
+              className="min-w-0 flex-1 bg-dash-chip border border-theme-card rounded-lg px-3 py-2 max-sm:min-h-[44px] text-sm text-theme-primary focus:outline-none focus:border-amber-500/50"
             />
             <button
               onClick={buscar}
               disabled={buscando}
-              className="px-4 py-2 rounded-lg text-xs font-bold bg-amber-500/10 text-gold hover:bg-amber-500/20 border border-amber-500/20 disabled:opacity-50"
+              className="px-4 py-2 max-sm:min-h-[44px] rounded-lg text-xs font-bold bg-amber-500/10 text-gold hover:bg-amber-500/20 border border-amber-500/20 disabled:opacity-50"
             >
               {buscando ? "Buscando..." : "Buscar"}
             </button>
@@ -140,7 +140,7 @@ export default function ExploradorRedPage() {
                     setEmpresaSeleccionada(null);
                     setVecindario(null);
                   }}
-                  className="text-[10px] text-theme-muted hover:text-red-400"
+                  className="text-[10px] text-theme-muted hover:text-red-400 max-sm:min-h-[44px]"
                 >
                   ✕ Cerrar
                 </button>
@@ -182,7 +182,7 @@ export default function ExploradorRedPage() {
                 {nodoInfo && (
                   <Card delay={0} className="border-amber-500/30">
                     <div className="flex items-start justify-between gap-4">
-                      <div className="text-[11px] text-theme-muted whitespace-pre-wrap break-words">
+                      <div className="min-w-0 text-[11px] text-theme-muted whitespace-pre-wrap break-words">
                         <div className="text-[10px] text-gold uppercase tracking-wide mb-1">
                           {nodoInfo.tipo}
                         </div>
@@ -190,7 +190,7 @@ export default function ExploradorRedPage() {
                       </div>
                       <button
                         onClick={() => setNodoInfo(null)}
-                        className="text-[10px] text-theme-muted hover:text-red-400 shrink-0"
+                        className="text-[10px] text-theme-muted hover:text-red-400 shrink-0 max-sm:min-h-[44px]"
                       >
                         ✕
                       </button>

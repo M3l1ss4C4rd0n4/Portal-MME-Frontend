@@ -1,5 +1,7 @@
 "use client";
 
+import { useIsNarrow } from "@/hooks/useIsNarrow";
+
 interface GaugeEficienciaProps {
   value: number;
   loading?: boolean;
@@ -18,6 +20,7 @@ function arcPath(cx: number, cy: number, r: number, startDeg: number, endDeg: nu
 }
 
 export default function GaugeEficiencia({ value, loading }: GaugeEficienciaProps) {
+  const isNarrow = useIsNarrow();
   const cx = 110;
   const cy = 110;
   const r = 80;
@@ -62,15 +65,15 @@ export default function GaugeEficiencia({ value, loading }: GaugeEficienciaProps
             <text x={cx} y={cy + 8} textAnchor="middle" fontSize="28" fontWeight="900" fill={color} fontFamily="Inter, sans-serif">
               {pct.toFixed(2)}%
             </text>
-            <text x={cx} y={cy + 28} textAnchor="middle" fontSize="9" fill="#64748B" fontFamily="Inter, sans-serif" letterSpacing="2">
+            <text x={cx} y={cy + 28} textAnchor="middle" fontSize={isNarrow ? 11 : 9} fill="#64748B" fontFamily="Inter, sans-serif" letterSpacing="2">
               EFICIENCIA
             </text>
           </>
         )}
 
-        <text x="30" y="192" fontSize="8.5" fill="#475569" textAnchor="middle" fontFamily="Inter">0%</text>
-        <text x={cx} y="38" fontSize="8.5" fill="#475569" textAnchor="middle" fontFamily="Inter">50%</text>
-        <text x="190" y="192" fontSize="8.5" fill="#475569" textAnchor="middle" fontFamily="Inter">100%</text>
+        <text x="30" y="192" fontSize={isNarrow ? 11 : 8.5} fill="#475569" textAnchor="middle" fontFamily="Inter">0%</text>
+        <text x={cx} y="38" fontSize={isNarrow ? 11 : 8.5} fill="#475569" textAnchor="middle" fontFamily="Inter">50%</text>
+        <text x="190" y="192" fontSize={isNarrow ? 11 : 8.5} fill="#475569" textAnchor="middle" fontFamily="Inter">100%</text>
       </svg>
     </div>
   );

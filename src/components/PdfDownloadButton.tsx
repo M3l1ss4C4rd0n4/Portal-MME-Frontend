@@ -50,7 +50,7 @@ export default function PdfDownloadButton({ tablero, params }: PdfDownloadButton
     <button
       onClick={handleDownload}
       disabled={downloading}
-      className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl
+      className="flex items-center gap-2 px-4 py-2 max-sm:min-h-[44px] text-xs font-semibold rounded-xl
         bg-amber-500/15 border border-amber-500/40 text-gold
         hover:bg-amber-500/25 transition-colors disabled:opacity-40 disabled:cursor-wait
         shrink-0"

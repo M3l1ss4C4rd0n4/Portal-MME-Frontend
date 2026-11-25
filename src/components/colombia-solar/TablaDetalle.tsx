@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { formatCOP, formatNumber } from "@/lib/format";
-import * as XLSX from "xlsx";
 
 
 interface Filters {
@@ -85,6 +84,8 @@ export default function TablaDetalle({ filters }: { filters: Filters }) {
   const handleExport = async () => {
     setExporting(true);
     try {
+      // xlsx pesa ~400 KB: se carga solo al exportar, no al abrir el tablero.
+      const XLSX = await import("xlsx");
       const params = new URLSearchParams({ page: "1", limit: "10000" });
       filters.programa.forEach((v) => params.append("programa", v));
       filters.departamento.forEach((v) => params.append("departamento", v));
@@ -153,17 +154,17 @@ export default function TablaDetalle({ filters }: { filters: Filters }) {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <p className="text-xs text-theme-muted font-medium">
             {loading ? "Cargando…" : `${formatNumber(total)} registros`}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <button
             onClick={handleExport}
             disabled={exporting || loading}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 max-sm:min-h-[44px] px-4 py-2 rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -177,7 +178,7 @@ export default function TablaDetalle({ filters }: { filters: Filters }) {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`px-3 py-1.5 max-sm:min-h-[44px] rounded-lg text-xs font-bold transition-all ${
                   page === 1
                     ? "bg-white/5 text-theme-muted cursor-default"
                     : "bg-amber-500/10 text-gold hover:bg-amber-500/20 border border-amber-500/20"
@@ -189,7 +190,7 @@ export default function TablaDetalle({ filters }: { filters: Filters }) {
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`px-3 py-1.5 max-sm:min-h-[44px] rounded-lg text-xs font-bold transition-all ${
                   page === totalPages
                     ? "bg-white/5 text-theme-muted cursor-default"
                     : "bg-amber-500/10 text-gold hover:bg-amber-500/20 border border-amber-500/20"
@@ -203,6 +204,9 @@ export default function TablaDetalle({ filters }: { filters: Filters }) {
       </div>
 
       {/* Table */}
+      <p className="mb-2 text-[11px] text-theme-muted sm:hidden">
+        Desliza horizontalmente para ver todas las columnas
+      </p>
       <div className="overflow-x-auto rounded-xl border border-theme-primary">
         <table className="w-full text-xs" style={{ tableLayout: "fixed", minWidth: 1240 }}>
           <colgroup>

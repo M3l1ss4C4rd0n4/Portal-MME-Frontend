@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ResponsiveBar } from "@nivo/bar";
-import * as XLSX from 'xlsx';
 import { useTheme } from "@/providers/ThemeProvider";
 import DashboardLayout from "@/components/DashboardLayout";
 import Card from "@/components/dashboard/Card";
@@ -160,22 +159,22 @@ export default function PresupuestoPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-5">
         <Card delay={0.05} className="!p-4">
           <div className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Apropiación Total</div>
-          <div className="text-xl font-bold text-gold truncate">{fmtCOP(data.totales.apropiacion)}</div>
+          <div className="text-xl font-bold text-gold">{fmtCOP(data.totales.apropiacion)}</div>
           <div className="text-[10px] text-theme-muted mt-1">Dirección de EE</div>
         </Card>
         <Card delay={0.08} className="!p-4">
           <div className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Comprometido</div>
-          <div className="text-xl font-bold text-gold truncate">{fmtCOP(data.totales.comprometido)}</div>
+          <div className="text-xl font-bold text-gold">{fmtCOP(data.totales.comprometido)}</div>
           <div className="text-[10px] text-gold/70 mt-1">{data.totales.pct_comprometido.toFixed(2)}% del total</div>
         </Card>
         <Card delay={0.11} className="!p-4">
           <div className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Obligado</div>
-          <div className="text-xl font-bold text-red-400 truncate">{fmtCOP(data.totales.obligados)}</div>
+          <div className="text-xl font-bold text-red-400">{fmtCOP(data.totales.obligados)}</div>
           <div className="text-[10px] text-red-400/70 mt-1">{data.totales.pct_obligado.toFixed(2)}% del total</div>
         </Card>
         <Card delay={0.14} className="!p-4">
           <div className="text-[10px] text-theme-muted uppercase tracking-wider mb-1">Disponible</div>
-          <div className="text-xl font-bold text-emerald-400 truncate">{fmtCOP(data.totales.disponible)}</div>
+          <div className="text-xl font-bold text-emerald-400">{fmtCOP(data.totales.disponible)}</div>
           <div className="text-[10px] text-emerald-400/70 mt-1">{dispTotal.toFixed(2)}% del total</div>
         </Card>
       </div>
@@ -393,7 +392,7 @@ export default function PresupuestoPage() {
           </div>
 
           {/* Leyenda */}
-          <div className="flex gap-5 mt-4 justify-center">
+          <div className="flex max-sm:flex-wrap gap-x-5 gap-y-2 mt-4 justify-center">
             {[
               { label: "Obligado", c: "#DC2626", desc: "Ya legalizado (dentro del comprometido)" },
               { label: "Comprometido restante", c: "var(--color-gold)", desc: "Label = total comprometido. Comprometido aún no obligado" },
@@ -422,13 +421,13 @@ export default function PresupuestoPage() {
                 </span>
                 <button 
                   onClick={() => setProyectoSeleccionado(null)}
-                  className="text-[10px] text-theme-muted hover:text-theme-primary transition-colors px-3 py-1 rounded-full bg-theme-card hover:bg-theme-card/80"
+                  className="text-[10px] text-theme-muted hover:text-theme-primary transition-colors px-3 py-1 max-sm:min-h-[44px] rounded-full bg-theme-card hover:bg-theme-card/80"
                 >
                   ✕ Cerrar
                 </button>
               </div>
               
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Apropiación */}
                 <div className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-4 text-center">
                   <div className="text-[10px] text-theme-muted uppercase tracking-wider mb-2">Apropiación</div>
@@ -497,7 +496,9 @@ export default function PresupuestoPage() {
           </div>
           {/* Botón Exportar a Excel */}
           <button
-            onClick={() => {
+            onClick={async () => {
+              // xlsx pesa ~400 KB: se carga solo al exportar, no al abrir el tablero.
+              const XLSX = await import("xlsx");
               // Preparar datos para Excel
               const exportData = data.proyectos.map(p => ({
                 'Proyecto': p.proyecto,
@@ -528,7 +529,7 @@ export default function PresupuestoPage() {
               // Descargar archivo
               XLSX.writeFile(wb, `presupuesto_proyectos_${new Date().toISOString().split('T')[0]}.xlsx`);
             }}
-            className="flex items-center gap-1.5 text-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 text-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-3 py-1.5 max-sm:min-h-[44px] rounded-lg transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -536,6 +537,9 @@ export default function PresupuestoPage() {
             Exportar Excel
           </button>
         </div>
+        <p className="mb-2 text-[11px] text-theme-muted sm:hidden">
+          Desliza horizontalmente para ver todas las columnas
+        </p>
         <div className="overflow-x-auto">
           <table className="w-full text-[11px]">
             <thead>

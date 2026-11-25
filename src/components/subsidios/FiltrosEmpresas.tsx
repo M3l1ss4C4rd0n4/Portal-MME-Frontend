@@ -104,7 +104,7 @@ export default function FiltrosEmpresas({
           <select
             value={corte ?? ""}
             onChange={(e) => onCorte(e.target.value)}
-            className="bg-theme-primary text-theme-primary text-xs border border-theme-card rounded px-2 py-1.5 focus:outline-none focus:border-amber-500 transition-colors"
+            className="bg-theme-primary text-theme-primary text-xs border border-theme-card rounded px-2 py-1.5 max-sm:min-h-[44px] focus:outline-none focus:border-amber-500 transition-colors"
             style={{ minWidth: "150px" }}
           >
             {cortes.map((c) => (
@@ -119,7 +119,7 @@ export default function FiltrosEmpresas({
           <button
             type="button"
             onClick={onLimpiar}
-            className="text-xs text-theme-muted hover:text-gold border border-theme-card rounded px-3 py-1.5 transition-colors"
+            className="text-xs text-theme-muted hover:text-gold border border-theme-card rounded px-3 py-1.5 max-sm:min-h-[44px] transition-colors"
           >
             Limpiar filtros
           </button>

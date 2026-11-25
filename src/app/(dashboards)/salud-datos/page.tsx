@@ -98,6 +98,9 @@ export default function SaludDatosPage() {
               <div className="text-[10px] text-theme-muted uppercase tracking-wide mb-3">
                 Linaje reciente del pipeline de ontología
               </div>
+              <p className="mb-2 text-[11px] text-theme-muted sm:hidden">
+                Desliza horizontalmente para ver todas las columnas
+              </p>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>

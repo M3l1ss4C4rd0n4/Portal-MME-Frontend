@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import * as XLSX from "xlsx";
 import { fmtCOP, fmtNum, formatPct } from "@/lib/format";
 import { etiquetaEstado } from "@/lib/subsidios-sql";
 import { SIN_VALIDACION } from "@/lib/subsidios-resumen-sql";
@@ -185,7 +184,9 @@ export default function TablaResumenPeriodo({
       return siguiente;
     });
 
-  const exportar = () => {
+  const exportar = async () => {
+    // xlsx pesa ~400 KB: se carga solo al exportar, no al abrir el tablero.
+    const XLSX = await import("xlsx");
     const base = (f: FilaResumen | FilaDetalleEmpresa) => ({
       "Año": f.anio,
       Trimestre: f.trimestre,
@@ -248,12 +249,15 @@ export default function TablaResumenPeriodo({
         <button
           type="button"
           onClick={exportar}
-          className="text-xs text-theme-secondary hover:text-gold border border-theme-card rounded px-3 py-1.5 transition-colors"
+          className="text-xs text-theme-secondary hover:text-gold border border-theme-card rounded px-3 py-1.5 max-sm:min-h-[44px] transition-colors"
         >
           Exportar a Excel
         </button>
       </div>
 
+      <p className="mb-2 text-[11px] text-theme-muted sm:hidden">
+        Desliza horizontalmente para ver todas las columnas
+      </p>
       <div className="overflow-auto max-h-[560px] rounded-lg border border-theme-card">
         <table className="w-full text-xs border-collapse">
           <thead className="sticky top-0 z-10 bg-theme-secondary">

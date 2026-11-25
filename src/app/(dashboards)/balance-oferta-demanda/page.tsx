@@ -8,6 +8,7 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { getNivoTheme } from "@/lib/nivo-theme";
 import { RangeSlider } from "@/components/ui/RangeSlider";
 import { SingleSlider } from "@/components/ui/SingleSlider";
+import { useIsNarrow } from "@/hooks/useIsNarrow";
 
 // ─── Tipos (reflejan domain/services/balance_oferta_demanda_service.py) ────
 interface BalancePunto {
@@ -277,10 +278,27 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T | null> 
   }
 }
 
+// Leyenda HTML para móvil: la leyenda de Nivo fija un ancho por elemento y en
+// 360 px la segunda entrada queda fuera del gráfico. Solo se muestra bajo
+// 1024 px, el mismo corte que apaga la leyenda de Nivo.
+function MobileLegend({ items }: { items: Array<{ label: string; color: string }> }) {
+  return (
+    <div className="mb-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-theme-muted lg:hidden">
+      {items.map((it) => (
+        <span key={it.label} className="flex items-center gap-1.5">
+          <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: it.color }} />
+          {it.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export default function BalanceOfertaDemandaPage() {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme !== "light";
   const T = getNivoTheme(isDark);
+  const isNarrow = useIsNarrow();
 
   const [loading, setLoading] = useState(true);
   const [historico, setHistorico] = useState<HistoricoResponse | null>(null);
@@ -483,27 +501,29 @@ export default function BalanceOfertaDemandaPage() {
     return diffs.reduce((a, b) => a + b, 0) / diffs.length;
   }, [contrafactual]);
 
-  const chartAxisBottom = { tickSize: 0, tickPadding: 10, tickRotation: -35, legendOffset: 36 };
+  // En escritorio las fechas van rotadas −35° con hasta 10 marcas; en 360 px
+  // se solapan: en móvil van horizontales y con menos marcas.
+  const chartAxisBottom = { tickSize: 0, tickPadding: isNarrow ? 6 : 10, tickRotation: isNarrow ? 0 : -35, legendOffset: 36 };
 
   const ticksPrincipal = useMemo(
-    () => elegirTicks(chartOfertaDemanda[0]?.data.map((d) => d.x) ?? []),
-    [chartOfertaDemanda]
+    () => elegirTicks(chartOfertaDemanda[0]?.data.map((d) => d.x) ?? [], isNarrow ? 3 : 10),
+    [chartOfertaDemanda, isNarrow]
   );
   const ticksRegulatorio = useMemo(
-    () => elegirTicks(chartEnficcOef[0]?.data.map((d) => d.x) ?? []),
-    [chartEnficcOef]
+    () => elegirTicks(chartEnficcOef[0]?.data.map((d) => d.x) ?? [], isNarrow ? 3 : 10),
+    [chartEnficcOef, isNarrow]
   );
   const ticksContrafactual = useMemo(
-    () => elegirTicks(chartContrafactual[0]?.data.map((d) => d.x) ?? []),
-    [chartContrafactual]
+    () => elegirTicks(chartContrafactual[0]?.data.map((d) => d.x) ?? [], isNarrow ? 3 : 10),
+    [chartContrafactual, isNarrow]
   );
   const ticksRegional = useMemo(
-    () => elegirTicks(chartRegional[0]?.data.map((d) => d.x) ?? []),
-    [chartRegional]
+    () => elegirTicks(chartRegional[0]?.data.map((d) => d.x) ?? [], isNarrow ? 3 : 10),
+    [chartRegional, isNarrow]
   );
   const ticksCorrelacion = useMemo(
-    () => elegirTicks((correlacion?.serieMensual ?? []).map((p) => p.mes)),
-    [correlacion]
+    () => elegirTicks((correlacion?.serieMensual ?? []).map((p) => p.mes), isNarrow ? 3 : 10),
+    [correlacion, isNarrow]
   );
 
   const totalDiasDisponibles = diasEntre(FECHA_INICIO_TABLERO, HOY_ISO);
@@ -624,7 +644,7 @@ export default function BalanceOfertaDemandaPage() {
               <input
                 type="date" value={fechaDesde} min={FECHA_INICIO_TABLERO} max={fechaHasta}
                 onChange={(e) => e.target.value && setFechaDesde(e.target.value)}
-                className="bg-theme-tertiary text-theme-primary text-[10px] rounded px-1.5 py-0.5 border border-white/10"
+                className="bg-theme-tertiary text-theme-primary text-[10px] rounded px-1.5 py-0.5 max-sm:min-h-[44px] border border-white/10"
               />
             </label>
             <label className="text-[10px] text-theme-muted flex items-center gap-1.5">
@@ -632,12 +652,16 @@ export default function BalanceOfertaDemandaPage() {
               <input
                 type="date" value={fechaHasta} min={fechaDesde} max={HOY_ISO}
                 onChange={(e) => e.target.value && setFechaHasta(e.target.value)}
-                className="bg-theme-tertiary text-theme-primary text-[10px] rounded px-1.5 py-0.5 border border-white/10"
+                className="bg-theme-tertiary text-theme-primary text-[10px] rounded px-1.5 py-0.5 max-sm:min-h-[44px] border border-white/10"
               />
             </label>
             <span className="text-[10px] text-theme-muted">({spanDiasFiltrado} días elegidos)</span>
           </div>
           <p className="text-[10px] font-semibold text-theme-secondary mt-2 mb-1">Oferta y demanda (potencia)</p>
+          <MobileLegend items={[
+            { label: "Oferta Declarada (MW)", color: "#F59E0B" },
+            { label: "Demanda equivalente (MW)", color: "#3B82F6" },
+          ]} />
           <div style={{ height: 300 }}>
             <ResponsiveLine
               data={chartOfertaDemanda}
@@ -654,7 +678,7 @@ export default function BalanceOfertaDemandaPage() {
               enableArea={false}
               theme={T}
               tooltip={tooltipPunto("MW", 0, isDark)}
-              legends={[{
+              legends={isNarrow ? [] : [{
                 anchor: "top-left", direction: "row", translateY: -8, itemWidth: 230, itemHeight: 14,
                 symbolSize: 8, symbolShape: "circle", itemTextColor: isDark ? "#CBD5E1" : "#475569",
               }]}
@@ -663,7 +687,7 @@ export default function BalanceOfertaDemandaPage() {
           <p className="text-[10px] font-semibold text-theme-secondary mt-3 mb-1">
             Margen de Reserva Operativo = (Oferta − Demanda) ÷ Demanda × 100 — línea roja punteada = 0% (déficit)
           </p>
-          <div style={{ height: 180 }}>
+          <div style={{ height: isNarrow ? 240 : 180 }}>
             <ResponsiveLine
               data={chartMargen}
               margin={{ top: 10, right: 30, bottom: 40, left: 60 }}
@@ -727,6 +751,9 @@ export default function BalanceOfertaDemandaPage() {
             subestaciones) muestran &quot;—&quot; en MW porque no generan energía — su capacidad se mide en otras
             unidades (kV, longitud), no en MW; por eso tampoco entran en el simulador de abajo, que solo puede sumar
             MW de generación.
+          </p>
+          <p className="mb-2 text-[11px] text-theme-muted sm:hidden">
+            Desliza horizontalmente para ver todas las columnas
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
@@ -792,7 +819,7 @@ export default function BalanceOfertaDemandaPage() {
           </p>
           <p className="text-[10px] text-amber-400/80 mb-3">{correlacion?.advertencia}</p>
           <div className="grid md:grid-cols-2 gap-4">
-            <div style={{ height: 220 }}>
+            <div style={{ height: isNarrow ? 240 : 220 }}>
               <ResponsiveLine
                 data={chartCorrelacionMargen}
                 margin={{ top: 10, right: 20, bottom: 45, left: 55 }}
@@ -808,7 +835,7 @@ export default function BalanceOfertaDemandaPage() {
                 tooltip={tooltipPunto("%", 1, isDark)}
               />
             </div>
-            <div style={{ height: 220 }}>
+            <div style={{ height: isNarrow ? 240 : 220 }}>
               <ResponsiveLine
                 data={chartCorrelacionMw}
                 margin={{ top: 10, right: 20, bottom: 45, left: 60 }}
@@ -864,6 +891,10 @@ export default function BalanceOfertaDemandaPage() {
                   </strong>
                 </p>
               )}
+              <MobileLegend items={[
+                { label: "Margen real (%)", color: "#94A3B8" },
+                { label: "Margen contrafactual (%)", color: "#8B5CF6" },
+              ]} />
               <div style={{ height: 260 }}>
                 <ResponsiveLine
                   data={chartContrafactual}
@@ -879,7 +910,7 @@ export default function BalanceOfertaDemandaPage() {
                   useMesh={true}
                   theme={T}
                   tooltip={tooltipPunto("%", 1, isDark)}
-                  legends={[{
+                  legends={isNarrow ? [] : [{
                     anchor: "top-left", direction: "row", translateY: -8, itemWidth: 170, itemHeight: 14,
                     symbolSize: 8, symbolShape: "circle", itemTextColor: isDark ? "#CBD5E1" : "#475569",
                   }]}
@@ -911,6 +942,10 @@ export default function BalanceOfertaDemandaPage() {
             {" "}(más fuerte que el {correlacion?.coeficienteCorrelacion != null ? correlacion.coeficienteCorrelacion.toFixed(2) : "—"} del margen operativo).
           </p>
           <p className="text-[10px] font-semibold text-theme-secondary mt-2 mb-1">Energía firme certificada vs. obligación asignada</p>
+          <MobileLegend items={[
+            { label: "ENFICC — Energía Firme certificada (GWh)", color: "#3B82F6" },
+            { label: "OEF — Obligación de Energía Firme (GWh)", color: "#94A3B8" },
+          ]} />
           <div style={{ height: 240 }}>
             <ResponsiveLine
               data={chartEnficcOef}
@@ -926,7 +961,7 @@ export default function BalanceOfertaDemandaPage() {
               useMesh={true}
               theme={T}
               tooltip={tooltipPunto("GWh", 1, isDark)}
-              legends={[{
+              legends={isNarrow ? [] : [{
                 anchor: "top-left", direction: "row", translateY: -8, itemWidth: 260, itemHeight: 14,
                 symbolSize: 8, symbolShape: "circle", itemTextColor: isDark ? "#CBD5E1" : "#475569",
               }]}
@@ -935,7 +970,7 @@ export default function BalanceOfertaDemandaPage() {
           <p className="text-[10px] font-semibold text-theme-secondary mt-3 mb-1">
             Margen Regulatorio = (ENFICC − OEF) ÷ OEF × 100 — línea roja punteada = 0% (obligación excede lo certificado)
           </p>
-          <div style={{ height: 180 }}>
+          <div style={{ height: isNarrow ? 240 : 180 }}>
             <ResponsiveLine
               data={chartMargenRegulatorio}
               margin={{ top: 10, right: 30, bottom: 40, left: 55 }}
@@ -979,7 +1014,7 @@ export default function BalanceOfertaDemandaPage() {
           </p>
           <p className="text-[10px] text-amber-400/80 mb-3">{correlacion?.advertencia}</p>
           <div className="grid md:grid-cols-2 gap-4">
-            <div style={{ height: 220 }}>
+            <div style={{ height: isNarrow ? 240 : 220 }}>
               <ResponsiveLine
                 data={chartCorrelacionMargenRegulatorio}
                 margin={{ top: 10, right: 20, bottom: 45, left: 55 }}
@@ -996,7 +1031,7 @@ export default function BalanceOfertaDemandaPage() {
                 markers={[{ axis: "y", value: 0, lineStyle: { stroke: "#EF4444", strokeWidth: 1, strokeDasharray: "4 4" } }]}
               />
             </div>
-            <div style={{ height: 220 }}>
+            <div style={{ height: isNarrow ? 240 : 220 }}>
               <ResponsiveLine
                 data={chartCorrelacionMw}
                 margin={{ top: 10, right: 20, bottom: 45, left: 60 }}
@@ -1051,6 +1086,10 @@ export default function BalanceOfertaDemandaPage() {
                   </strong>
                 </p>
               )}
+              <MobileLegend items={[
+                { label: "Margen regulatorio real (%)", color: "#94A3B8" },
+                { label: "Margen regulatorio contrafactual (%)", color: "#3B82F6" },
+              ]} />
               <div style={{ height: 260 }}>
                 <ResponsiveLine
                   data={chartContrafactualRegulatorio}
@@ -1067,7 +1106,7 @@ export default function BalanceOfertaDemandaPage() {
                   theme={T}
                   tooltip={tooltipPunto("%", 1, isDark)}
                   markers={[{ axis: "y", value: 0, lineStyle: { stroke: "#EF4444", strokeWidth: 1, strokeDasharray: "4 4" } }]}
-                  legends={[{
+                  legends={isNarrow ? [] : [{
                     anchor: "top-left", direction: "row", translateY: -8, itemWidth: 200, itemHeight: 14,
                     symbolSize: 8, symbolShape: "circle", itemTextColor: isDark ? "#CBD5E1" : "#475569",
                   }]}

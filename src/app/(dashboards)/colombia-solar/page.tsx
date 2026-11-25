@@ -227,7 +227,7 @@ export default function ColombiaSolarDashboard() {
         {/* KPI ROW */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Card>
-            <div style={{ fontSize: 10, color: "#64748B", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 8 }}>
+            <div className="text-[10px] text-[#64748B] font-semibold uppercase tracking-[0.12em] mb-2">
               Usuarios Planeados
             </div>
             {kpiLoading ? (
@@ -241,7 +241,7 @@ export default function ColombiaSolarDashboard() {
           </Card>
 
           <Card>
-            <div style={{ fontSize: 10, color: "#64748B", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 8 }}>
+            <div className="text-[10px] text-[#64748B] font-semibold uppercase tracking-[0.12em] mb-2">
               Usuarios Ejecutados
             </div>
             {kpiLoading ? (
@@ -255,7 +255,7 @@ export default function ColombiaSolarDashboard() {
           </Card>
 
           <Card>
-            <div style={{ fontSize: 10, color: "#64748B", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 8 }}>
+            <div className="text-[10px] text-[#64748B] font-semibold uppercase tracking-[0.12em] mb-2">
               kWp Planeado
             </div>
             {kpiLoading ? (
@@ -269,7 +269,7 @@ export default function ColombiaSolarDashboard() {
           </Card>
 
           <Card>
-            <div style={{ fontSize: 10, color: "#64748B", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 8 }}>
+            <div className="text-[10px] text-[#64748B] font-semibold uppercase tracking-[0.12em] mb-2">
               kWp Ejecutado
             </div>
             {kpiLoading ? (
@@ -292,7 +292,7 @@ export default function ColombiaSolarDashboard() {
 
         {/* FILTERS */}
         <Card>
-          <div style={{ fontSize: 10, color: "var(--color-gold)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 12 }}>
+          <div className="text-[10px] text-gold font-semibold uppercase tracking-[0.12em] mb-3">
             Filtros
           </div>
           <FilterBar values={filters} onChange={handleFilter} onClear={handleClear} />
@@ -301,7 +301,7 @@ export default function ColombiaSolarDashboard() {
         {/* CHARTS ROW */}
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
           <Card style={{ display: "flex", flexDirection: "column", minHeight: 340 }}>
-            <div style={{ fontSize: 10, color: "var(--color-gold)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 10 }}>
+            <div className="text-[10px] text-gold font-bold uppercase tracking-[0.12em] mb-2.5">
               Planeado vs Ejecutado · Usuarios por Mes
             </div>
             <div style={{ flex: 1, minHeight: 260, overflow: "hidden" }}>
@@ -310,7 +310,7 @@ export default function ColombiaSolarDashboard() {
           </Card>
 
           <Card style={{ display: "flex", flexDirection: "column", minHeight: 340 }}>
-            <div style={{ fontSize: 10, color: "var(--color-gold)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 10 }}>
+            <div className="text-[10px] text-gold font-bold uppercase tracking-[0.12em] mb-2.5">
               Eficiencia General
             </div>
             <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 160 }}>
@@ -321,19 +321,19 @@ export default function ColombiaSolarDashboard() {
                 <div style={{ fontSize: 20, fontWeight: 700, color: "var(--color-gold)", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
                   {kpis ? formatNumber(Number(kpis.planeado_usuarios)) : "—"}
                 </div>
-                <div style={{ fontSize: 10, color: "#64748B", marginTop: 6, textTransform: "uppercase", letterSpacing: "0.08em" }}>Planeado</div>
+                <div className="text-[10px] text-[#64748B] mt-1.5 uppercase tracking-[0.08em]">Planeado</div>
               </div>
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 20, fontWeight: 700, color: "#34D399", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
                   {kpis ? formatNumber(Number(kpis.ejecutado_usuarios)) : "—"}
                 </div>
-                <div style={{ fontSize: 10, color: "#64748B", marginTop: 6, textTransform: "uppercase", letterSpacing: "0.08em" }}>Ejecutado</div>
+                <div className="text-[10px] text-[#64748B] mt-1.5 uppercase tracking-[0.08em]">Ejecutado</div>
               </div>
             </div>
           </Card>
 
           <Card style={{ display: "flex", flexDirection: "column", minHeight: 340 }}>
-            <div style={{ fontSize: 10, color: "var(--color-gold)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 10 }}>
+            <div className="text-[10px] text-gold font-bold uppercase tracking-[0.12em] mb-2.5">
               Eficiencia por Programa
             </div>
             <div style={{ flex: 1, minHeight: 260, overflow: "hidden" }}>
@@ -346,7 +346,7 @@ export default function ColombiaSolarDashboard() {
         <Card>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
             <span style={{ width: 6, height: 20, background: "var(--color-gold)", borderRadius: 4, flexShrink: 0 }} />
-            <div style={{ fontSize: 10, color: "var(--color-gold)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em" }}>
+            <div className="text-[10px] text-gold font-bold uppercase tracking-[0.12em]">
               Detalle por Contrato
             </div>
           </div>
@@ -357,7 +357,7 @@ export default function ColombiaSolarDashboard() {
         <div style={{ display: "flex", justifyContent: "center" }}>
           <button
             onClick={() => setShowORTable((s) => !s)}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold bg-amber-500/10 text-gold hover:bg-amber-500/20 border border-amber-500/20 transition-all"
+            className="flex items-center gap-2 px-6 py-3 max-sm:min-h-[44px] rounded-xl text-xs font-bold bg-amber-500/10 text-gold hover:bg-amber-500/20 border border-amber-500/20 transition-all"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               {showORTable ? (
@@ -375,7 +375,7 @@ export default function ColombiaSolarDashboard() {
           <Card>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
               <span style={{ width: 6, height: 20, background: "var(--color-gold)", borderRadius: 4, flexShrink: 0 }} />
-              <div style={{ fontSize: 10, color: "var(--color-gold)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em" }}>
+              <div className="text-[10px] text-gold font-bold uppercase tracking-[0.12em]">
                 Operadores de Red Inicial
               </div>
             </div>
@@ -388,13 +388,13 @@ export default function ColombiaSolarDashboard() {
           <Card>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
               <div>
-                <div style={{ fontSize: 10, color: "var(--color-gold)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em" }}>
+                <div className="text-[10px] text-gold font-bold uppercase tracking-[0.12em]">
                   CURVAS S POR PROYECTO
                 </div>
-                <p style={{ fontSize: 9, color: "#64748B", marginTop: 4 }}>
+                <p className="text-[9px] text-[#64748B] mt-1">
                   Avance programado vs real — obras civiles, usuarios, potencia e internas
                 </p>
-                <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 8, fontSize: 10, color: "#64748B" }}>
+                <div className="flex items-center gap-4 mt-2 text-[10px] text-[#64748B]">
                   <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", backgroundColor: "#06B6D4", flexShrink: 0 }} />
                     Programado
@@ -410,19 +410,19 @@ export default function ColombiaSolarDashboard() {
                   <div style={{ fontSize: 14, fontWeight: 700, color: "var(--color-gold)", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
                     {curvaKpiFiltered.totalUsuarios.toLocaleString("es-CO")}
                   </div>
-                  <div style={{ fontSize: 10, color: "#64748B", marginTop: 4 }}>Número de usuarios</div>
+                  <div className="text-[10px] text-[#64748B] mt-1">Número de usuarios</div>
                 </div>
                 <div style={{ background: "var(--bg-tertiary)", borderRadius: 12, padding: "8px 12px" }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "#FB923C", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
                     {curvaKpiFiltered.totalPotencia.toLocaleString("es-CO")} mWp
                   </div>
-                  <div style={{ fontSize: 10, color: "#64748B", marginTop: 4 }}>Potencia total instalada</div>
+                  <div className="text-[10px] text-[#64748B] mt-1">Potencia total instalada</div>
                 </div>
                 <div style={{ width: 1, height: 32, background: "var(--border-primary)" }} />
                 <select
                   value={curvaPrograma}
                   onChange={(e) => setCurvaPrograma(e.target.value)}
-                  className="border border-theme-primary text-theme-primary rounded-lg px-3 py-1.5 text-[11px] cursor-pointer min-w-[160px]" style={{ backgroundColor: "var(--bg-secondary)" }}
+                  className="border border-theme-primary text-theme-primary rounded-lg px-3 py-1.5 text-[11px] cursor-pointer min-w-[160px] max-sm:min-h-[44px] max-sm:w-full" style={{ backgroundColor: "var(--bg-secondary)" }}
                   aria-label="Programa"
                 >
                   <option value="">Todos los programas</option>
@@ -432,7 +432,7 @@ export default function ColombiaSolarDashboard() {
                 <select
                   value={operadorSeleccionado}
                   onChange={(e) => setOperadorSeleccionado(e.target.value)}
-                  className="border border-theme-primary text-theme-primary rounded-lg px-3 py-1.5 text-[11px] cursor-pointer min-w-[160px]" style={{ backgroundColor: "var(--bg-secondary)" }}
+                  className="border border-theme-primary text-theme-primary rounded-lg px-3 py-1.5 text-[11px] cursor-pointer min-w-[160px] max-sm:min-h-[44px] max-sm:w-full" style={{ backgroundColor: "var(--bg-secondary)" }}
                   aria-label="Operador de red"
                 >
                   <option value="">Todos los operadores</option>
@@ -443,7 +443,7 @@ export default function ColombiaSolarDashboard() {
                 <select
                   value={proyectoSeleccionado}
                   onChange={(e) => setProyectoSeleccionado(e.target.value)}
-                  className="border border-theme-primary text-theme-primary rounded-lg px-3 py-1.5 text-[11px] cursor-pointer min-w-[160px]" style={{ backgroundColor: "var(--bg-secondary)" }}
+                  className="border border-theme-primary text-theme-primary rounded-lg px-3 py-1.5 text-[11px] cursor-pointer min-w-[160px] max-sm:min-h-[44px] max-sm:w-full" style={{ backgroundColor: "var(--bg-secondary)" }}
                   aria-label="Proyecto"
                 >
                   <option value="">Todos los proyectos</option>

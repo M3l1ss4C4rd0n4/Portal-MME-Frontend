@@ -2,6 +2,7 @@
 
 import { ResponsiveBar, type BarCustomLayerProps, type BarTooltipProps } from "@nivo/bar";
 import { fmtCompactNum, fmtNum } from "@/lib/format";
+import { useIsNarrow } from "@/hooks/useIsNarrow";
 import type { PuntoValidacion } from "@/types/subsidios-empresas";
 
 /** Estados en el orden en que se apilan y se leen en la leyenda. */
@@ -120,6 +121,12 @@ export default function GraficaValidacion({
   datos: PuntoValidacion[];
   nivoTheme: Parameters<typeof ResponsiveBar>[0]["theme"];
 }) {
+  const isNarrow = useIsNarrow();
+  // En 360 px caben ~4 etiquetas de período; el fondo va en el tooltip.
+  const tickValues = isNarrow && datos.length > 4
+    ? datos.filter((_, i) => i % Math.ceil(datos.length / 4) === 0).map((d) => d.id)
+    : undefined;
+
   return (
     <ResponsiveBar<Fila>
       data={datos as Fila[]}
@@ -133,11 +140,16 @@ export default function GraficaValidacion({
       theme={nivoTheme}
       // El eje repite el período en las dos barras del trimestre; lo que las
       // distingue es el fondo, que va escrito encima de cada grupo.
-      axisBottom={{ tickRotation: -45, format: (v: string) => String(v).split(" · ")[0] }}
+      axisBottom={{
+        tickRotation: isNarrow ? 0 : -45,
+        ...(tickValues ? { tickValues } : {}),
+        format: (v: string) => String(v).split(" · ")[0],
+      }}
       axisLeft={{ format: (v: number) => fmtCompactNum(v) }}
       enableLabel={false}
       tooltip={Tooltip}
-      layers={["grid", "axes", "bars", CapaFondo, "markers", "legends"]}
+      // En 360 px las etiquetas de fondo (FSSRI, FOES…) se pisan unas a otras; el fondo queda en el tooltip.
+      layers={isNarrow ? ["grid", "axes", "bars", "markers", "legends"] : ["grid", "axes", "bars", CapaFondo, "markers", "legends"]}
       legends={[
         {
           dataFrom: "keys",

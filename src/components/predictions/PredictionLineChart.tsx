@@ -6,6 +6,7 @@ import { getNivoTheme } from "@/lib/nivo-theme";
 import { useTheme } from "@/providers/ThemeProvider";
 import { classifyOni } from "@/lib/oni";
 import { clampPct } from "@/types/predictions";
+import { useIsNarrow } from "@/hooks/useIsNarrow";
 import type { PredictionPoint } from "@/types/predictions";
 
 // Climate indicator normalization — all mapped to the lower 0-40% of the chart
@@ -49,6 +50,7 @@ export default function PredictionLineChart({
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme !== "light";
   const theme = getNivoTheme(isDark);
+  const isNarrow = useIsNarrow();
 
   // La línea de ONI se divide en tramos coloreados por severidad (misma escala
   // que classifyOni() y que las fichas de "Pronóstico ONI (NOAA)"), en vez de
@@ -161,11 +163,12 @@ export default function PredictionLineChart({
   }, [peakDate, threshold80Date, isDark]);
 
   const tickValues = useMemo(() => {
-    const step = Math.max(1, Math.floor(data.length / 10));
+    // En 360 px caben pocas fechas sin rotar; en escritorio se muestran ~10.
+    const step = Math.max(1, Math.floor(data.length / (isNarrow ? 4 : 10)));
     return data
       .filter((_, i) => i % step === 0 || i === data.length - 1)
       .map((d) => d.fecha);
-  }, [data]);
+  }, [data, isNarrow]);
 
   const formatDate = (v: string) => {
     const d = new Date(v + "T00:00:00");
@@ -179,7 +182,7 @@ export default function PredictionLineChart({
       <ResponsiveLine
         data={series}
         theme={theme}
-        margin={{ top: 16, right: 16, bottom: 56, left: 48 }}
+        margin={isNarrow ? { top: 16, right: 12, bottom: 44, left: 40 } : { top: 16, right: 16, bottom: 56, left: 48 }}
         xScale={{ type: "point" }}
         yScale={{ type: "linear", min: 0, max: 100, stacked: false }}
         curve="monotoneX"
@@ -187,8 +190,8 @@ export default function PredictionLineChart({
         axisRight={null}
         axisBottom={{
           tickSize: 0,
-          tickPadding: 12,
-          tickRotation: -45,
+          tickPadding: isNarrow ? 6 : 12,
+          tickRotation: isNarrow ? 0 : -45,
           tickValues,
           format: formatDate,
         }}
@@ -198,7 +201,7 @@ export default function PredictionLineChart({
           tickValues: [0, 20, 40, 60, 80, 100],
           format: (v: number) => `${v}%`,
           legend: "% volumen útil",
-          legendOffset: -40,
+          legendOffset: isNarrow ? -32 : -40,
           legendPosition: "middle",
         }}
         colors={{ datum: "color" }}

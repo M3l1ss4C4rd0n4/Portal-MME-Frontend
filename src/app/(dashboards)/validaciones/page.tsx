@@ -7,6 +7,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import Card from "@/components/dashboard/Card";
 import BaseKpiChip, { type KpiChipProps } from "@/components/dashboard/KpiChip";
 import { getNivoTheme } from "@/lib/nivo-theme";
+import { useIsNarrow } from "@/hooks/useIsNarrow";
 import { useGeoFilter } from "@/context/GeoFilterContext";
 import { fetchDepartamentos } from "@/services/apiService";
 import { normDeptKey } from "@/lib/departamentos";
@@ -81,7 +82,7 @@ function SelectFiltro({ label, value, onChange, options, minWidth = "140px" }: {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="bg-dash-chip border border-theme-card rounded-lg px-3 py-1.5 text-xs
+        className="bg-dash-chip border border-theme-card rounded-lg px-3 py-1.5 max-sm:min-h-[44px] text-xs
           text-theme-primary focus:outline-none focus:border-amber-500/60 cursor-pointer"
       >
         <option value="">Todas</option>
@@ -121,7 +122,7 @@ function SelectFechaActualizacion({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="bg-dash-chip border border-theme-card rounded-lg px-3 py-1.5 text-xs
+        className="bg-dash-chip border border-theme-card rounded-lg px-3 py-1.5 max-sm:min-h-[44px] text-xs
           text-theme-primary focus:outline-none focus:border-amber-500/60 cursor-pointer"
       >
         {grouped.map(([anio, meses]) => (
@@ -194,11 +195,17 @@ function ValidacionBar({
   onPeriodSelect: (period: string) => void;
 }) {
   const theme = getNivoTheme(isDark);
+  const isNarrow = useIsNarrow();
 
   // Si hay periodo seleccionado, filtrar a solo ese; si no, mostrar todo
   const displayData = selectedPeriod
     ? data.filter((r) => r.id === selectedPeriod)
     : data;
+
+  // En 360 px caben ~4 etiquetas; el resto se sigue viendo en el tooltip.
+  const tickValues = isNarrow && displayData.length > 4
+    ? displayData.filter((_, i) => i % Math.ceil(displayData.length / 4) === 0).map((r) => r.id)
+    : undefined;
 
   if (displayData.length === 0) {
     return (
@@ -234,7 +241,8 @@ function ValidacionBar({
           padding={selectedPeriod ? 0.6 : 0.25}
           borderRadius={2}
           axisBottom={{
-            tickRotation: displayData.length > 12 ? -45 : 0,
+            tickRotation: isNarrow ? 0 : displayData.length > 12 ? -45 : 0,
+            ...(tickValues ? { tickValues } : {}),
             tickSize: 4,
             legend: "Trimestre",
             legendPosition: "middle",
@@ -553,7 +561,7 @@ export default function ValidacionesPage() {
                 handleSelectDepartamento("");
                 // fechaActualizacion NO se resetea — siempre debe tener un valor
               }}
-              className="text-[10px] text-gold hover:text-gold underline underline-offset-2 self-end pb-1.5"
+              className="text-[10px] text-gold hover:text-gold underline underline-offset-2 self-end pb-1.5 max-sm:min-h-[44px]"
             >
               Restaurar vista por defecto
             </button>
@@ -574,7 +582,7 @@ export default function ValidacionesPage() {
           <span className="text-xs text-gold">Mostrando periodo: <strong>{selectedPeriod}</strong></span>
           <button
             onClick={() => setSelectedPeriod(null)}
-            className="text-[10px] text-gold/70 hover:text-gold underline underline-offset-2"
+            className="text-[10px] text-gold/70 hover:text-gold underline underline-offset-2 max-sm:min-h-[44px]"
           >
             Ver todos los periodos
           </button>

@@ -3,6 +3,7 @@
 import { ResponsiveBar, type BarCustomLayerProps } from "@nivo/bar";
 import { fmtCompactNum, fmtNum } from "@/lib/format";
 import { getNivoTheme } from "@/lib/nivo-theme";
+import { useIsNarrow } from "@/hooks/useIsNarrow";
 
 /**
  * Gráfico combinado de columnas + línea con eje secundario.
@@ -46,6 +47,7 @@ export default function BarLineChart({
   alto = 300,
 }: Props) {
   const T = getNivoTheme(isDark);
+  const isNarrow = useIsNarrow();
 
   if (!data.length) {
     return (
@@ -102,7 +104,14 @@ export default function BarLineChart({
         enableGridX={false}
         axisTop={null}
         axisRight={null}
-        axisBottom={{ tickSize: 0, tickPadding: 6, tickRotation: data.length > 12 ? -45 : 0 }}
+        axisBottom={{
+          tickSize: 0,
+          tickPadding: 6,
+          tickRotation: isNarrow ? 0 : data.length > 12 ? -45 : 0,
+          ...(isNarrow && data.length > 4
+            ? { tickValues: data.filter((_, i) => i % Math.ceil(data.length / 4) === 0).map((d) => d.etiqueta) }
+            : {}),
+        }}
         axisLeft={{ tickSize: 0, tickPadding: 6, format: (v) => fmtCompactNum(Number(v)) }}
         layers={["grid", "axes", "bars", capaLinea, "markers", "annotations"]}
         tooltip={({ data: d }) => (

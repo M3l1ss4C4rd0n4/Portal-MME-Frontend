@@ -29,7 +29,7 @@ export function SingleSlider({
           {formatValue(value)}
         </span>
       </div>
-      <div className="relative h-7 flex items-center mx-1">
+      <div className="relative h-11 lg:h-7 flex items-center mx-1">
         <div className="absolute w-full h-1.5 bg-theme-tertiary rounded-full pointer-events-none" />
         <div
           className="absolute h-1.5 bg-amber-500/70 rounded-full pointer-events-none"

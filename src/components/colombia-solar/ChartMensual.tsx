@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ResponsiveLine } from "@nivo/line";
+import { useIsNarrow } from "@/hooks/useIsNarrow";
 
 interface Filters {
   programa: string[];
@@ -34,6 +35,7 @@ const nivoTheme = {
 };
 
 export default function ChartMensual({ filters }: { filters: Filters }) {
+  const isNarrow = useIsNarrow();
   const [data, setData] = useState<MesRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,12 +66,15 @@ export default function ChartMensual({ filters }: { filters: Filters }) {
     { id: "PLANEADO", color: "#E8A838", data: filteredData.map((d) => ({ x: d.mes, y: Number(d.planeado) })) },
     { id: "EJECUTADO", color: "#10B981", data: filteredData.map((d) => ({ x: d.mes, y: Number(d.ejecutado) })) },
   ];
+  // En 360 px caben 4 meses legibles; en escritorio se mantienen todas las etiquetas.
+  const tickValues = isNarrow ? filteredData.filter((_, i) => i % 3 === 0).map((d) => d.mes) : undefined;
+  const narrowAxis = isNarrow ? { tickRotation: -35, tickValues } : {};
 
   return (
     <ResponsiveLine
       data={nivoData}
       theme={nivoTheme}
-      margin={{ top: 20, right: 20, bottom: 70, left: 70 }}
+      margin={isNarrow ? { top: 16, right: 12, bottom: 64, left: 56 } : { top: 20, right: 20, bottom: 70, left: 70 }}
       xScale={{ type: "point" }}
       yScale={{ type: "linear", min: 0, max: "auto", stacked: false }}
       curve="linear"
@@ -81,11 +86,11 @@ export default function ChartMensual({ filters }: { filters: Filters }) {
       pointColor={{ from: "color" }}
       pointBorderWidth={2}
       pointBorderColor={{ from: "color", modifiers: [["darker", 0.5]] }}
-      axisBottom={{ tickSize: 4, tickPadding: 8 }}
-      axisLeft={{ tickSize: 4, tickPadding: 8, format: (v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v), legend: "Usuarios", legendOffset: -58, legendPosition: "middle" }}
+      axisBottom={{ tickSize: 4, tickPadding: 8, ...narrowAxis }}
+      axisLeft={{ tickSize: 4, tickPadding: 8, format: (v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v), legend: "Usuarios", legendOffset: isNarrow ? -44 : -58, legendPosition: "middle" }}
       enableGridX={false}
       gridYValues={5}
-      legends={[{ anchor: "bottom", direction: "row", justify: false, translateX: 0, translateY: 56, itemWidth: 120, itemHeight: 14, itemsSpacing: 24, symbolSize: 10, symbolShape: "circle", itemTextColor: "#94A3B8" }]}
+      legends={[{ anchor: "bottom", direction: "row", justify: false, translateX: 0, translateY: isNarrow ? 48 : 56, itemWidth: isNarrow ? 96 : 120, itemHeight: 14, itemsSpacing: isNarrow ? 8 : 24, symbolSize: 10, symbolShape: "circle", itemTextColor: "#94A3B8" }]}
       useMesh
       crosshairType="x"
     />
