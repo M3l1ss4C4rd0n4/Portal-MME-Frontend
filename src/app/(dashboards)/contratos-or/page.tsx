@@ -735,8 +735,8 @@ export default function ContratosORPage() {
                 const barColor = done ? "#22C55E" : active ? "#F59E0B" : "#334155";
                 const textColor = done ? "text-green-400" : active ? "text-gold" : "text-theme-muted";
                 return (
-                  <div key={d.numero} className="flex items-center gap-2">
-                    <div className="flex items-center gap-1.5 w-28 flex-shrink-0">
+                  <div key={d.numero} className="grid grid-cols-[7.25rem_minmax(0,1fr)_5rem] items-center gap-2">
+                    <div className="flex items-center gap-1.5 whitespace-nowrap">
                       <span className={`text-[10px] font-bold ${textColor}`}>Desembolso {d.numero}</span>
                       {done && <span className="text-[7px] bg-green-500/20 text-green-400 px-1 py-0.5 rounded font-semibold">OK</span>}
                       {active && <span className="text-[7px] bg-amber-500/20 text-gold px-1 py-0.5 rounded font-semibold">→</span>}
@@ -749,7 +749,7 @@ export default function ContratosORPage() {
                         />
                       </div>
                     </div>
-                    <div className="text-right w-16 flex-shrink-0">
+                    <div className="text-right whitespace-nowrap">
                       <span className={`text-[10px] font-bold ${textColor}`}>{d.pctCompletado}%</span>
                       <span className="text-[8px] text-theme-muted ml-0.5">{d.actCompletas}/{d.actNecesarias}</span>
                     </div>

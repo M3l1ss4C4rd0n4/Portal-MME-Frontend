@@ -1,6 +1,7 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
+import { TextoAjustado } from "@/components/ui/TextoAjustado";
 
 export interface KpiChipProps {
   label: string;
@@ -50,7 +51,7 @@ export default function KpiChip({
   const dynamicFontClass = strLen <= 8 ? "text-xl" : strLen <= 13 ? "text-base" : "text-sm";
   const staticFontClass = valueSize === "lg" ? "text-lg" : valueSize === "sm" ? "text-2xs" : "text-base";
   const valueFontClass = dynamicSize ? dynamicFontClass : staticFontClass;
-  const valueLeadingClass = dynamicSize ? "leading-tight break-all" : centered ? "" : "leading-none";
+  const valueLeadingClass = dynamicSize ? "leading-tight" : centered ? "" : "leading-none";
   const valueColorClass = color ? "" : (colorClass ?? (accent ? "text-gold" : "text-theme-primary"));
 
   const labelSizeClass = dynamicSize ? "text-2xs" : "text-3xs";
@@ -58,7 +59,7 @@ export default function KpiChip({
 
   return (
     <div
-      className={`${containerClass} ${paddingClass} ${centered ? "text-center min-w-[110px]" : ""} ${className}`}
+      className={`min-w-0 ${containerClass} ${paddingClass} ${centered ? "text-center min-w-[110px]" : ""} ${className}`}
     >
       {Icon && (
         <div
@@ -68,9 +69,9 @@ export default function KpiChip({
           <Icon size={30} style={{ color: color ?? "var(--color-gold)" }} />
         </div>
       )}
-      <div className={`${valueFontClass} font-bold ${valueLeadingClass} ${valueColorClass}`} style={color ? { color } : undefined}>
+      <TextoAjustado className={`${valueFontClass} font-bold ${valueLeadingClass} ${valueColorClass}`} style={color ? { color } : undefined}>
         {value}
-      </div>
+      </TextoAjustado>
       {pct && <div className="text-4xs text-theme-muted/70 mt-0.5 leading-none">{pct}</div>}
       {subvalue && <div className={`text-4xs mt-0.5 ${accent ? "text-gold/70" : "text-theme-muted"}`}>{subvalue}</div>}
       <div className={`${labelSizeClass} text-theme-muted ${labelMarginClass} leading-tight`}>{label}</div>
