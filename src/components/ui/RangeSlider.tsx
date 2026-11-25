@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 
 interface RangeSliderProps {
   min: number;
@@ -35,24 +35,49 @@ export function RangeSlider({
     && valueMin === defaultMin && valueMax === defaultMax;
   const displayTicks = ticks ?? [min, max];
   const trackRef = useRef<HTMLDivElement>(null);
-  const [minOnTop, setMinOnTop] = useState(false);
+  const asaActiva = useRef<"min" | "max" | null>(null);
 
-  const handleTrackMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!trackRef.current) return;
-    const rect = trackRef.current.getBoundingClientRect();
-    const cursor = min + ((e.clientX - rect.left) / rect.width) * (max - min);
-    setMinOnTop(Math.abs(cursor - valueMin) <= Math.abs(cursor - valueMax));
+  // El arrastre se resuelve aquí (eventos de puntero) y no con los <input>
+  // nativos: en pantallas táctiles no hay "mousemove" previo, así que el input
+  // de la fecha final quedaba siempre encima y el dedo nunca alcanzaba el inicio.
+  const valorEn = (clientX: number): number => {
+    const rect = trackRef.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0) return valueMin;
+    const razon = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    const crudo = min + razon * (max - min);
+    return Math.min(max, Math.max(min, Math.round((crudo - min) / step) * step + min));
   };
+
+  const mover = (asa: "min" | "max", valor: number) => {
+    if (asa === "min") onChange(Math.min(valor, valueMax - step), valueMax);
+    else onChange(valueMin, Math.max(valor, valueMin + step));
+  };
+
+  const alPresionar = (e: React.PointerEvent<HTMLDivElement>) => {
+    const valor = valorEn(e.clientX);
+    const asa = valueMin === valueMax
+      ? (valor < valueMin ? "min" : "max")
+      : Math.abs(valor - valueMin) <= Math.abs(valor - valueMax) ? "min" : "max";
+    asaActiva.current = asa;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    mover(asa, valor);
+  };
+
+  const alArrastrar = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (asaActiva.current) mover(asaActiva.current, valorEn(e.clientX));
+  };
+
+  const alSoltar = () => { asaActiva.current = null; };
 
   return (
     <div className="px-1 mb-5">
-      <div className="flex items-center gap-3 mb-2">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-2">
         {label && <span className="text-[10px] text-gold/70 uppercase tracking-widest font-bold">{label}</span>}
-        <span className="font-mono text-gold text-xs bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+        <span className="whitespace-nowrap font-mono text-gold text-xs bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
           {formatValue(valueMin)}
         </span>
-        <div className="flex-1 h-px bg-amber-500/20" />
-        <span className="font-mono text-gold text-xs bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+        <div className="h-px min-w-4 flex-1 bg-amber-500/20 max-sm:hidden" />
+        <span className="whitespace-nowrap font-mono text-gold text-xs bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
           {formatValue(valueMax)}
         </span>
         {!isDefault && defaultMin !== undefined && defaultMax !== undefined && (
@@ -64,7 +89,14 @@ export function RangeSlider({
           </button>
         )}
       </div>
-      <div ref={trackRef} className="relative h-11 flex items-center mx-1 lg:h-7" onMouseMove={handleTrackMouseMove}>
+      <div
+        ref={trackRef}
+        className="relative mx-1 flex h-11 touch-pan-y items-center lg:h-7"
+        onPointerDown={alPresionar}
+        onPointerMove={alArrastrar}
+        onPointerUp={alSoltar}
+        onPointerCancel={alSoltar}
+      >
         <div className="absolute w-full h-1.5 bg-theme-tertiary rounded-full pointer-events-none" />
         <div
           className="absolute h-1.5 bg-amber-500/70 rounded-full pointer-events-none"
@@ -81,19 +113,24 @@ export function RangeSlider({
         <input
           type="range" min={min} max={max} step={step} value={valueMin}
           onChange={(e) => onChange(Math.min(+e.target.value, valueMax - step), valueMax)}
-          className="absolute inset-0 w-full opacity-0 cursor-pointer"
-          style={{ zIndex: minOnTop ? 5 : 3 }}
+          aria-label="Inicio del período"
+          className="pointer-events-none absolute inset-0 w-full opacity-0"
         />
         <input
           type="range" min={min} max={max} step={step} value={valueMax}
           onChange={(e) => onChange(valueMin, Math.max(+e.target.value, valueMin + step))}
-          className="absolute inset-0 w-full opacity-0 cursor-pointer"
-          style={{ zIndex: minOnTop ? 3 : 5 }}
+          aria-label="Fin del período"
+          className="pointer-events-none absolute inset-0 w-full opacity-0"
         />
       </div>
       <div className="flex justify-between mt-1 px-0.5">
-        {displayTicks.map((t) => (
-          <span key={t} className="text-[8px] text-theme-muted/60">{formatValue(t)}</span>
+        {displayTicks.map((t, i) => (
+          <span
+            key={t}
+            className={`whitespace-nowrap text-[8px] text-theme-muted/60 ${i > 0 && i < displayTicks.length - 1 ? "max-sm:hidden" : ""}`}
+          >
+            {formatValue(t)}
+          </span>
         ))}
       </div>
     </div>

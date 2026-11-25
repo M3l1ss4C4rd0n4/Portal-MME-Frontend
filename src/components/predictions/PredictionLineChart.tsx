@@ -133,7 +133,10 @@ export default function PredictionLineChart({
       legend?: string;
       textStyle: object;
     }> = [];
-    if (threshold80Date) {
+    const enRango = (fecha: string) => data.some((d) => d.fecha === fecha);
+    // En pantallas angostas el rótulo se pisa con el eje; la leyenda de la tarjeta ya lo explica.
+    const rotulo = (texto: string) => (isNarrow ? undefined : texto);
+    if (threshold80Date && enRango(threshold80Date)) {
       list.push({
         axis: "x",
         value: threshold80Date,
@@ -142,11 +145,11 @@ export default function PredictionLineChart({
           strokeWidth: 2,
           strokeDasharray: "6,4",
         },
-        legend: "Meta 80%",
+        legend: rotulo("Meta 80%"),
         textStyle,
       });
     }
-    if (peakDate) {
+    if (peakDate && enRango(peakDate)) {
       list.push({
         axis: "x",
         value: peakDate,
@@ -155,18 +158,19 @@ export default function PredictionLineChart({
           strokeWidth: 2,
           strokeDasharray: "6,4",
         },
-        legend: "Pico proyectado",
+        legend: rotulo("Pico proyectado"),
         textStyle,
       });
     }
     return list;
-  }, [peakDate, threshold80Date, isDark]);
+  }, [peakDate, threshold80Date, isDark, data, isNarrow]);
 
   const tickValues = useMemo(() => {
     // En 360 px caben pocas fechas sin rotar; en escritorio se muestran ~10.
     const step = Math.max(1, Math.floor(data.length / (isNarrow ? 4 : 10)));
+    // En pantallas angostas no se añade el último día: se encimaría con la marca anterior.
     return data
-      .filter((_, i) => i % step === 0 || i === data.length - 1)
+      .filter((_, i) => i % step === 0 || (!isNarrow && i === data.length - 1))
       .map((d) => d.fecha);
   }, [data, isNarrow]);
 

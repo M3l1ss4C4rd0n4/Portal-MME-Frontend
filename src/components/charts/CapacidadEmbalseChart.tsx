@@ -4,6 +4,7 @@ import { useMemo, useCallback } from "react";
 import { ResponsiveLine } from "@nivo/line";
 import { getNivoTheme } from "@/lib/nivo-theme";
 import { useTheme } from "@/providers/ThemeProvider";
+import { useIsNarrow } from "@/hooks/useIsNarrow";
 
 interface ChartPoint {
   x: string;
@@ -107,6 +108,10 @@ export default function CapacidadEmbalseChart({ data, height = 340 }: Props) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme !== "light";
   const nivoTheme = getNivoTheme(isDark);
+  // En pantallas angostas: menos marcas, sin rotación y sin títulos de eje
+  // (el subtítulo de la tarjeta ya indica GWh y % de capacidad).
+  const isNarrow = useIsNarrow();
+  const pasoEtiquetas = isNarrow ? 60 : 21;
 
   const capacidadTotal = data.meta.capacidadTotalSinGwh;
 
@@ -202,16 +207,21 @@ export default function CapacidadEmbalseChart({ data, height = 340 }: Props) {
 
   /* ── Eje X: tick cada 7 días (semanal) ───────────────────────────── */
   const tickFechas = useMemo(
-    () => fechas.filter((_, i) => i % 7 === 0 || i === fechas.length - 1),
-    [fechas]
+    () => isNarrow
+      ? fechas.filter((_, i) => i % 35 === 0)
+      : fechas.filter((_, i) => i % 7 === 0 || i === fechas.length - 1),
+    [fechas, isNarrow]
   );
 
   const formatDate = useCallback((v: string) => {
     const d = new Date(v + "T00:00:00");
-    return d.toLocaleDateString("es-CO", { day: "numeric", month: "short" }).replace(".", "");
-  }, []);
+    const texto = d.toLocaleDateString("es-CO", { day: "numeric", month: "short" }).replace(".", "");
+    return isNarrow ? texto.replace(" de ", " ") : texto;
+  }, [isNarrow]);
 
-  const margin = { top: 8, right: 56, bottom: 44, left: 56 };
+  const margin = isNarrow
+    ? { top: 8, right: 42, bottom: 32, left: 38 }
+    : { top: 8, right: 56, bottom: 44, left: 56 };
 
   /* ── Lookups fecha → datos para tooltip unificado ───────────────── */
   const areaByDate = useMemo(() => {
@@ -331,7 +341,7 @@ export default function CapacidadEmbalseChart({ data, height = 340 }: Props) {
     ({ points }: any) => {
       const sin = points.filter((p: any) => p.seriesId === "% SIN");
       if (!sin.length) return null;
-      const labeled = sin.filter((_: any, i: number) => i % 21 === 0 || i === sin.length - 1);
+      const labeled = sin.filter((_: any, i: number) => i % pasoEtiquetas === 0 || i === sin.length - 1);
       return (
         <g>
           {labeled.map((p: any, i: number) => (
@@ -350,7 +360,7 @@ export default function CapacidadEmbalseChart({ data, height = 340 }: Props) {
         </g>
       );
     },
-    [yMax]
+    [yMax, pasoEtiquetas]
   );
 
   /* ── Custom layer: líneas con estilos diferenciados ──────────────── */
@@ -409,7 +419,7 @@ export default function CapacidadEmbalseChart({ data, height = 340 }: Props) {
                 {/* Círculos en % SIN */}
                 {isSin &&
                   pts
-                    .filter((_: any, i: number) => i % 21 === 0 || i === pts.length - 1)
+                    .filter((_: any, i: number) => i % pasoEtiquetas === 0 || i === pts.length - 1)
                     .map((p: any, i: number) => (
                       <circle
                         key={i}
@@ -427,11 +437,11 @@ export default function CapacidadEmbalseChart({ data, height = 340 }: Props) {
         </g>
       );
     },
-    [isDark]
+    [isDark, pasoEtiquetas]
   );
 
   return (
-    <div style={{ height }} className="relative w-full">
+    <div style={{ height }} className="relative flex w-full flex-col">
       {/* Leyenda manual estilo XM — áreas listadas de ARRIBA a ABAJO como en XM */}
       <LeyendaXM
         areas={[...areaSeries].reverse().map((a) => ({ id: a.id, color: a.color }))}
@@ -440,7 +450,8 @@ export default function CapacidadEmbalseChart({ data, height = 340 }: Props) {
       />
 
       {/* ── FONDO: Áreas apiladas ──────────────────────────────────── */}
-      <div className="absolute inset-0" style={{ top: 22 }}>
+      <div className="relative min-h-0 flex-1">
+      <div className="absolute inset-0">
         <ResponsiveLine
           data={areaSeries}
           theme={nivoTheme}
@@ -453,7 +464,7 @@ export default function CapacidadEmbalseChart({ data, height = 340 }: Props) {
           axisBottom={{
             tickSize: 0,
             tickPadding: 8,
-            tickRotation: -45,
+            tickRotation: isNarrow ? 0 : -45,
             tickValues: tickFechas,
             format: formatDate,
             legend: "",
@@ -464,7 +475,7 @@ export default function CapacidadEmbalseChart({ data, height = 340 }: Props) {
             tickPadding: 8,
             tickValues: 6,
             format: (v: number) => `${(v / 1000).toFixed(0)}k`,
-            legend: "GWh",
+            legend: isNarrow ? "" : "GWh",
             legendOffset: -50,
             legendPosition: "middle",
           }}
@@ -482,7 +493,7 @@ export default function CapacidadEmbalseChart({ data, height = 340 }: Props) {
       </div>
 
       {/* ── FRENTE: Líneas de % (transparente, solo líneas) ────────── */}
-      <div className="absolute inset-0 pointer-events-none" style={{ top: 22 }}>
+      <div className="absolute inset-0 pointer-events-none">
         <div className="w-full h-full pointer-events-auto">
           <ResponsiveLine
             data={lineSeries}
@@ -499,7 +510,7 @@ export default function CapacidadEmbalseChart({ data, height = 340 }: Props) {
               tickPadding: 8,
               tickValues: [0, 0.2, 0.4, 0.6, 0.8, 1.0].map((v) => v * yMax),
               format: (v: number) => `${Math.round((v / yMax) * 100)} %`,
-              legend: "% Capacidad",
+              legend: isNarrow ? "" : "% Capacidad",
               legendOffset: 50,
               legendPosition: "middle",
             }}
@@ -523,6 +534,7 @@ export default function CapacidadEmbalseChart({ data, height = 340 }: Props) {
             ]}
           />
         </div>
+      </div>
       </div>
     </div>
   );

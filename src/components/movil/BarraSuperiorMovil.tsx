@@ -41,7 +41,7 @@ export default function BarraSuperiorMovil() {
     <>
       <header
         ref={barraRef}
-        className="fixed inset-x-0 top-0 z-50 border-b border-theme-card backdrop-blur-md md:hidden print:hidden"
+        className="fixed inset-x-0 top-0 z-[1100] border-b border-theme-card backdrop-blur-md md:hidden print:hidden"
         style={{
           paddingTop: 'env(safe-area-inset-top)',
           background: 'color-mix(in srgb, var(--bg-primary) 88%, transparent)',

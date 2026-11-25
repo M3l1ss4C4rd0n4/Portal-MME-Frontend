@@ -18,7 +18,7 @@ import {
 
 import DashboardLayout from "@/components/DashboardLayout";
 import EmbalseHeroCard from "@/components/predictions/EmbalseHeroCard";
-import PredictionLineChart from "@/components/predictions/PredictionLineChart";
+import ProyeccionConFiltro from "@/components/predictions/ProyeccionConFiltro";
 import MetricPredictionCard from "@/components/predictions/MetricPredictionCard";
 import type { MetricSummary, PredictionPoint } from "@/types/predictions";
 import { fmtDate, fmtShortDate, clampPct } from "@/types/predictions";
@@ -226,8 +226,8 @@ export default function PrediccionesSinPage() {
               )}
             </div>
 
-            <PredictionLineChart
-              data={data.embalses.prediccion}
+            <ProyeccionConFiltro
+              prediccion={data.embalses.prediccion}
               height={isNarrow ? 300 : 380}
               peakDate={data.embalses.pico?.fecha}
               threshold80Date={

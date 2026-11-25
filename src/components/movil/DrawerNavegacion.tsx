@@ -1,17 +1,20 @@
 'use client';
 
-import { useEffect, useState, type ComponentType, type SVGProps } from 'react';
+import { useEffect, useState, useSyncExternalStore, type ComponentType, type SVGProps } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowTopRightOnSquareIcon, BoltIcon, BriefcaseIcon, ChevronDownIcon, FireIcon,
-  HomeIcon, PencilSquareIcon, SparklesIcon, UserGroupIcon, XMarkIcon,
+  HomeIcon, PencilSquareIcon, UserGroupIcon, XMarkIcon,
 } from '@heroicons/react/24/outline';
+import HistorialChats from '@/components/movil/HistorialChats';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import { useTheme } from '@/providers/ThemeProvider';
 import { visibleNavItems, type NavChild, type NavGrandchild } from '@/lib/navegacionPortal';
 import { EVENTO_NUEVO_CHAT, RUTA_ASISTENTE, esRutaActiva } from '@/lib/navegacionMovil';
+import { EVENTO_ABRIR_CHAT } from '@/lib/historialChats';
 
 type Icono = ComponentType<SVGProps<SVGSVGElement>>;
 type Rama = NavChild | NavGrandchild;
@@ -114,13 +117,25 @@ export default function DrawerNavegacion({ abierto, onCerrar }: { abierto: boole
     onCerrar();
   };
 
-  return (
+  // Fuera de /asistente se navega con ?chat=<id>; la página lo abre al montarse.
+  const abrirChat = (id: string) => {
+    if (esRutaActiva(pathname, RUTA_ASISTENTE)) window.dispatchEvent(new CustomEvent(EVENTO_ABRIR_CHAT, { detail: id }));
+    else router.push(`${RUTA_ASISTENTE}?chat=${encodeURIComponent(id)}`);
+    onCerrar();
+  };
+
+  // Se pinta directamente en <body>: así queda por encima de los mapas (Leaflet
+  // usa z-index de hasta 1000) y del botón flotante, sin depender de la barra superior.
+  const montado = useSyncExternalStore(() => () => {}, () => true, () => false);
+  if (!montado) return null;
+
+  return createPortal(
     <AnimatePresence>
       {abierto && (
         <>
           <motion.div
             key="fondo"
-            className="fixed inset-0 z-[60] bg-black/55 md:hidden"
+            className="fixed inset-0 z-[10000] bg-black/55 md:hidden"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onCerrar}
             aria-hidden="true"
@@ -130,7 +145,7 @@ export default function DrawerNavegacion({ abierto, onCerrar }: { abierto: boole
             role="dialog"
             aria-modal="true"
             aria-label="Menú de navegación"
-            className="fixed inset-y-0 left-0 z-[61] flex w-[86vw] max-w-[320px] flex-col bg-theme-secondary shadow-2xl md:hidden"
+            className="fixed inset-y-0 left-0 z-[10001] flex w-[86vw] max-w-[320px] flex-col bg-theme-secondary shadow-2xl md:hidden"
             style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
             initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
             transition={{ type: 'tween', duration: 0.22, ease: 'easeOut' }}
@@ -153,7 +168,7 @@ export default function DrawerNavegacion({ abierto, onCerrar }: { abierto: boole
             </div>
 
             <nav aria-label="Secciones del portal" className="flex-1 space-y-0.5 overflow-y-auto px-3 pb-4">
-              <Enlace rama={{ label: 'Asistente IA', href: RUTA_ASISTENTE }} pathname={pathname} onNavegar={onCerrar} Icono={SparklesIcon} />
+              <HistorialChats activa={esRutaActiva(pathname, RUTA_ASISTENTE)} alAbrirChat={abrirChat} />
               <p className="px-3 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wider text-theme-muted">Tableros</p>
               <Link href="/" onClick={onCerrar}
                 className={`${CLASE_FILA} ${pathname === '/' ? 'bg-theme-hover font-semibold text-gold' : 'text-theme-secondary active:bg-theme-hover'}`}>
@@ -177,6 +192,7 @@ export default function DrawerNavegacion({ abierto, onCerrar }: { abierto: boole
           </motion.aside>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

@@ -15,6 +15,11 @@ import {
 import { Burbuja } from "@/components/asistente/Burbuja";
 import { SECTION_PROMPTS } from "@/lib/asistenteSecciones";
 import { EVENTO_NUEVO_CHAT } from "@/lib/navegacionMovil";
+import { useAlturaTeclado } from "@/hooks/useAlturaTeclado";
+import {
+  EVENTO_ABRIR_CHAT, EVENTO_HISTORIAL, cargarEstado, crearId, guardarConversacion, guardarEstado,
+  type MensajeGuardado,
+} from "@/lib/historialChats";
 
 const ALTO_MAX_CAMPO_PX = 128;
 
@@ -32,22 +37,59 @@ export default function AsistentePage() {
     mensajes, enviando, herramientaActiva,
     archivo, errorArchivo, fileInputRef,
     seleccionarArchivo, setArchivo,
-    enviar, regenerar, enviarFeedback, reiniciar,
+    enviar, regenerar, enviarFeedback, reiniciar, cargar,
   } = useAsistenteChat();
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const campoRef = useRef<HTMLTextAreaElement>(null);
   const voz = useAsistenteVoz();
+  const alturaTeclado = useAlturaTeclado();
+  // Conversación en curso dentro del historial guardado en este dispositivo.
+  const conversacionId = useRef<string | null>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [mensajes]);
+  }, [mensajes, alturaTeclado]);
 
   // «Nuevo chat» de la barra superior y del cajón móvil.
-  useEffect(() => {
-    window.addEventListener(EVENTO_NUEVO_CHAT, reiniciar);
-    return () => window.removeEventListener(EVENTO_NUEVO_CHAT, reiniciar);
+  const nuevoChat = useCallback(() => {
+    conversacionId.current = null;
+    reiniciar();
   }, [reiniciar]);
+  useEffect(() => {
+    window.addEventListener(EVENTO_NUEVO_CHAT, nuevoChat);
+    return () => window.removeEventListener(EVENTO_NUEVO_CHAT, nuevoChat);
+  }, [nuevoChat]);
+
+  // Abrir un chat del historial (desde el cajón, o con ?chat=<id> al llegar desde otra página).
+  const abrirGuardado = useCallback((id: string) => {
+    const guardado = cargarEstado().conversaciones.find((c) => c.id === id);
+    if (!guardado) return;
+    conversacionId.current = guardado.id;
+    cargar(guardado.mensajes);
+  }, [cargar]);
+  useEffect(() => {
+    const alAbrir = (e: Event) => abrirGuardado(String((e as CustomEvent).detail));
+    window.addEventListener(EVENTO_ABRIR_CHAT, alAbrir);
+    const id = new URLSearchParams(window.location.search).get("chat");
+    if (id) {
+      abrirGuardado(id);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+    return () => window.removeEventListener(EVENTO_ABRIR_CHAT, alAbrir);
+  }, [abrirGuardado]);
+
+  // Guarda la conversación en el historial al terminar cada respuesta.
+  useEffect(() => {
+    if (enviando || !mensajes.some((m) => m.role === "user")) return;
+    const id = conversacionId.current ?? (conversacionId.current = crearId());
+    const guardables: MensajeGuardado[] = mensajes.map((m) => ({
+      role: m.role, content: m.content, nombreArchivo: m.nombreArchivo,
+      toolsUsadas: m.toolsUsadas, turnoId: m.turnoId, feedbackDado: m.feedbackDado,
+    }));
+    guardarEstado(guardarConversacion(cargarEstado(), { id, mensajes: guardables }, Date.now()));
+    window.dispatchEvent(new Event(EVENTO_HISTORIAL));
+  }, [mensajes, enviando]);
 
   const ajustarAlto = useCallback(() => {
     const campo = campoRef.current;
@@ -66,7 +108,10 @@ export default function AsistentePage() {
   );
 
   return (
-    <div className="h-dvh flex bg-theme-primary pt-[var(--topbar-h)] md:pt-24">
+    <div
+      className="h-dvh flex bg-theme-primary pt-[var(--topbar-h)] md:pt-24"
+      style={alturaTeclado ? { paddingBottom: alturaTeclado } : undefined}
+    >
       {/* ── Barra lateral permanente — mismos accesos a secciones que el drawer del
           portal, siempre visibles para aprovechar el ancho disponible en esta página ── */}
       <aside className="hidden lg:flex w-72 shrink-0 flex-col gap-2 border-r border-theme-card px-4 py-6 overflow-y-auto">
@@ -229,7 +274,7 @@ export default function AsistentePage() {
                   e.preventDefault();
                   seleccionarArchivo(item.getAsFile());
                 }}
-                placeholder="Escribe tu pregunta…"
+                placeholder="Pregunte aquí…"
                 rows={1}
                 disabled={enviando}
                 className="flex-1 resize-none bg-transparent border-none px-2 py-2.5 text-base md:py-1.5 md:text-sm text-theme-primary placeholder:text-theme-muted focus:outline-none disabled:opacity-60"

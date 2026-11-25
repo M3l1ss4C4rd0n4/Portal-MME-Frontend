@@ -657,7 +657,7 @@ export default function GestionSectorPage() {
               <p className="text-[10px] text-theme-muted mt-0.5">Últimos 7 días · promedio diario</p>
             </div>
 
-            <div className="relative flex-1 min-h-0">
+            <div className="relative flex-1 min-h-0 max-lg:h-60 max-lg:flex-none">
               <div className="absolute inset-0">
                 <ResponsivePie
                   data={sectorDetalle.generacionPorFuente}
@@ -669,7 +669,7 @@ export default function GestionSectorPage() {
                   activeOuterRadiusOffset={6}
                   colors={{ datum: "data.color" }}
                   borderWidth={0}
-                  enableArcLinkLabels={true}
+                  enableArcLinkLabels={!isNarrow}
                   arcLinkLabelsSkipAngle={10}
                   arcLinkLabelsTextColor="#94A3B8"
                   arcLinkLabelsThickness={1}
@@ -735,7 +735,7 @@ export default function GestionSectorPage() {
               </p>
             </div>
 
-            <div className="relative flex-1 min-h-0">
+            <div className="relative flex-1 min-h-0 max-lg:h-64 max-lg:flex-none">
               <div className="absolute inset-0">
                 <ResponsiveLine
                   data={sectorDetalle.precioBolsaSeries}
@@ -754,7 +754,11 @@ export default function GestionSectorPage() {
                     // En 360 px las etiquetas rotadas se cortan: se muestran
                     // menos días y sin rotación; el escritorio conserva -45°.
                     tickRotation: isNarrow ? 0 : -45,
-                    tickValues: isNarrow ? "every 6 days" : "every 3 days",
+                    tickValues: isNarrow
+                      ? (sectorDetalle.precioBolsaSeries[0]?.data ?? [])
+                          .filter((_, i) => i % 6 === 0)
+                          .map((d) => d.x)
+                      : "every 3 days",
                     format: (value) => {
                       const dataPoint = sectorDetalle.precioBolsaSeries[0]?.data.find(
                         (d) => d.x === value
@@ -813,10 +817,10 @@ export default function GestionSectorPage() {
             </div>
 
             {capacidadEmbalseData && !capacidadEmbalseData.error ? (
-              <div className="h-[280px]">
+              <div className="h-[340px] lg:h-[280px]">
                 <CapacidadEmbalseChart
                   data={capacidadEmbalseData}
-                  height={280}
+                  height={isNarrow ? 340 : 280}
                 />
               </div>
             ) : (

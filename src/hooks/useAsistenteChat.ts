@@ -318,6 +318,15 @@ export function useAsistenteChat() {
     setHerramientaActiva(null);
   }, []);
 
+  /** Abre una conversación guardada: cancela lo que esté en curso y carga sus mensajes. */
+  const cargar = useCallback((guardados: AsistenteMensaje[]) => {
+    controladorRef.current?.abort();
+    setMensajes(guardados);
+    setArchivo(null);
+    setErrorArchivo(null);
+    setHerramientaActiva(null);
+  }, []);
+
   return {
     mensajes,
     enviando,
@@ -332,5 +341,6 @@ export function useAsistenteChat() {
     regenerar,
     enviarFeedback,
     reiniciar,
+    cargar,
   };
 }

@@ -69,9 +69,9 @@ export default function EmbalseHeroCard({
         style={{ background: "var(--glow-gold)" }}
       />
 
-      <div className="relative grid grid-cols-1 lg:grid-cols-[1.1fr_auto_1.3fr] gap-6 lg:gap-8 divide-y lg:divide-y-0 lg:divide-x divide-white/5">
+      <div className="relative grid grid-cols-1 lg:grid-cols-[1.1fr_auto_1.3fr] gap-4 lg:gap-8 divide-y lg:divide-y-0 lg:divide-x divide-white/5">
         {/* Izquierda: actual */}
-        <div className="relative pb-6 lg:pb-0 lg:pr-8">
+        <div className="relative pb-4 lg:pb-0 lg:pr-8">
           <Droplets className="pointer-events-none hidden md:block absolute right-0 top-0 w-24 h-24 text-blue-400/[0.06]" />
           <div className="flex items-center gap-2 mb-2">
             <Droplets className="w-4 h-4 text-blue-400" />
@@ -95,7 +95,7 @@ export default function EmbalseHeroCard({
         </div>
 
         {/* Centro: flecha + pico */}
-        <div className="flex items-center gap-4 lg:gap-6 justify-start lg:justify-center py-2 lg:py-0 lg:px-4">
+        <div className="flex items-center gap-4 lg:gap-6 justify-start lg:justify-center lg:py-0 lg:px-4">
           <div className="hidden lg:flex flex-col items-center text-theme-muted">
             <TendenciaIcon className="w-8 h-8" style={{ color: tendenciaColor }} />
             <span className="text-[9px] uppercase mt-1" style={{ color: tendenciaColor }}>
@@ -103,8 +103,8 @@ export default function EmbalseHeroCard({
             </span>
           </div>
 
-          <div className="relative overflow-hidden bg-theme-primary/40 rounded-xl px-6 py-5 border border-white/5">
-            <TrendingUp className="pointer-events-none absolute -right-3 -bottom-3 w-20 h-20 text-gold/[0.08]" />
+          <div className="relative w-full overflow-hidden bg-theme-primary/40 rounded-xl px-4 py-4 sm:px-6 sm:py-5 border border-white/5 lg:w-auto">
+            <TrendingUp className="pointer-events-none absolute max-md:hidden -right-3 -bottom-3 w-20 h-20 text-gold/[0.08]" />
             <div className="relative flex items-center gap-2 mb-1">
               <span className="text-[10px] font-bold tracking-widest text-gold uppercase">
                 Pico proyectado
@@ -127,7 +127,7 @@ export default function EmbalseHeroCard({
         </div>
 
         {/* Derecha: señales */}
-        <div className="space-y-3 pt-6 lg:pt-0 lg:pl-8">
+        <div className="space-y-3 pt-4 lg:pt-0 lg:pl-8">
           <div className="flex items-center justify-between bg-theme-primary/30 hover:bg-theme-primary/50 rounded-lg px-4 py-3 border border-white/5 transition-colors duration-200">
             <div className="flex items-center gap-2">
               <CloudSun className="w-4 h-4" style={{ color: oniColor }} />
