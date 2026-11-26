@@ -24,9 +24,11 @@ export async function POST(request: NextRequest) {
   });
 
   if (!backendResponse.ok || !backendResponse.body) {
+    // El texto de error interno del backend se registra en el servidor y no se devuelve al navegador.
     const detalle = await backendResponse.text().catch(() => "");
+    console.error("[api/asistente] Error del backend:", backendResponse.status, detalle);
     return new Response(
-      JSON.stringify({ error: "Error del backend al generar la respuesta", detalle }),
+      JSON.stringify({ error: "Error del backend al generar la respuesta" }),
       { status: backendResponse.status || 502, headers: { "Content-Type": "application/json" } }
     );
   }

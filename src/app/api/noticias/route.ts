@@ -154,7 +154,9 @@ export async function GET() {
     // No se propaga el error al cliente, pero sí se deja registrado: un
     // AbortError por timeout y una caída del orquestador necesitan respuestas
     // distintas y antes eran indistinguibles.
+    // El detalle técnico queda en el registro del servidor; al navegador solo llega un código genérico.
     const detalle = error instanceof Error ? `${error.name}: ${error.message}` : "desconocido";
-    return sinNoticias(detalle);
+    console.error("[API noticias] Excepción:", detalle);
+    return sinNoticias("error_inesperado");
   }
 }

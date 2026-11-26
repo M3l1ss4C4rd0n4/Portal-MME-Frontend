@@ -18,9 +18,9 @@ export async function POST() {
     });
   } catch (error) {
     const status = error instanceof BackendError ? error.status : 502;
-    const detalle = error instanceof Error ? error.message : String(error);
+    console.error("[api/voz/token]", error);
     return new Response(
-      JSON.stringify({ error: "No se pudo iniciar la sesión de voz", detalle }),
+      JSON.stringify({ error: "No se pudo iniciar la sesión de voz" }),
       { status, headers: { "Content-Type": "application/json" } }
     );
   }

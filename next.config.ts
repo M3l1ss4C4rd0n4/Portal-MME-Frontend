@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
   trailingSlash: true,
+  // No anunciar el framework en cada respuesta («X-Powered-By: Next.js»).
+  poweredByHeader: false,
   
   // Redirecciones para compatibilidad con rutas antiguas
   async redirects() {

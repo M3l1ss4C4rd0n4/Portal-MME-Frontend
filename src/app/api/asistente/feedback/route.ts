@@ -14,9 +14,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data);
   } catch (error) {
     const status = error instanceof BackendError ? error.status : 502;
-    const detalle = error instanceof Error ? error.message : String(error);
+    console.error("[api/asistente/feedback]", error);
     return NextResponse.json(
-      { error: "No se pudo registrar el feedback", detalle },
+      { error: "No se pudo registrar el feedback" },
       { status }
     );
   }

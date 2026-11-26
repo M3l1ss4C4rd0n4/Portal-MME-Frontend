@@ -119,7 +119,9 @@ export async function GET() {
 
     return NextResponse.json({ noticias, fetchedAt: new Date().toISOString() });
   } catch (error: unknown) {
+    // El detalle técnico queda en el registro del servidor; al navegador solo llega un código genérico.
     const detalle = error instanceof Error ? `${error.name}: ${error.message}` : "desconocido";
-    return sinNoticias(detalle);
+    console.error("[API noticias] Excepción:", detalle);
+    return sinNoticias("error_inesperado");
   }
 }
